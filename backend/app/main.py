@@ -2,10 +2,12 @@ from fastapi import FastAPI
 from app.db.session import pool
 from app.api import workspaces
 from fastapi.middleware.cors import CORSMiddleware
+from app.api import workspaces, documents
 
 
 app = FastAPI(title="Eryysyn")
 app.include_router(workspaces.router)
+app.include_router(documents.router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,6 +21,7 @@ def health():
     with pool.connection() as conn:
         row = conn.execute("select 1").fetchone()
     return {"status": "ok", "db": row[0] == 1}
+
 
 
 

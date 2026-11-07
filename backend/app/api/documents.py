@@ -1,3 +1,55 @@
+import uuid
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from app.core.auth import get_current_user_id
+from app.core.storage import supabase, BUCKET
+from app.db.session import pool
+
+router = APIRouter(tags=["documents"])
+MAX_BYTES = 20 * 1024 * 1024  # 20 MB
+
+
+@router.post("/workspaces/{workspace_id}/documents", status_code=201)
+def upload_document(
+    workspace_id: uuid.UUID,
+    file: UploadFile,
+    user_id: str = Depends(get_current_user_id),
+):
+    # 1. ownership check
+    with pool.connection() as conn:
+        owned = conn.execute(
+            "select 1 from workspaces where id = %s and owner_id = %s",
+            (workspace_id, user_id),
+        ).fetchone()
+    if not owned:
+        raise HTTPException(404, "Workspace not found")
+
+    # 2. validate size and type
+    data = file.file.read(MAX_BYTES + 1)
+    if len(data) > MAX_BYTES:
+        raise HTTPException(413, "File too large")
+    if not data.startswith(b"%PDF"):
+        raise HTTPException(415, "Not a PDF")
+
+    # 3. save the original, then the row
+    doc_id = uuid.uuid4()
+    path = f"{workspace_id}/{doc_id}.pdf"
+    supabase.storage.from_(BUCKET).upload(
+        path, data, {"content-type": "application/pdf"}
+    )
+    try:
+        with pool.connection() as conn:
+            conn.execute(
+                "insert into documents (id, workspace_id, filename, storage_path) "
+                "values (%s, %s, %s, %s)",
+                (doc_id, workspace_id, file.filename, path),
+            )
+    except Exception:
+        supabase.storage.from_(BUCKET).remove([path])  # no orphaned files
+        raise
+
+    return {"id": str(doc_id), "filename": file.filename, "status": "uploaded"}
+
+
 @router.get("/workspaces/{workspace_id}/documents")
 def list_documents(
     workspace_id: uuid.UUID,
@@ -16,8 +68,6 @@ def list_documents(
         for r in rows
     ]
 
-
-    
 
 @router.delete("/documents/{document_id}", status_code=204)
 def delete_document(
