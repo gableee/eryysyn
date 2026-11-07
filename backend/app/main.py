@@ -1,10 +1,18 @@
 from fastapi import FastAPI
 from app.db.session import pool
 from app.api import workspaces
+from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI(title="Eryysyn")
 app.include_router(workspaces.router)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/health")
 def health():
