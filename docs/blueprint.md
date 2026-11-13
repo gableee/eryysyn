@@ -29,6 +29,12 @@ Grounding rule: the LLM answers only from retrieved passages and says “not fou
 - Reason: Past answers stay honest about what they were based on.
 - Cost accepted: Slight data duplication, and a nullable foreign key.
 
+### ADR-004: Chunk within pages
+
+- Decision: Chunks are built page by page, never across a page break.
+- Reason: Each chunk has one exact page, so citations are precise and verifiable.
+- Cost accepted: Ideas that cross a page break are split, so retrieval may miss context.
+
 ## 4. Architecture (next)
 ## 5. Database schema (next)
 ## 6. API contracts (later)
