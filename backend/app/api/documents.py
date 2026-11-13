@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from app.core.auth import get_current_user_id
 from app.core.storage import supabase, BUCKET
 from app.db.session import pool
+from app.services.indexing import index_from_storage
 
 router = APIRouter(tags=["documents"])
 MAX_BYTES = 20 * 1024 * 1024  # 20 MB
@@ -47,7 +48,29 @@ def upload_document(
         supabase.storage.from_(BUCKET).remove([path])  # no orphaned files
         raise
 
-    return {"id": str(doc_id), "filename": file.filename, "status": "uploaded"}
+    # 4. index synchronously. If it fails the document stays, marked 'failed', and can be retried.
+    status = index_from_storage(doc_id, workspace_id, path)
+
+    return {"id": str(doc_id), "filename": file.filename, "status": status}
+
+
+@router.post("/documents/{document_id}/index")
+def reindex_document(
+    document_id: uuid.UUID,
+    user_id: str = Depends(get_current_user_id),
+):
+    """Retry (or redo) indexing. Replaces any existing chunks of this document."""
+    with pool.connection() as conn:
+        row = conn.execute(
+            "select d.workspace_id, d.storage_path from documents d "
+            "join workspaces w on w.id = d.workspace_id "
+            "where d.id = %s and w.owner_id = %s",
+            (document_id, user_id),
+        ).fetchone()
+    if not row:
+        raise HTTPException(404, "Document not found")
+    status = index_from_storage(document_id, row[0], row[1])
+    return {"id": str(document_id), "status": status}
 
 
 @router.get("/workspaces/{workspace_id}/documents")
