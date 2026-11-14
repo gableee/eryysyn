@@ -109,6 +109,11 @@ Measured by me in scratch.py:
 
 **Model choice.** Started with bge-small-en-v1.5 (384 dims, 512 tokens). Compare with all-MiniLM-L6-v2 using a real evaluation set. Criteria: language, max tokens vs chunk size, hardware, vector size, privacy, license, then measure on my own documents (MTEB retrieval score only as a shortlist). GPU (RTX 5060, cuda:0) is used automatically, but code must also work on CPU.
 
+**Retrieval findings (real PDF, k=4, bge-small):**
+- "What is a conflict of interest?" -> p11 first (0.774), next 0.636: clear gap.
+- "Why should developers tell customers about risks?" -> p10 (0.741) then p11 (0.709): both relevant, small gap. The best passage was ranked 2nd, so retrieval gives candidates and the LLM/citations must handle it.
+- Off-topic "bake a chocolate cake" -> best 0.431, the rest ~0.36. Clearly lower than on-topic (0.64-0.77), but the tiny chunk "1. Introduction" ranked first: tiny chunks are noise. Revisit with the eval set. Pick a refusal threshold only after measuring.
+
 ## 9. Roadmap and where I am
 
 | Phase | Subject | Status |
@@ -146,7 +151,8 @@ Principle: Understand -> Implement -> Evaluate -> Improve. Every technology must
 - [ ] Tiny chunks (e.g. 2-14 tokens: a heading alone at a page end, e-mail line). Decide: min-size merge/filter, or accept and measure with the eval set.
 - [x] chunks table created in Supabase via `backend/migrations/001_chunks.sql` (vector(384), HNSW cosine, workspace_id index, RLS on with no policies).
 - [x] Step 4 done: `rag/embed.py` (bge, query prefix, normalized), `services/indexing.py` (extract->chunk->embed->insert in ONE transaction, all or nothing), upload now indexes synchronously (status uploaded->indexed|failed), `POST /documents/{id}/index` retries/re-indexes. Tests: `tests/test_indexing.py`.
-- [ ] Next: step 5 retrieval (embed question, search chunks filtered by workspace, top-k with pages).
-- [ ] Add ADR-004 and the "different from ChatGPT" line to docs/blueprint.md.
+- [x] Step 5 retrieval done: `services/retrieval.py` (`search_chunks`, cosine `<=>`, WHERE workspace_id + embedding_model, hnsw.iterative_scan) and `POST /workspaces/{id}/search` (owner check, 404, k 1-20). Tests: `tests/test_search.py`. Pushed steps 1-4 to origin/main.
+- [ ] Next: step 6 generation (prompt with grounding rule, LLM call behind one function in `llm/`, answer + citations, refusal with `citations: []`).
+- [x] ADR-004 added to docs/blueprint.md. [ ] "different from ChatGPT" line still to add.
 - [ ] Commit pending work.
 - Later: register screen, RLS (Phase 4), background workers (Phase 8), pip freeze / dependency list.
