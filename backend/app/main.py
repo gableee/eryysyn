@@ -1,14 +1,14 @@
 from fastapi import FastAPI
 from app.db.session import pool
-from app.api import workspaces
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import workspaces, documents, search
+from app.api import workspaces, documents, search, conversations
 
 
 app = FastAPI(title="Eryysyn")
 app.include_router(workspaces.router)
 app.include_router(documents.router)
 app.include_router(search.router)
+app.include_router(conversations.router)
 
 app.add_middleware(
     CORSMiddleware,
