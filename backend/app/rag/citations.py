@@ -31,8 +31,10 @@ def parse_answer(raw: str, passage_count: int) -> ParsedAnswer:
 
     # 1. Rewrite every numeric bracket as separate markers, keeping only numbers that exist.
     #    "[1, 9]" with 2 passages -> "[1]".   "[9]" -> "" (the model invented it).
+    #    Numbers longer than 6 digits are skipped before int(): no passage number is that big, and
+    #    Python raises ValueError when asked to convert a string of more than 4300 digits.
     def keep_valid(match: re.Match) -> str:
-        numbers = [int(x) for x in re.findall(r"\d+", match.group())]
+        numbers = [int(x) for x in re.findall(r"\d+", match.group()) if len(x) <= 6]
         return "".join(f"[{n}]" for n in numbers if 1 <= n <= passage_count)
 
     text = _GROUP.sub(keep_valid, raw)

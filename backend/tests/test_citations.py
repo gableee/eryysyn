@@ -50,5 +50,12 @@ def test_an_answer_with_no_valid_citation_becomes_a_refusal():
     assert parse_answer("Paris is the capital [7].", passage_count=2) == REFUSED
 
 
+def test_an_absurdly_long_number_is_dropped_instead_of_crashing():
+    # Python refuses to convert a string of more than 4300 digits to int (ValueError).
+    # A document could trick the model into writing one, so it must count as "not a real passage".
+    p = parse_answer("Real [1]. Huge [" + "9" * 5000 + "].", passage_count=2)
+    assert p.cited == [1] and "999" not in p.text
+
+
 def test_empty_reply_is_a_refusal():
     assert parse_answer("   ", passage_count=2) == REFUSED
