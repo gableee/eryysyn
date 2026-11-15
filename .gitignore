@@ -155,3 +155,5 @@ vite.config.ts.timestamp-*
 __pycache__/
 *.pyc
 scratch/
+# Brainstorm and plan workspace (mockup server, execution ledger)
+.superpowers/

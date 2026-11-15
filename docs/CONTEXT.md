@@ -156,3 +156,4 @@ Principle: Understand -> Implement -> Evaluate -> Improve. Every technology must
 - [x] ADR-004 added to docs/blueprint.md. [ ] "different from ChatGPT" line still to add.
 - [ ] Commit pending work.
 - Later: register screen, RLS (Phase 4), background workers (Phase 8), pip freeze / dependency list.
+- Frontend design (2026-11-15): themes, layout, all pages incl. Reader, Notes, Bookmarks, Study, Voice. See `docs/superpowers/specs/2026-11-15-frontend-design.md` and mockups beside it. Design only, build order unchanged (step 6 first).

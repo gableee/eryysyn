@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en" data-mode="light" data-theme="sage">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eryysyn layout options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ---------- theme tokens: 3 themes x 2 modes ---------- */
+  html[data-theme="paper"] { --bg:#F7F3EA; --surface:#FFFDF8; --side:#F1ECDF; --ink:#1F1B16; --muted:#6B6257; --line:#E0D8C8;
+    --accent:#1F3A5F; --on-accent:#fff; --soft:#E4EAF2; --ok:#2E6B47; --warn:#8A5A12; --err:#9C2F2F;
+    --r:4px; --r-lg:6px; --font:Inter, system-ui, sans-serif; --head:Newsreader, Georgia, serif; --read:Newsreader, Georgia, serif; --read-size:17px; --shadow:none; }
+  html[data-theme="paper"][data-mode="dark"] { --bg:#1A1815; --surface:#23201C; --side:#161412; --ink:#EDE6D9; --muted:#A89F91; --line:#38332C;
+    --accent:#9DB8E0; --on-accent:#14202F; --soft:#2A3442; --ok:#86C7A0; --warn:#E0B36A; --err:#E89090; }
+  html[data-theme="slate"] { --bg:#F6F7F9; --surface:#FFFFFF; --side:#FBFBFC; --ink:#111827; --muted:#5B6472; --line:#E2E5EA;
+    --accent:#4F46E5; --on-accent:#fff; --soft:#EEF0FF; --ok:#17794A; --warn:#92600A; --err:#B42318;
+    --r:6px; --r-lg:8px; --font:Inter, system-ui, sans-serif; --head:Inter, system-ui, sans-serif; --read:Inter, system-ui, sans-serif; --read-size:14.5px; --shadow:0 1px 2px rgba(16,24,40,.06); }
+  html[data-theme="slate"][data-mode="dark"] { --bg:#0E1013; --surface:#16191E; --side:#111317; --ink:#E6E8EC; --muted:#9099A6; --line:#262B33;
+    --accent:#8B8CF8; --on-accent:#0E1013; --soft:#1E2140; --ok:#5FCB94; --warn:#E3B45F; --err:#F38B80; --shadow:none; }
+  html[data-theme="sage"] { --bg:#EFF3EE; --surface:#FBFCFA; --side:#E7EDE6; --ink:#1E2A24; --muted:#56655C; --line:#D8E1D8;
+    --accent:#3F6B57; --on-accent:#fff; --soft:#DCE9E0; --ok:#2F6F4F; --warn:#85601A; --err:#A33B3B;
+    --r:12px; --r-lg:18px; --font:"DM Sans", system-ui, sans-serif; --head:"DM Sans", system-ui, sans-serif; --read:"DM Sans", system-ui, sans-serif; --read-size:15px; --shadow:0 8px 24px rgba(40,70,55,.08); }
+  html[data-theme="sage"][data-mode="dark"] { --bg:#121815; --surface:#1A221E; --side:#0F1512; --ink:#E3EBE5; --muted:#93A39A; --line:#2A352F;
+    --accent:#8FC3A8; --on-accent:#10201A; --soft:#223129; --ok:#8FC3A8; --warn:#DDB872; --err:#E69A9A; --shadow:0 8px 24px rgba(0,0,0,.3); }
+
+  /* ---------- page ---------- */
+  body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--font); padding: 0 24px 80px; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+  .top { position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 1px solid var(--line);
+         display: flex; align-items: center; gap: 16px; padding: 16px 0; margin-bottom: 32px; flex-wrap: wrap; }
+  .top h1 { font: 600 20px/1.2 var(--head); }
+  .top p { color: var(--muted); flex: 1; min-width: 240px; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 999px; padding: 4px; background: var(--surface); }
+  .seg button { border: 0; background: none; color: var(--muted); font-weight: 500; padding: 8px 16px; border-radius: 999px; }
+  .seg button.on { background: var(--accent); color: var(--on-accent); }
+  h2 { font: 600 22px/1.2 var(--head); }
+  .lead { color: var(--muted); max-width: 72ch; margin: 4px 0 16px; }
+  .later { font: 600 10px/1 var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--warn); border: 1px solid currentColor;
+           border-radius: 999px; padding: 3px 6px; margin-left: auto; white-space: nowrap; }
+  .next { color: var(--accent); }
+
+  /* feature map */
+  .map { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 56px; }
+  .col { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px; box-shadow: var(--shadow); }
+  .col h3 { font: 600 16px/1.2 var(--head); margin-bottom: 4px; }
+  .col > small { color: var(--muted); display: block; margin-bottom: 12px; }
+  .col ul { list-style: none; }
+  .col li { padding: 8px 0; border-top: 1px solid var(--line); }
+  .col li b { font-weight: 600; display: block; }
+  .col li span { color: var(--muted); font-size: 13px; }
+
+  /* option header */
+  .opt { margin-bottom: 56px; }
+  .opt-head { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tag { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .opt-head .desc { color: var(--muted); flex: 1; min-width: 260px; }
+  .pick { border: 1px solid var(--line); background: var(--surface); font-weight: 600; padding: 12px 24px; border-radius: var(--r); }
+  .pick.selected { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .pick.selected::before { content: "✓ "; }
+  .pc { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+  .pc div { font-size: 13px; color: var(--muted); }
+  .pc b { color: var(--ink); display: block; margin-bottom: 4px; }
+  .scroll { overflow-x: auto; }
+
+  /* ---------- app shell pieces ---------- */
+  .app { min-width: 980px; height: 560px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; }
+  .logo { font: 600 18px/1 var(--head); }
+  .side { background: var(--side); border-right: 1px solid var(--line); padding: 16px 12px; display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
+  .ws { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 8px 12px; font-weight: 500; white-space: nowrap; }
+  .ws i { margin-left: auto; font-style: normal; color: var(--muted); }
+  .nav { display: flex; flex-direction: column; gap: 2px; }
+  .nav.h { flex-direction: row; gap: 4px; }
+  .ni { display: flex; align-items: center; gap: 8px; padding: 8px 12px; min-height: 36px; border-radius: var(--r); color: var(--muted); font-weight: 500; white-space: nowrap; }
+  .ni.on { background: var(--soft); color: var(--accent); }
+  .ni.off { opacity: .7; }
+  h4 { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .side h4 { padding: 0 12px; }
+  .rc { padding: 6px 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: var(--r); }
+  .rc.on { background: var(--surface); color: var(--ink); }
+  .foot { margin-top: auto; }
+  .bar { display: flex; align-items: center; gap: 16px; padding: 0 16px; height: 52px; border-bottom: 1px solid var(--line); background: var(--side); }
+  .find { flex: 1; max-width: 360px; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 8px 12px; color: var(--muted); }
+  .av { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font-weight: 600; font-size: 12px; }
+  .sp { margin-left: auto; }
+
+  .chat { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .ch { padding: 12px 24px; border-bottom: 1px solid var(--line); font: 600 15px/1.3 var(--head); display: flex; gap: 8px; align-items: center; }
+  .msgs { flex: 1; overflow: hidden; padding: 16px 24px; display: flex; flex-direction: column; gap: 16px; }
+  .q { align-self: flex-end; max-width: 80%; background: var(--soft); padding: 8px 16px; border-radius: var(--r-lg); }
+  .a { max-width: 60ch; font: 400 var(--read-size)/1.55 var(--read); }
+  .a p + p { margin-top: 8px; }
+  .cite { display: inline-grid; place-items: center; min-width: 22px; height: 22px; margin: 0 2px; vertical-align: 1px; font: 600 11px var(--font);
+          border: 1px solid var(--accent); color: var(--accent); border-radius: var(--r); }
+  .cite.on { background: var(--accent); color: var(--on-accent); }
+  .ask { padding: 12px 24px 16px; }
+  .scope { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; font-size: 12px; color: var(--muted); }
+  .chip { border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; font-weight: 500; display: inline-flex; gap: 6px; align-items: center; }
+  .chip.on { background: var(--soft); color: var(--accent); border-color: transparent; }
+  .chip .later { margin: 0; border: 0; padding: 0; }
+  .box { display: flex; gap: 8px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 6px 6px 6px 16px; box-shadow: var(--shadow); }
+  .box span { flex: 1; color: var(--muted); }
+  .send { border: 0; background: var(--accent); color: var(--on-accent); font-weight: 600; padding: 0 20px; height: 40px; border-radius: var(--r); }
+
+  .src { border-left: 1px solid var(--line); background: var(--side); padding: 16px; overflow: hidden; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 12px; margin-bottom: 12px; box-shadow: var(--shadow); }
+  .card.on { border-color: var(--accent); }
+  .ct { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; }
+  .ct b { flex: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ct span:last-child { color: var(--muted); font-size: 12px; }
+  .num { min-width: 22px; height: 22px; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); font-weight: 600; font-size: 11px; border-radius: var(--r); }
+  .card q { display: block; quotes: none; font: 400 13.5px/1.5 var(--read); border-left: 2px solid var(--accent); padding-left: 12px; }
+  .page { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px; font: 400 11px/1.6 var(--read); color: var(--muted); }
+  .page mark { background: var(--soft); color: var(--ink); }
+  .page b { display: block; font: 600 11px var(--font); color: var(--ink); margin-bottom: 4px; }
+
+  .docs { border-right: 1px solid var(--line); background: var(--side); padding: 16px 12px; overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
+  .up { border: 1.5px dashed var(--line); background: var(--surface); border-radius: var(--r); padding: 12px; text-align: center; font-weight: 600; color: var(--accent); }
+  .doc { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--r); }
+  .doc span:nth-child(2) { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ck { width: 14px; height: 14px; border: 1.5px solid var(--accent); border-radius: 3px; background: var(--accent); flex: none; }
+  .ck.no { background: none; border-color: var(--muted); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; }
+  .dot.w { background: var(--warn); } .dot.e { background: var(--err); }
+  .tabs { display: flex; gap: 4px; }
+
+  /* the three layouts */
+  .l1 { grid-template-columns: 216px 1fr 272px; }
+  .l2 { grid-template-rows: 52px 1fr; }
+  .l2 .body { display: grid; grid-template-columns: 232px 1fr 288px; min-height: 0; }
+  .l3 { grid-template-rows: 52px 1fr; }
+  .l3 .body { display: grid; grid-template-columns: 192px 1fr 272px; min-height: 0; }
+  .l3 .bar .ni { min-height: 36px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>Eryysyn: where features live</h1>
+    <p>Theme switcher below is the real idea: user picks a theme and light or dark, the whole app follows.</p>
+    <div class="seg" id="themes">
+      <button data-theme="paper">Paper</button><button data-theme="slate">Slate</button><button data-theme="sage" class="on">Sage</button>
+    </div>
+    <div class="seg" id="modes">
+      <button data-mode="light" class="on">Light</button><button data-mode="dark">Dark</button>
+    </div>
+  </div>
+
+  <h2>1. Feature map</h2>
+  <p class="lead">Every feature from the roadmap, grouped by when it can become real. The layout has to hold all of these without a redesign later.</p>
+  <div class="map">
+    <div class="col">
+      <h3>Now</h3><small>Backend already works. Screens can be real today.</small>
+      <ul>
+        <li><b>Login + Register</b><span>Register screen is still missing</span></li>
+        <li><b>Library</b><span>Upload, list, delete, status, retry indexing</span></li>
+        <li><b>Search</b><span>Find passages across the workspace, with page numbers</span></li>
+        <li><b>Settings</b><span>Theme, light or dark, log out</span></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3 class="next">Next</h3><small>Phase 3. Hardcoded design now, real after step 6.</small>
+      <ul>
+        <li><b>Chat with citations</b><span>Answer, markers, sources panel, refusal</span></li>
+        <li><b>Chat history</b><span>List of past conversations</span></li>
+        <li><b>Page viewer</b><span>Open the PDF at the cited page to check the claim</span></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>Later</h3><small>Phases 4 to 8. Layout only keeps a place for them.</small>
+      <ul>
+        <li><b>Web research</b><span>Phase 6. Answer from documents plus the web</span></li>
+        <li><b>Research reports</b><span>Phase 7. Multi-step agent writes a cited report</span></li>
+        <li><b>Shared workspaces</b><span>ADR-001. Switch workspace, invite members</span></li>
+        <li><b>Answer quality</b><span>Phase 4. Feedback buttons, evaluation results</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>2. Three ways to arrange them</h2>
+  <p class="lead">Same features, different homes. Orange "later" tags mark places kept for future features. These are static pictures, only the theme switches.</p>
+
+  <section class="opt">
+    <div class="opt-head">
+      <div><div class="tag">Layout 1</div><h2>Sidebar app</h2></div>
+      <p class="desc">One sidebar holds everything: workspace, features, recent chats. Each feature gets its own full page.</p>
+      <button class="pick" data-choice="L1-sidebar" onclick="toggleSelect(this)">Pick Layout 1</button>
+    </div>
+    <div class="scroll"><div class="app l1">
+      <aside class="side">
+        <div class="logo" style="padding:0 12px">Eryysyn</div>
+        <div class="ws">Personal<span class="later">shared later</span></div>
+        <div class="nav">
+          <div class="ni on">✦ Chat</div>
+          <div class="ni">▤ Library</div>
+          <div class="ni">⌕ Search</div>
+          <div class="ni off">◈ Research<span class="later">later</span></div>
+        </div>
+        <div><h4>Recent chats</h4>
+          <div class="rc on">Conflict of interest</div><div class="rc">Telling customers about risks</div><div class="rc">Who the code applies to</div>
+        </div>
+        <div class="nav foot"><div class="ni">⚙ Settings + theme</div></div>
+      </aside>
+      <div class="chat" data-fill="chat"></div>
+      <aside class="src" data-fill="src"></aside>
+    </div></div>
+    <div class="pc">
+      <div><b>Good</b>Most familiar pattern for chat apps. New features are one more sidebar line. Library gets a full page for statuses and errors.</div>
+      <div><b>Cost</b>Documents and chat are on different pages, so uploading then asking takes one click between them.</div>
+    </div>
+  </section>
+
+  <section class="opt">
+    <div class="opt-head">
+      <div><div class="tag">Layout 2</div><h2>Workspace notebook</h2></div>
+      <p class="desc">One screen does the whole loop: documents on the left, chat in the middle, sources and the cited page on the right.</p>
+      <button class="pick" data-choice="L2-notebook" onclick="toggleSelect(this)">Pick Layout 2</button>
+    </div>
+    <div class="scroll"><div class="app l2">
+      <div class="bar">
+        <div class="logo">Eryysyn</div>
+        <div class="ws" style="padding:6px 12px">Personal<span class="later">shared later</span></div>
+        <div class="find">⌕ Search your documents…</div>
+        <div class="ni sp">⚙ Theme</div><div class="av">G</div>
+      </div>
+      <div class="body">
+        <aside class="docs">
+          <h4 style="margin:0">Documents</h4>
+          <div class="up">+ Upload PDF</div>
+          <div>
+            <div class="doc"><span class="ck"></span><span>Code of Ethics.pdf</span><span class="dot"></span></div>
+            <div class="doc"><span class="ck"></span><span>Research notes.pdf</span><span class="dot"></span></div>
+            <div class="doc"><span class="ck no"></span><span>Project Handbook 2026.pdf</span><span class="dot w"></span></div>
+            <div class="doc"><span class="ck no"></span><span>Scanned contract.pdf</span><span class="dot e"></span></div>
+          </div>
+          <small style="color:var(--muted);padding:0 8px">Ticked documents are used for answers.</small>
+        </aside>
+        <div class="chat" data-fill="chat" data-tabs="1"></div>
+        <aside class="src" data-fill="src" data-page="1"></aside>
+      </div>
+    </div></div>
+    <div class="pc">
+      <div><b>Good</b>Upload, ask and verify without leaving the screen. Matches the core loop exactly. Choosing which documents to ask is natural.</div>
+      <div><b>Cost</b>Three columns get cramped on a laptop and need a different design on phones. Little room for library details like errors and retry. Chat history has no obvious home.</div>
+    </div>
+  </section>
+
+  <section class="opt">
+    <div class="opt-head">
+      <div><div class="tag">Layout 3</div><h2>Top tabs</h2></div>
+      <p class="desc">Features are tabs across the top. The left column changes with the tab: chat list in Chat, filters in Library.</p>
+      <button class="pick" data-choice="L3-toptabs" onclick="toggleSelect(this)">Pick Layout 3</button>
+    </div>
+    <div class="scroll"><div class="app l3">
+      <div class="bar">
+        <div class="logo">Eryysyn</div>
+        <div class="nav h">
+          <div class="ni on">Chat</div><div class="ni">Library</div><div class="ni">Search</div>
+          <div class="ni off">Research <span class="later">later</span></div>
+        </div>
+        <div class="ws sp" style="padding:6px 12px">Personal<span class="later">shared later</span></div>
+        <div class="ni">⚙ Theme</div><div class="av">G</div>
+      </div>
+      <div class="body">
+        <aside class="side">
+          <div class="up">+ New chat</div>
+          <div><h4>Chats</h4>
+            <div class="rc on">Conflict of interest</div><div class="rc">Telling customers about risks</div><div class="rc">Who the code applies to</div>
+          </div>
+        </aside>
+        <div class="chat" data-fill="chat"></div>
+        <aside class="src" data-fill="src"></aside>
+      </div>
+    </div></div>
+    <div class="pc">
+      <div><b>Good</b>Features are always visible in one row. Each tab can use its left column for what it needs.</div>
+      <div><b>Cost</b>A top row runs out of space as features grow. Uses vertical space, which chat needs most. Less familiar for chat apps than a sidebar.</div>
+    </div>
+  </section>
+</div>
+
+<script>
+const CHAT = tabs => `
+  <div class="ch">${tabs ? '<div class="tabs"><div class="ni on">Chat</div><div class="ni off">Research <span class="later">later</span></div></div>' : 'Conflict of interest'}</div>
+  <div class="msgs">
+    <div class="q">What is a conflict of interest?</div>
+    <div class="a">
+      <p>A conflict of interest is a situation where a developer's personal or financial interests could interfere with their duty to the client or employer.<span class="cite on">1</span></p>
+      <p>The code asks developers to disclose such conflicts to everyone affected.<span class="cite">2</span></p>
+    </div>
+  </div>
+  <div class="ask">
+    <div class="scope">Answer from: <span class="chip on">My documents</span><span class="chip">+ Web <span class="later">later</span></span></div>
+    <div class="box"><span>Ask about your documents…</span><button class="send">Ask</button></div>
+  </div>`;
+const SRC = page => `
+  <h4>Sources</h4>
+  <div class="card on">
+    <div class="ct"><span class="num">1</span><b>Code of Ethics.pdf</b><span>p. 11</span></div>
+    <q>A conflict of interest arises when personal or financial interests could interfere with the duty owed to a client.</q>
+  </div>
+  ${page ? `<div class="page"><b>Code of Ethics.pdf · page 11</b>…in the course of professional work. <mark>A conflict of interest arises when personal or financial interests could interfere with the duty owed to a client.</mark> Developers shall therefore…</div>`
+         : `<div class="card"><div class="ct"><span class="num">2</span><b>Code of Ethics.pdf</b><span>p. 10</span></div>
+    <q>Developers shall disclose to all concerned parties those conflicts that cannot be avoided.</q></div>`}`;
+document.querySelectorAll('[data-fill="chat"]').forEach(e => e.innerHTML = CHAT(e.dataset.tabs));
+document.querySelectorAll('[data-fill="src"]').forEach(e => e.innerHTML = SRC(e.dataset.page));
+
+const root = document.documentElement;
+function seg(id, key) {
+  document.querySelectorAll(`#${id} button`).forEach(b => b.addEventListener('click', () => {
+    root.dataset[key] = b.dataset[key];
+    document.querySelectorAll(`#${id} button`).forEach(x => x.classList.toggle('on', x === b));
+  }));
+}
+seg('themes', 'theme'); seg('modes', 'mode');
+</script>
+</body>
+</html>
