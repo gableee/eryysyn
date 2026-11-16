@@ -45,6 +45,32 @@ def test_refusal_in_any_small_variation_is_a_clean_refusal(raw):
     assert parse_answer(raw, passage_count=2) == REFUSED
 
 
+@pytest.mark.parametrize("raw", [
+    "Not found in your documents. The passages only cover volcanoes [3].",
+    "Not found in your documents, sorry. Passage [1] is about plants.",
+])
+def test_refusal_followed_by_a_remark_is_still_a_refusal(raw):
+    # Small models often add a remark after refusing. The cited remark must not turn
+    # the refusal into a "sourced answer" (review #4).
+    assert parse_answer(raw, passage_count=5) == REFUSED
+
+
+def test_an_answer_that_mentions_the_refusal_later_is_kept():
+    p = parse_answer("Volcanoes erupt [1]. Not found in your documents: the cause of tides.", passage_count=2)
+    assert p.refused is False and p.cited == [1]
+
+
+def test_formatting_away_from_removed_markers_is_untouched():
+    # Only the gap where a marker was removed may change (review #5).
+    raw = "Code [1]:\n    if x:\n        return 1\nRatio 3 : 1 and  two spaces."
+    assert parse_answer(raw, passage_count=1).text == raw
+
+
+def test_removed_marker_leaves_no_gap_but_kept_marker_keeps_its_space():
+    p = parse_answer("Real [1]. Invented [9]. Mixed [1, 9], end.", passage_count=1)
+    assert p.text == "Real [1]. Invented. Mixed [1], end."
+
+
 def test_an_answer_with_no_valid_citation_becomes_a_refusal():
     assert parse_answer("Paris is the capital of France.", passage_count=2) == REFUSED
     assert parse_answer("Paris is the capital [7].", passage_count=2) == REFUSED

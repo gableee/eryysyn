@@ -10,7 +10,9 @@ from dataclasses import dataclass
 from app.rag.prompt import REFUSAL
 
 # A bracket holding only numbers and commas: [1]  [12]  [1, 2]  [ 3 ,4 ]. Not [sic], not [a1].
-_GROUP = re.compile(r"\[\s*\d+(?:\s*,\s*\d+)*\s*\]")
+# Group 1 captures the spaces/tabs just BEFORE the bracket, so a removed marker can take
+# its own gap with it ("Invented [9]." -> "Invented.") without touching the rest of the text.
+_GROUP = re.compile(r"([ \t]*)\[\s*\d+(?:\s*,\s*\d+)*\s*\]")
 # A single clean marker, after normalising: [1]
 _MARKER = re.compile(r"\[(\d+)\]")
 
@@ -33,25 +35,28 @@ def parse_answer(raw: str, passage_count: int) -> ParsedAnswer:
     #    "[1, 9]" with 2 passages -> "[1]".   "[9]" -> "" (the model invented it).
     #    Numbers longer than 6 digits are skipped before int(): no passage number is that big, and
     #    Python raises ValueError when asked to convert a string of more than 4300 digits.
+    #    The cleanup happens HERE, only where a marker was, so all other formatting
+    #    (indented code, lists, "3 : 1") stays exactly as the model wrote it.
     def keep_valid(match: re.Match) -> str:
+        space_before = match.group(1)
         numbers = [int(x) for x in re.findall(r"\d+", match.group()) if len(x) <= 6]
-        return "".join(f"[{n}]" for n in numbers if 1 <= n <= passage_count)
+        markers = "".join(f"[{n}]" for n in numbers if 1 <= n <= passage_count)
+        return space_before + markers if markers else ""   # nothing valid: drop the marker AND its gap
 
-    text = _GROUP.sub(keep_valid, raw)
+    text = _GROUP.sub(keep_valid, raw).strip()
 
-    # 2. A removed marker leaves a gap: "Invented ." -> "Invented."
-    text = re.sub(r"[ \t]+([.,;:])", r"\1", text)
-    text = re.sub(r"[ \t]{2,}", " ", text).strip()
-
-    # 3. Is it the refusal sentence, give or take quotes, capitals, a full stop or a stray marker?
+    # 2. Does the reply START with the refusal sentence (give or take quotes, capitals, markers)?
+    #    Small models often refuse and then add a remark, sometimes with a citation:
+    #    "Not found in your documents. The passages only cover volcanoes [3]." is still a refusal.
+    #    "Starts with", not "contains": an answer may legitimately say it later about a side point.
     bare = _MARKER.sub("", text).strip(" \t\n\"'“”‘’.").lower()
-    if bare == _REFUSAL_BARE:
+    if bare.startswith(_REFUSAL_BARE):
         return _REFUSED
 
-    # 4. Which passages are cited? dict.fromkeys keeps first-seen order and drops repeats.
+    # 3. Which passages are cited? dict.fromkeys keeps first-seen order and drops repeats.
     cited = list(dict.fromkeys(int(n) for n in _MARKER.findall(text)))
 
-    # 5. A claim with no checkable source is not allowed out.
+    # 4. A claim with no checkable source is not allowed out.
     if not cited:
         return _REFUSED
 
