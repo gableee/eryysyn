@@ -1,8 +1,6 @@
 import os
-import time
 
 import httpx
-import jwt
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from app.main import app
@@ -21,12 +19,7 @@ def login(email: str, password: str) -> str:
         json={"email": email, "password": password},
     )
     r.raise_for_status()
-    token = r.json()["access_token"]
-    # If this machine's clock is a little behind Supabase's, a brand-new token says it was
-    # issued "in the future" (iat) and the backend rejects it with 401. Wait until it is valid.
-    issued_at = jwt.decode(token, options={"verify_signature": False})["iat"]
-    time.sleep(max(0.0, issued_at - time.time()) + 0.2)
-    return token
+    return r.json()["access_token"]
 
 
 def auth(token: str) -> dict:
