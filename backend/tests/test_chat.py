@@ -1,8 +1,13 @@
 import os
+from contextlib import contextmanager
+from types import SimpleNamespace
 
+import psycopg
 import pytest
 
+from app.db.session import pool
 from app.llm import client as llm_client
+from app.services import chat as chat_service
 from app.llm.client import LLMError
 from app.rag.prompt import REFUSAL
 from tests.test_indexing import make_pdf
@@ -210,6 +215,51 @@ def test_chat_deleted_while_the_model_is_writing_gives_404_and_saves_nothing(env
     r = ask(token, conv)
     assert r.status_code == 404
     assert client.get(f"/conversations/{conv}", headers=auth(token)).status_code == 404
+
+
+def _delete_is_blocked(conversation_id) -> bool:
+    """From a SECOND connection: try to delete the chat, waiting at most 1 s for its row lock.
+    Always rolled back, so the chat is never really deleted here."""
+    with pool.connection() as other:
+        other.execute("set lock_timeout = '1s'")
+        try:
+            other.execute("delete from conversations where id = %s", (conversation_id,))
+            blocked = False
+        except psycopg.errors.LockNotAvailable:
+            blocked = True
+        other.rollback()
+    return blocked
+
+
+def test_chat_row_is_locked_while_the_answer_is_saved(chat, monkeypatch):
+    """Review #1, the lock itself. The test above deletes the chat BEFORE the save starts, so it
+    passes even without `for update` (mutation check, 2026-11-17). This one tries the delete
+    INSIDE the save, right after the lock is taken: it must wait instead of slipping in."""
+    token, _, conv = chat
+    monkeypatch.setattr(llm_client, "generate", fake("It crashed [1]."))
+    blocked = []
+
+    class SpyConnection:
+        """Wraps the save's connection: after the locking select runs, try a delete elsewhere."""
+        def __init__(self, conn):
+            self.conn = conn
+
+        def execute(self, query, params=None):
+            cursor = self.conn.execute(query, params)
+            if query.startswith("select 1 from conversations"):   # the save's existence check
+                blocked.append(_delete_is_blocked(conv))
+            return cursor
+
+    @contextmanager
+    def spy_connection():
+        with pool.connection() as conn:
+            yield SpyConnection(conn)
+
+    # Replace only chat.py's name `pool`; the endpoint and _delete_is_blocked keep the real one.
+    monkeypatch.setattr(chat_service, "pool", SimpleNamespace(connection=spy_connection))
+    r = ask(token, conv)
+    assert blocked == [True]          # the delete had to wait for our lock (and gave up after 1 s)
+    assert r.status_code == 201       # and the answer was saved normally
 
 
 def test_nul_character_is_rejected_before_any_work(chat, monkeypatch):
