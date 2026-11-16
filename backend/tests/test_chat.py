@@ -197,6 +197,36 @@ def test_document_deleted_while_the_model_is_writing_still_saves_the_answer(monk
         client.delete(f"/documents/{doc}", headers=auth(token))
 
 
+def test_chat_deleted_while_the_model_is_writing_gives_404_and_saves_nothing(env, monkeypatch):
+    """Review #1: the same race as the document one, but on the chat itself."""
+    token, ws = env
+    conv = client.post(f"/workspaces/{ws}/conversations", headers=auth(token), json={}).json()["id"]
+
+    def model_while_chat_is_deleted(system, user):
+        assert client.delete(f"/conversations/{conv}", headers=auth(token)).status_code == 204
+        return "It crashed [1]."
+
+    monkeypatch.setattr(llm_client, "generate", model_while_chat_is_deleted)
+    r = ask(token, conv)
+    assert r.status_code == 404
+    assert client.get(f"/conversations/{conv}", headers=auth(token)).status_code == 404
+
+
+def test_nul_character_is_rejected_before_any_work(chat, monkeypatch):
+    """Review #3: Postgres text cannot hold \\x00. Reject it as 422, before the model runs."""
+    token, ws, conv = chat
+    h = auth(token)
+
+    def must_not_run(system, user):
+        raise AssertionError("model was called for an invalid question")
+
+    monkeypatch.setattr(llm_client, "generate", must_not_run)
+    assert client.post(f"/conversations/{conv}/messages", headers=h, json={"question": "what\u0000 is x"}).status_code == 422
+    assert client.post(f"/workspaces/{ws}/conversations", headers=h, json={"instructions": "a\u0000b"}).status_code == 422
+    assert client.patch(f"/conversations/{conv}", headers=h, json={"instructions": "a\u0000b"}).status_code == 422
+    assert client.patch(f"/conversations/{conv}", headers=h, json={"title": "a\u0000b"}).status_code == 422
+
+
 def test_user_b_cannot_reach_user_a_chat(chat):
     token_a, ws_a, conv = chat
     b = auth(_b())

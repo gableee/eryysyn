@@ -3,28 +3,39 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.core.auth import get_current_user_id
 from app.db.session import pool
 from app.llm.client import LLMError
-from app.services.chat import answer_question
+from app.services.chat import ConversationGone, answer_question
 
 router = APIRouter(tags=["conversations"])
 
 
+def _no_nul(value: str | None) -> str | None:
+    """Postgres text cannot store the NUL character (\\x00); inserting one raises an error (500).
+    Reject it during validation instead, so the client gets 422 before any work is done."""
+    if value is not None and "\x00" in value:
+        raise ValueError("must not contain NUL (\\x00) characters")
+    return value
+
+
 class ConversationCreate(BaseModel):
     instructions: str = Field(default="", max_length=500)
+    _check_nul = field_validator("instructions")(_no_nul)
 
 
 class ConversationUpdate(BaseModel):
     # None = "the client did not send this field" = leave it unchanged
     title: str | None = Field(default=None, min_length=1, max_length=200)
     instructions: str | None = Field(default=None, max_length=500)
+    _check_nul = field_validator("title", "instructions")(_no_nul)
 
 
 class QuestionRequest(BaseModel):
     question: str = Field(min_length=1, max_length=1000)
+    _check_nul = field_validator("question")(_no_nul)
 
 
 def _require_workspace(conn, workspace_id: uuid.UUID, user_id: str) -> None:
@@ -189,6 +200,9 @@ def ask_question(
     except LLMError:
         # 502 Bad Gateway = "a service I depend on failed". Nothing was saved.
         raise HTTPException(502, "The model is not available. Try again.")
+    except ConversationGone:
+        # The chat was deleted while the model was writing. Nothing was saved.
+        raise HTTPException(404, "Conversation not found")
 
     return {
         "message_id": str(result.message_id),
