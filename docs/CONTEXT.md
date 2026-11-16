@@ -186,7 +186,7 @@ Measured by me in scratch.py:
 | 7 | LangGraph and agents | Not started |
 | 8 | Production and MLOps | Not started |
 
-Phase 3 progress: extraction, chunking, embeddings, chunks table, retrieval, and generation with citations all work end to end through the API. Left in Phase 3: the 20-50 question evaluation set, the tiny-chunk decision, follow-up questions (history), and the frontend screens.
+Phase 3 progress: Users can upload PDFs and ask questions through the backend API, and Eryysyn answers from their documents with page citations or says the answer is not in them. Extraction, chunking, embeddings, retrieval and generation work end to end (77 tests), merged to main in PR #1. Left in Phase 3: the 20-50 question evaluation set, the tiny-chunk decision, follow-up questions (history), and the frontend screens.
 
 Principle: Understand -> Implement -> Evaluate -> Improve. Every technology must solve a real Eryysyn problem.
 
@@ -213,7 +213,9 @@ Principle: Understand -> Implement -> Evaluate -> Improve. Every technology must
 - [x] chunks table created in Supabase via `backend/migrations/001_chunks.sql` (vector(384), HNSW cosine, workspace_id index, RLS on with no policies).
 - [x] Step 4 done: `rag/embed.py` (bge, query prefix, normalized), `services/indexing.py` (extract->chunk->embed->insert in ONE transaction, all or nothing), upload now indexes synchronously (status uploaded->indexed|failed), `POST /documents/{id}/index` retries/re-indexes. Tests: `tests/test_indexing.py`.
 - [x] Step 5 retrieval done: `services/retrieval.py` (`search_chunks`, cosine `<=>`, WHERE workspace_id + embedding_model, hnsw.iterative_scan) and `POST /workspaces/{id}/search` (owner check, 404, k 1-20). Tests: `tests/test_search.py`. Pushed steps 1-4 to origin/main.
-- [x] Step 6 generation done on branch `feat/step6-generation`: `rag/prompt.py`, `rag/citations.py`, `llm/client.py` (Ollama), `services/chat.py`, `api/conversations.py`, migration 002. Tests: `test_prompt.py`, `test_citations.py`, `test_llm_client.py`, `test_chat.py` (53 tests in the whole suite). Try the real model with `scripts/try_chat.py`.
+- [x] Step 6 generation done and merged to main (PR #1, 2026-11-17): `rag/prompt.py`, `rag/citations.py`, `llm/client.py` (Ollama), `services/chat.py`, `api/conversations.py`, migrations 002 and 003. Tests: `test_prompt.py`, `test_citations.py`, `test_llm_client.py`, `test_chat.py`, `test_auth.py`, `test_schema.py` (77 tests in the whole suite, incl. the row-lock test). Try the real model with `scripts/try_chat.py`.
+- [x] Walkthrough of every step 6 change done (problem, decision, alternatives, code line by line, real runs).
+- [x] Working rules for Claude in `CLAUDE.local.md` at the repo root (gitignored, loads every session, not on GitHub): read CONTEXT first, update it after every step, roadmap table format for the portfolio, no Claude co-author lines, ask before every commit.
 - [ ] Next: evaluation set of 20-50 questions from the real PDF (answerable, not answerable, trap passages), then run both models on it.
 - [x] `leeway=10` added to the token check in `core/auth.py`. Code review fixes 1-10 done (72 tests), migration 003 adds citation indexes.
 - [ ] Prompt rule for conflicting passages: say so and cite both (D3).

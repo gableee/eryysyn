@@ -157,3 +157,4 @@ __pycache__/
 scratch/
 # Brainstorm and plan workspace (mockup server, execution ledger)
 .superpowers/
+/CLAUDE.local.md
