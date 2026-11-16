@@ -55,6 +55,23 @@ def test_model_not_downloaded_raises_llm_error_with_the_reason(monkeypatch):
         generate("s", "u")
 
 
+def raw_reply(status, text):
+    request = httpx.Request("POST", "http://test/api/chat")
+    return httpx.Response(status, text=text, request=request)
+
+
+@pytest.mark.parametrize("response", [
+    raw_reply(200, "<html>proxy error</html>"),     # not JSON at all
+    raw_reply(200, '["a", "list"]'),                # JSON, but not an object
+    raw_reply(500, "<html>bad gateway</html>"),     # error status with a non-JSON body
+    raw_reply(500, '["a", "list"]'),                # error status with a JSON list
+])
+def test_reply_that_is_not_a_json_object_raises_llm_error(monkeypatch, response):
+    monkeypatch.setattr(client.httpx, "post", lambda url, json, timeout: response)
+    with pytest.raises(LLMError):
+        generate("s", "u")
+
+
 @pytest.mark.parametrize("body", [{}, {"message": {}}, {"message": {"content": "   "}}])
 def test_missing_or_empty_reply_raises_llm_error(monkeypatch, body):
     monkeypatch.setattr(client.httpx, "post", lambda url, json, timeout: reply(body=body))

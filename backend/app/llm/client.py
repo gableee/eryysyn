@@ -50,17 +50,35 @@ def generate(system: str, user: str) -> str:
         log.error("LLM returned %s: %s", response.status_code, reason)
         raise LLMError(f"Model error {response.status_code}: {reason}")
 
+    # A proxy error page (HTML) or a JSON list would otherwise raise ValueError / AttributeError,
+    # which are not LLMError, and the endpoint would answer 500 instead of 502.
+    data = _json_object(response)
+    if data is None:
+        log.error("LLM returned a reply that is not a JSON object: %.200s", response.text)
+        raise LLMError("The model returned an unexpected reply")
+
     # .get(...) instead of [...] so a reply with a missing key becomes LLMError, not KeyError.
-    content = (response.json().get("message") or {}).get("content") or ""
+    message = data.get("message")
+    content = message.get("content") if isinstance(message, dict) else None
+    content = content if isinstance(content, str) else ""
     if not content.strip():
         log.error("LLM returned an empty reply")
         raise LLMError("The model returned an empty reply")
     return content.strip()
 
 
-def _error_reason(response: httpx.Response) -> str:
-    """Ollama explains failures as {"error": "..."}; fall back to the raw text if it is not JSON."""
+def _json_object(response: httpx.Response) -> dict | None:
+    """The body as a dict, or None if it is not JSON or not a JSON object."""
     try:
-        return str(response.json().get("error", response.text))
-    except ValueError:
-        return response.text
+        data = response.json()
+    except ValueError:            # json.JSONDecodeError is a subclass of ValueError
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _error_reason(response: httpx.Response) -> str:
+    """Ollama explains failures as {"error": "..."}; fall back to the raw text otherwise."""
+    data = _json_object(response)
+    if data is not None and "error" in data:
+        return str(data["error"])
+    return response.text[:200]
