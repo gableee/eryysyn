@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en" data-mode="light" data-theme="sage">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eryysyn pages</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html[data-theme="paper"] { --bg:#F7F3EA; --surface:#FFFDF8; --side:#F1ECDF; --ink:#1F1B16; --muted:#6B6257; --line:#E0D8C8;
+    --accent:#1F3A5F; --on-accent:#fff; --soft:#E4EAF2; --ok:#2E6B47; --warn:#8A5A12; --err:#9C2F2F; --hl:#F5E3A3; --hl2:#CFE3F5;
+    --r:4px; --r-lg:6px; --font:Inter, system-ui, sans-serif; --head:Newsreader, Georgia, serif; --read:Newsreader, Georgia, serif; --read-size:17px; --shadow:none; }
+  html[data-theme="paper"][data-mode="dark"] { --bg:#1A1815; --surface:#23201C; --side:#161412; --ink:#EDE6D9; --muted:#A89F91; --line:#38332C;
+    --accent:#9DB8E0; --on-accent:#14202F; --soft:#2A3442; --ok:#86C7A0; --warn:#E0B36A; --err:#E89090; --hl:#5C4E1C; --hl2:#27425C; }
+  html[data-theme="slate"] { --bg:#F6F7F9; --surface:#FFFFFF; --side:#FBFBFC; --ink:#111827; --muted:#5B6472; --line:#E2E5EA;
+    --accent:#4F46E5; --on-accent:#fff; --soft:#EEF0FF; --ok:#17794A; --warn:#92600A; --err:#B42318; --hl:#FDE68A; --hl2:#C7D2FE;
+    --r:6px; --r-lg:8px; --font:Inter, system-ui, sans-serif; --head:Inter, system-ui, sans-serif; --read:Inter, system-ui, sans-serif; --read-size:14.5px; --shadow:0 1px 2px rgba(16,24,40,.06); }
+  html[data-theme="slate"][data-mode="dark"] { --bg:#0E1013; --surface:#16191E; --side:#111317; --ink:#E6E8EC; --muted:#9099A6; --line:#262B33;
+    --accent:#8B8CF8; --on-accent:#0E1013; --soft:#1E2140; --ok:#5FCB94; --warn:#E3B45F; --err:#F38B80; --hl:#5A4A12; --hl2:#2B2F6B; --shadow:none; }
+  html[data-theme="sage"] { --bg:#EFF3EE; --surface:#FBFCFA; --side:#E7EDE6; --ink:#1E2A24; --muted:#56655C; --line:#D8E1D8;
+    --accent:#3F6B57; --on-accent:#fff; --soft:#DCE9E0; --ok:#2F6F4F; --warn:#85601A; --err:#A33B3B; --hl:#F3E6A8; --hl2:#CDE6D6;
+    --r:12px; --r-lg:18px; --font:"DM Sans", system-ui, sans-serif; --head:"DM Sans", system-ui, sans-serif; --read:"DM Sans", system-ui, sans-serif; --read-size:15px; --shadow:0 8px 24px rgba(40,70,55,.08); }
+  html[data-theme="sage"][data-mode="dark"] { --bg:#121815; --surface:#1A221E; --side:#0F1512; --ink:#E3EBE5; --muted:#93A39A; --line:#2A352F;
+    --accent:#8FC3A8; --on-accent:#10201A; --soft:#223129; --ok:#8FC3A8; --warn:#DDB872; --err:#E69A9A; --hl:#544A1B; --hl2:#234534; --shadow:0 8px 24px rgba(0,0,0,.3); }
+
+  body { background: var(--side); color: var(--ink); font: 14px/1.5 var(--font); padding: 24px 24px 80px; }
+  button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+  .wrap { max-width: 1280px; margin: 0 auto; }
+  .intro { margin-bottom: 16px; }
+  .intro h1 { font: 600 22px/1.2 var(--head); margin-bottom: 4px; }
+  .intro p, .sec p { color: var(--muted); max-width: 80ch; }
+  .sec { margin: 56px 0 16px; }
+  .sec h2 { font: 600 20px/1.2 var(--head); margin-bottom: 4px; }
+  .jump { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 16px; }
+  .jump button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 16px; font-weight: 500; }
+  .jump button.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .later { font: 600 10px/1 var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--warn); border: 1px solid currentColor;
+           border-radius: 999px; padding: 3px 6px; white-space: nowrap; }
+  .scroll { overflow-x: auto; }
+  h4 { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .link { color: var(--accent); font-weight: 500; font-size: 13px; cursor: pointer; }
+
+  /* ---------- shell ---------- */
+  .app { min-width: 1120px; height: 700px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+         display: grid; grid-template: 52px 1fr / 208px 1fr; box-shadow: var(--shadow); }
+  .bar { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding: 0 16px; border-bottom: 1px solid var(--line); background: var(--side); }
+  .logo { font: 600 18px/1 var(--head); margin-right: 24px; }
+  .burger { width: 36px; height: 36px; border-radius: var(--r); font-size: 16px; color: var(--muted); }
+  .burger:hover { background: var(--soft); color: var(--accent); }
+  .bar { grid-area: 1 / 1 / 2 / -1; } .side { grid-area: 2 / 1; } .pg { grid-area: 2 / 2; }
+  .app.nosb { grid-template-columns: 0 1fr; } .app.nosb .side { display: none; }
+  .app.focus { grid-template: 0 1fr / 0 1fr; } .app.focus .bar, .app.focus .side { display: none; }
+  .ws { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 6px 12px; font-weight: 500; }
+  .find { flex: 1; max-width: 380px; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 6px 12px; color: var(--muted); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); margin-left: auto; }
+  .seg + .seg { margin-left: 0; }
+  .seg button { color: var(--muted); font-weight: 500; font-size: 12px; padding: 5px 10px; border-radius: 999px; }
+  .seg button.on { background: var(--accent); color: var(--on-accent); }
+  .av { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font-weight: 600; font-size: 12px; flex: none; }
+  .side { background: var(--side); border-right: 1px solid var(--line); padding: 16px 12px; display: flex; flex-direction: column; gap: 20px; overflow: hidden; }
+  .nav { display: flex; flex-direction: column; gap: 2px; }
+  .ni { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 8px 12px; min-height: 40px; border-radius: var(--r); color: var(--muted); font-weight: 500; }
+  .ni:hover { color: var(--ink); }
+  .ni.on { background: var(--soft); color: var(--accent); }
+  .ni .later { margin-left: auto; }
+  .side h4 { padding: 0 12px; }
+  .rc { padding: 6px 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: var(--r); }
+  .rc.on { background: var(--surface); color: var(--ink); }
+  .resume { margin: 0 4px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 8px 12px; cursor: pointer; }
+  .resume b { display: block; font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .resume span { font-size: 12px; color: var(--muted); }
+  .prog { height: 4px; background: var(--line); border-radius: 2px; margin-top: 6px; }
+  .prog i { display: block; height: 100%; width: 33%; background: var(--accent); border-radius: 2px; }
+  .pg { display: none; min-width: 0; min-height: 0; }
+  .pg.show { display: grid; }
+
+  /* ---------- chat ---------- */
+  .p-chat { grid-template-columns: 1fr 304px; }
+  .chat { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .ch { padding: 12px 24px; border-bottom: 1px solid var(--line); font: 600 15px/1.3 var(--head); }
+  .ch small { display: block; font: 400 12px var(--font); color: var(--muted); }
+  .msgs { flex: 1; overflow: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+  .q { align-self: flex-end; max-width: 80%; background: var(--soft); padding: 8px 16px; border-radius: var(--r-lg); }
+  .a { max-width: 60ch; font: 400 var(--read-size)/1.55 var(--read); }
+  .a p + p { margin-top: 8px; }
+  .acts { display: flex; gap: 12px; margin-top: 8px; font: 500 12px var(--font); color: var(--muted); }
+  .cite { display: inline-grid; place-items: center; min-width: 22px; height: 22px; margin: 0 2px; vertical-align: 1px; font: 600 11px var(--font);
+          border: 1px solid var(--accent); color: var(--accent); border-radius: var(--r); }
+  .cite.on { background: var(--accent); color: var(--on-accent); }
+  .ask { padding: 12px 24px 16px; }
+  .scope { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; font-size: 12px; color: var(--muted); }
+  .chip { border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; font-weight: 500; font-size: 12px; display: inline-flex; gap: 6px; align-items: center; background: var(--surface); }
+  .chip.on { background: var(--soft); color: var(--accent); border-color: transparent; }
+  .chip .later { border: 0; padding: 0; }
+  .box { display: flex; gap: 8px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 6px 6px 6px 16px; box-shadow: var(--shadow); }
+  .box span { flex: 1; color: var(--muted); }
+  .send { background: var(--accent); color: var(--on-accent); font-weight: 600; padding: 0 20px; height: 40px; border-radius: var(--r); }
+  .ghost { border: 1px solid var(--line); background: var(--surface); font-weight: 500; padding: 0 12px; height: 40px; border-radius: var(--r); }
+  .src { border-left: 1px solid var(--line); background: var(--side); padding: 16px; overflow: auto; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 12px; margin-bottom: 12px; box-shadow: var(--shadow); }
+  .card.on { border-color: var(--accent); }
+  .ct { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; }
+  .ct b { flex: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ct span:last-child { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .num { min-width: 22px; height: 22px; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); font-weight: 600; font-size: 11px; border-radius: var(--r); }
+  .card q { display: block; quotes: none; font: 400 13.5px/1.5 var(--read); border-left: 2px solid var(--accent); padding-left: 12px; margin-bottom: 8px; }
+  .mini { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px; font: 400 11px/1.6 var(--read); color: var(--muted); margin-bottom: 8px; }
+  .mini b { display: block; font: 600 11px var(--font); color: var(--ink); margin-bottom: 4px; }
+  mark { background: var(--hl); color: var(--ink); padding: 0 2px; border-radius: 2px; }
+  mark.b { background: var(--hl2); }
+
+  /* ---------- library ---------- */
+  .p-lib, .p-notes, .p-study { overflow: auto; }
+  .inner { padding: 24px 32px; max-width: 920px; }
+  .inner h3 { font: 600 24px/1.2 var(--head); margin-bottom: 4px; }
+  .sub { color: var(--muted); margin-bottom: 20px; }
+  .drop { border: 1.5px dashed var(--line); border-radius: var(--r-lg); background: var(--surface); padding: 24px; text-align: center; margin-bottom: 20px; }
+  .drop b { display: block; font-weight: 600; } .drop span { color: var(--muted); font-size: 13px; display: block; margin-bottom: 12px; }
+  .rows { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow); }
+  .row { display: grid; grid-template-columns: 1fr 64px 120px 112px 40px; align-items: center; gap: 16px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .row:first-child { border-top: 0; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .row .name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+  .row .name:hover { color: var(--accent); }
+  .meta { color: var(--muted); font-size: 13px; }
+  .badge { justify-self: start; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
+  .ok { color: var(--ok); } .wn { color: var(--warn); } .er { color: var(--err); }
+  .del { color: var(--muted); width: 32px; height: 32px; border-radius: var(--r); }
+
+  /* ---------- reader ---------- */
+  .p-read { grid-template: 48px 1fr / 168px 1fr 320px; }
+  .tool { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; padding: 0 16px; border-bottom: 1px solid var(--line); background: var(--surface); }
+  .tool b { font-weight: 600; margin-right: 8px; white-space: nowrap; }
+  .tb { padding: 6px 10px; border-radius: var(--r); font-weight: 500; font-size: 13px; color: var(--muted); border: 1px solid transparent; white-space: nowrap; }
+  .tb.on { background: var(--soft); color: var(--accent); }
+  .tb.line { border-color: var(--line); }
+  .gap { margin-left: auto; }
+  .out { border-right: 1px solid var(--line); background: var(--side); padding: 16px 12px; overflow: auto; font-size: 13px; }
+  .out div { padding: 4px 8px; color: var(--muted); border-radius: var(--r); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .out div.on { background: var(--surface); color: var(--ink); font-weight: 500; }
+  .out h4 { margin-top: 16px; padding: 0 8px; } .out h4:first-child { margin-top: 0; }
+  .stage { overflow: auto; padding: 24px; display: flex; justify-content: center; }
+  .sheet { position: relative; width: 100%; max-width: 520px; height: max-content; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 40px 44px;
+           font: 400 14px/1.7 Newsreader, Georgia, serif; box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+  .sheet h5 { font: 600 18px/1.3 Newsreader, Georgia, serif; margin-bottom: 12px; }
+  .sheet p { margin-bottom: 12px; }
+  .sheet .pn { position: absolute; right: 16px; top: 12px; font: 500 11px var(--font); color: var(--muted); }
+  .sel { background: var(--accent); color: var(--on-accent); padding: 0 2px; }
+  .pop { position: absolute; left: 44px; top: 212px; display: flex; gap: 2px; background: var(--ink); color: var(--bg); border-radius: var(--r); padding: 4px; font: 500 12px var(--font); box-shadow: 0 8px 24px rgba(0,0,0,.25); z-index: 2; }
+  .pop span { padding: 6px 10px; border-radius: calc(var(--r) - 2px); white-space: nowrap; }
+  .pop span:first-child { background: var(--accent); color: var(--on-accent); }
+  .fig { border: 1px solid var(--line); border-radius: 4px; padding: 12px; margin: 16px 0 12px; font: 400 12px var(--font); color: var(--muted); }
+  .fig svg { display: block; width: 100%; height: auto; margin-bottom: 8px; }
+  .pin { position: absolute; right: -14px; width: 28px; height: 28px; border-radius: 50%; background: var(--hl); border: 1px solid var(--line); display: grid; place-items: center; font: 600 12px var(--font); color: #3a3000; }
+  .dock { border-left: 1px solid var(--line); background: var(--side); display: flex; flex-direction: column; min-height: 0; }
+  .dtabs { display: flex; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .dbody { flex: 1; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .ctx { font-size: 12px; color: var(--muted); border-left: 2px solid var(--accent); padding-left: 8px; }
+  .dock .a { font-size: 14px; }
+  .note { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--hl); border-radius: var(--r); padding: 8px 12px; font-size: 13px; }
+  .note.b { border-left-color: var(--hl2); }
+  .note small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .dock .ask { padding: 12px; }
+
+  /* ---------- notes ---------- */
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .ncard { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px; box-shadow: var(--shadow); }
+  .ncard .kind { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; display: flex; gap: 8px; align-items: center; }
+  .ncard .kind i { width: 10px; height: 10px; border-radius: 50%; background: var(--hl); }
+  .ncard .kind i.b { background: var(--hl2); } .ncard .kind i.c { background: var(--accent); }
+  .ncard p { font: 400 var(--read-size)/1.55 var(--read); margin-bottom: 8px; }
+  .ncard .mine { font: 400 13px/1.5 var(--font); color: var(--muted); margin-bottom: 8px; }
+  .ncard .ft { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+
+  /* ---------- study ---------- */
+  .due { display: flex; gap: 16px; margin-bottom: 20px; }
+  .stat { flex: 1; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 12px 16px; }
+  .stat b { display: block; font: 600 22px/1.2 var(--head); } .stat span { color: var(--muted); font-size: 13px; }
+  .flash { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 24px; text-align: center; box-shadow: var(--shadow); }
+  .flash .f { font: 500 20px/1.4 var(--head); margin: 16px 0; }
+  .flash .b { font: 400 var(--read-size)/1.5 var(--read); padding-top: 16px; border-top: 1px solid var(--line); margin-bottom: 16px; }
+  .rate { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+  .opts { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; text-align: left; }
+  .o { border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; }
+  .o.right { border-color: var(--ok); color: var(--ok); font-weight: 600; }
+
+  /* ---------- voice ---------- */
+  .p-voice { place-items: center; background: radial-gradient(circle at 50% 42%, var(--soft), var(--bg) 60%); }
+  .vc { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+  .orb { width: 176px; height: 176px; border-radius: 50%; background: var(--accent); position: relative; display: grid; place-items: center; }
+  .orb::before, .orb::after { content: ""; position: absolute; inset: -18px; border-radius: 50%; border: 2px solid var(--accent); opacity: .35; animation: pulse 2.4s ease-out infinite; }
+  .orb::after { animation-delay: 1.2s; }
+  @keyframes pulse { from { transform: scale(.9); opacity: .45; } to { transform: scale(1.25); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .orb::before, .orb::after, .wave i { animation: none; } }
+  .wave { display: flex; gap: 5px; align-items: center; height: 48px; }
+  .wave i { width: 5px; border-radius: 3px; background: var(--on-accent); animation: bar 1s ease-in-out infinite alternate; }
+  .wave i:nth-child(1){height:14px} .wave i:nth-child(2){height:34px;animation-delay:.15s} .wave i:nth-child(3){height:46px;animation-delay:.3s}
+  .wave i:nth-child(4){height:26px;animation-delay:.45s} .wave i:nth-child(5){height:16px;animation-delay:.6s}
+  @keyframes bar { to { transform: scaleY(.35); } }
+  .vc h3 { font: 600 22px/1.2 var(--head); }
+  .vc .st { color: var(--muted); }
+  .vbtns { display: flex; gap: 16px; }
+  .round { width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); font-size: 18px; }
+  .round.end { background: var(--err); color: #fff; border-color: transparent; }
+  .heard { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; font-size: 12px; color: var(--muted); }
+
+  /* ---------- v2: hide panels, pen, slides ---------- */
+  .hidebtn { margin-left: auto; font: 500 12px var(--font); color: var(--muted); border: 1px solid var(--line); border-radius: var(--r); padding: 6px 10px; background: var(--surface); white-space: nowrap; }
+  .ch { display: flex; align-items: center; gap: 12px; }
+  .p-chat.nosrc { grid-template-columns: 1fr; } .p-chat.nosrc .src { display: none; }
+  .p-read { grid-template-columns: var(--o, 168px) 1fr var(--d, 320px); }
+  .out { grid-area: 2 / 1; } .stage { grid-area: 2 / 2; } .dock { grid-area: 2 / 3; }
+  .p-read.noout { --o: 0px; } .p-read.noout .out { display: none; }
+  .p-read.nodock { --d: 0px; } .p-read.nodock .dock { display: none; }
+  .p-read.ppt .only-pdf, .p-read:not(.ppt) .only-ppt { display: none; }
+  .stack { display: flex; flex-direction: column; gap: 12px; }
+  .tool { overflow: hidden; }
+  .tool b { overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+  .tb { cursor: pointer; }
+  .tb em { font-style: normal; display: none; } .tb.on em { display: inline; }
+  .sep { width: 1px; height: 20px; background: var(--line); flex: none; }
+  .dots { display: flex; gap: 6px; align-items: center; padding: 0 4px; }
+  .dots i { width: 18px; height: 18px; border-radius: 50%; cursor: pointer; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); }
+  .dots i.on { box-shadow: 0 0 0 2px var(--accent); }
+  .ink { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; touch-action: none; }
+  .drawing .ink { pointer-events: auto; cursor: crosshair; }
+  .erasing .ink { pointer-events: auto; cursor: pointer; }
+  .ink path { fill: none; stroke-linecap: round; stroke-linejoin: round; pointer-events: stroke; }
+  .erasing .ink path:hover { opacity: .4; }
+  .slide { position: relative; width: 100%; max-width: 760px; aspect-ratio: 16 / 9; height: max-content; background: var(--surface); border: 1px solid var(--line);
+           border-radius: 4px; box-shadow: 0 4px 16px rgba(0,0,0,.08); container-type: inline-size; }
+  .sl-in { position: absolute; inset: 0; padding: 6cqw 6cqw; }
+  .slide h5 { font: 600 5cqw/1.2 var(--head); margin-bottom: 3cqw; }
+  .slide ul { margin-left: 3.5cqw; font-size: 2.9cqw; line-height: 1.7; max-width: 52%; }
+  .slide .dia { position: absolute; right: 5cqw; top: 17cqw; width: 38%; height: auto; }
+  .slide .pn { position: absolute; right: 2.5cqw; bottom: 1.5cqw; font: 500 11px var(--font); color: var(--muted); }
+  .out .thumb { border: 1px solid var(--line); background: var(--surface); border-radius: 4px; aspect-ratio: 16 / 9; margin: 0 8px 6px; display: grid; place-items: center; font-size: 11px; padding: 0; }
+  .out .thumb.on { outline: 2px solid var(--accent); font-weight: 500; color: var(--ink); }
+  .nthumb { border: 1px solid var(--line); border-radius: var(--r); background: var(--bg); margin-bottom: 8px; display: block; width: 100%; height: auto; }
+
+  /* ---------- v3: bookmarks ---------- */
+  .p-marks { overflow: auto; }
+  .bhead { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .bhead .find { max-width: 320px; }
+  .bgroup { margin-bottom: 24px; }
+  .bgroup > h4 { display: flex; gap: 8px; align-items: center; }
+  .bgroup > h4 span { font-weight: 400; letter-spacing: 0; text-transform: none; }
+  .bm { display: grid; grid-template-columns: 80px 1fr 88px 72px 32px; gap: 16px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .bm:first-child { border-top: 0; }
+  .bpg { font-size: 12px; font-weight: 600; color: var(--accent); background: var(--soft); border-radius: var(--r); padding: 4px 8px; text-align: center; white-space: nowrap; }
+  .bm b { display: block; font-weight: 600; }
+  .bm div span { color: var(--muted); font-size: 13px; }
+  .p-read { position: relative; }
+  .bmpop { display: none; position: absolute; top: 52px; left: 340px; z-index: 5; width: 296px; background: var(--surface); border: 1px solid var(--line);
+           border-radius: var(--r-lg); padding: 16px; box-shadow: 0 12px 32px rgba(0,0,0,.2); }
+  .bmpop.show { display: block; }
+  .bmpop b { display: block; margin-bottom: 4px; }
+  .bmpop small { display: block; color: var(--muted); margin-bottom: 8px; }
+  .bmpop input { width: 100%; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); padding: 8px 12px; margin-bottom: 12px; }
+  .bmpop .send { width: 100%; }
+
+  /* ---------- phones ---------- */
+  .phones { display: flex; gap: 32px; flex-wrap: wrap; }
+  .ph-wrap { text-align: center; }
+  .ph-wrap > b { display: block; margin-bottom: 8px; font-weight: 600; }
+  .ph { width: 300px; height: 620px; border: 8px solid var(--ink); border-radius: 36px; overflow: hidden; background: var(--bg); display: flex; flex-direction: column; text-align: left; font-size: 13px; }
+  .pbar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--side); font-weight: 600; }
+  .pbar span:last-child { margin-left: auto; font-weight: 400; color: var(--muted); }
+  .pbody { flex: 1; overflow: hidden; padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; position: relative; }
+  .ph .a { font-size: 14px; }
+  .sheetb { background: var(--surface); border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; padding: 8px 16px 12px; box-shadow: 0 -8px 24px rgba(0,0,0,.08); }
+  .sheetb::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto 8px; }
+  .pask { padding: 8px 12px; }
+  .tabbar { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--line); background: var(--side); padding: 6px 0 10px; }
+  .tabbar div { text-align: center; font-size: 10px; font-weight: 500; color: var(--muted); min-height: 44px; display: grid; place-content: center; gap: 2px; }
+  .tabbar div.on { color: var(--accent); }
+  .tabbar span { font-size: 16px; display: block; }
+  .ppage { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 16px; font: 400 13px/1.65 Newsreader, Georgia, serif; flex: 1; overflow: hidden; }
+  .ppage h5 { font: 600 15px/1.3 Newsreader, Georgia, serif; margin-bottom: 8px; }
+  .fab { position: absolute; right: 16px; bottom: 16px; background: var(--accent); color: var(--on-accent); font-weight: 600; padding: 12px 16px; border-radius: 999px; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+  .ptools { display: flex; gap: 4px; justify-content: space-around; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 4px; }
+  .ph .orb { width: 128px; height: 128px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="intro">
+    <h1>Eryysyn: every page, clickable</h1>
+    <p>Layout 1 + 3 mixed: sidebar for features, top bar for workspace, search and theme. Click the sidebar or the buttons below to move between pages. Theme switcher is in the app's own top bar. <b>New:</b> ☰ hides the sidebar, "Hide sources" in Chat, and in Reader the ☰ and ✦ Ask buttons hide each side panel, Focus hides everything but the page (Esc to leave). Pick the pen in Reader and draw on the page. <b>Newest:</b> Bookmarks have their own page and are no longer listed in Notes. All content is hardcoded sample text for a nursing student.</p>
+  </div>
+  <div class="jump" id="jump">
+    <button data-go="chat" class="on">Chat</button><button data-go="lib">Library</button><button data-go="read">Reader (PDF)</button><button data-go="read" data-doc="ppt">Reader (slides)</button>
+    <button data-go="notes">Notes</button><button data-go="marks">Bookmarks</button><button data-go="study">Study</button><button data-go="voice">Voice</button>
+  </div>
+
+  <div class="scroll"><div class="app" id="app">
+    <div class="bar">
+      <button class="burger" id="sbtoggle" title="Hide or show the sidebar">☰</button><div class="logo">Eryysyn</div>
+      <div class="ws">Nursing 2A ▾ <span class="later">shared later</span></div>
+      <div class="find">⌕ Search your documents…</div>
+      <div class="seg" id="themes"><button data-theme="paper">Paper</button><button data-theme="slate">Slate</button><button data-theme="sage" class="on">Sage</button></div>
+      <div class="seg" id="modes"><button data-mode="light" class="on">☀</button><button data-mode="dark">☾</button></div>
+      <div class="av">G</div>
+    </div>
+
+    <aside class="side">
+      <nav class="nav">
+        <button class="ni on" data-go="chat">✦ Chat</button>
+        <button class="ni" data-go="lib">▤ Library</button>
+        <button class="ni" data-go="notes">✎ Notes</button>
+        <button class="ni" data-go="marks">🔖 Bookmarks</button>
+        <button class="ni" data-go="study">◈ Study <span class="later">later</span></button>
+        <button class="ni" data-go="voice">◉ Voice <span class="later">later</span></button>
+      </nav>
+      <div>
+        <h4>Continue reading</h4>
+        <div class="resume" data-go="read"><b>Vital Signs, ch. 12</b><span>Page 112 of 340</span><div class="prog"><i></i></div></div>
+      </div>
+      <div>
+        <h4>Recent chats</h4>
+        <div class="rc on">Normal blood pressure</div><div class="rc">Sites for taking a pulse</div><div class="rc">Fever vs hyperthermia</div>
+      </div>
+      <nav class="nav" style="margin-top:auto"><button class="ni">⚙ Settings</button></nav>
+    </aside>
+
+    <!-- CHAT -->
+    <div class="pg p-chat show" data-pg="chat">
+      <div class="chat">
+        <div class="ch"><div>Normal blood pressure<small>Answers come only from your documents</small></div><button class="hidebtn" id="srctoggle">Hide sources ›</button></div>
+        <div class="msgs">
+          <div class="q">What is the normal blood pressure for an adult?</div>
+          <div class="a">
+            <p>Normal adult blood pressure is a systolic reading below 120 mmHg and a diastolic reading below 80 mmHg.<span class="cite on">1</span></p>
+            <p>A reading of 130 to 139 systolic or 80 to 89 diastolic is classed as stage 1 hypertension.<span class="cite">2</span></p>
+            <div class="acts"><span>✎ Save to notes</span><span>◈ Make flashcard</span><span>👍</span><span>👎</span></div>
+          </div>
+          <div class="q">Who won the game last night?</div>
+          <div class="a" style="color:var(--muted);font-family:var(--font);font-size:14px"><b style="color:var(--ink)">Not found in your documents.</b> Nothing in this workspace covers that.</div>
+        </div>
+        <div class="ask">
+          <div class="scope">Answer from: <span class="chip on">All documents</span><span class="chip">+ Web <span class="later">later</span></span></div>
+          <div class="box"><span>Ask about your documents…</span><button class="ghost" data-go="voice" title="Talk instead">🎙</button><button class="send">Ask</button></div>
+        </div>
+      </div>
+      <aside class="src">
+        <h4>Sources for this answer</h4>
+        <div class="card on">
+          <div class="ct"><span class="num">1</span><b>Vital Signs, ch. 12.pdf</b><span>p. 112</span></div>
+          <q>Normal adult blood pressure is defined as a systolic pressure below 120 mmHg and a diastolic pressure below 80 mmHg.</q>
+          <div class="mini"><b>Page 112 preview</b>…measured in millimetres of mercury. <mark>Normal adult blood pressure is defined as a systolic pressure below 120 mmHg and a diastolic pressure below 80 mmHg.</mark> Readings vary with…</div>
+          <span class="link" data-go="read">Open in reader →</span>
+        </div>
+        <div class="card">
+          <div class="ct"><span class="num">2</span><b>Vital Signs, ch. 12.pdf</b><span>p. 113</span></div>
+          <q>Stage 1 hypertension: systolic 130 to 139 mmHg or diastolic 80 to 89 mmHg.</q>
+          <span class="link" data-go="read">Open in reader →</span>
+        </div>
+      </aside>
+    </div>
+
+    <!-- LIBRARY -->
+    <div class="pg p-lib" data-pg="lib"><div class="inner">
+      <h3>Library</h3><p class="sub">Documents in Nursing 2A. Only you can see them. Click a name to read it.</p>
+      <div class="drop"><b>Drop a PDF or PowerPoint here</b><span>or choose a file · up to 20 MB</span><button class="send">Upload file</button></div>
+      <div class="rows">
+        <div class="row"><span>Document</span><span>Pages</span><span>Reading</span><span>Status</span><span></span></div>
+        <div class="row"><span class="name" data-go="read">Vital Signs, ch. 12.pdf</span><span class="meta">340</span><span class="meta">p. 112 · 33%</span><span class="badge ok">Ready</span><button class="del">✕</button></div>
+        <div class="row"><span class="name" data-go="read">Pharmacology notes.pdf</span><span class="meta">48</span><span class="meta">Not started</span><span class="badge wn">Preparing…</span><button class="del">✕</button></div>
+        <div class="row"><span class="name">Scanned handout.pdf</span><span class="meta">–</span><span class="meta">–</span><span class="badge er">Failed · Retry</span><button class="del">✕</button></div>
+        <div class="row"><span class="name" data-go="read" data-doc="ppt">Cardio lecture 3.pptx</span><span class="meta">24</span><span class="meta">Slide 14 · 58%</span><span class="badge ok">Ready</span><button class="del">✕</button></div>
+        <div class="row"><span class="name" data-go="read">Anatomy lecture 7.pdf</span><span class="meta">26</span><span class="meta">Finished</span><span class="badge ok">Ready</span><button class="del">✕</button></div>
+      </div>
+    </div></div>
+
+    <!-- READER -->
+    <div class="pg p-read" data-pg="read">
+      <div class="tool">
+        <span class="tb on" id="outtoggle" title="Show or hide the left panel">☰</span>
+        <b class="only-pdf">Vital Signs, ch. 12.pdf</b><b class="only-ppt">Cardio lecture 3.pptx</b>
+        <span class="sep"></span>
+        <span class="tb" data-tool="highlight" title="Highlight">🖍<em> Highlight</em></span>
+        <span class="tb" data-tool="pen" title="Pen">✏<em> Pen</em></span>
+        <span class="tb" data-tool="eraser" title="Eraser">⌫<em> Eraser</em></span>
+        <span class="tb" data-tool="note" title="Typed note">✎<em> Note</em></span>
+        <span class="dots" title="Pen color">
+          <i class="on" data-c="#D6453D" style="background:#D6453D"></i><i data-c="#2F6FDB" style="background:#2F6FDB"></i>
+          <i data-c="#1F9D55" style="background:#1F9D55"></i><i data-c="#E0A100" style="background:#E0A100"></i>
+        </span>
+        <span class="sep"></span>
+        <span class="tb" id="bmbtn" title="Bookmark this page">🔖<em> Bookmark</em></span>
+        <span class="tb gap only-pdf">‹ 112 / 340 ›</span><span class="tb gap only-ppt">‹ Slide 14 / 24 ›</span>
+        <span class="tb on" id="docktoggle" title="Show or hide Ask and Notes">✦ Ask</span>
+        <span class="tb line" id="focusbtn">⛶ Focus</span>
+      </div>
+
+      <div class="bmpop" id="bmpop">
+        <b>Bookmark <span class="only-pdf">page 112</span><span class="only-ppt">slide 14</span></b>
+        <small>What is here? One line so you can find it later.</small>
+        <input value="About: pulse pressure" aria-label="What this page is about">
+        <button class="send" id="bmsave">Save bookmark</button>
+      </div>
+
+      <div class="out">
+        <section class="only-pdf">
+          <h4>Contents</h4>
+          <div>12.1 Temperature</div><div>12.2 Pulse</div><div>12.3 Respiration</div><div class="on">12.4 Blood pressure</div><div>12.5 Oxygen saturation</div>
+        </section>
+        <section class="only-ppt">
+          <h4>Slides</h4>
+          <div class="thumb">12</div><div class="thumb">13</div><div class="thumb on">14 · Cardiac cycle</div><div class="thumb">15</div>
+        </section>
+        <h4>Bookmarks</h4>
+        <div class="only-pdf">🔖 p. 98 Fever stages</div><div class="only-pdf">🔖 p. 112 BP ranges</div>
+        <div class="only-ppt">🔖 Slide 9 Heart valves</div><div class="only-ppt">🔖 Slide 14 Cardiac cycle</div>
+      </div>
+
+      <div class="stage">
+        <div class="sheet only-pdf">
+          <span class="pn">112</span>
+          <h5>12.4 Blood pressure</h5>
+          <p>Blood pressure is the force exerted by circulating blood on the walls of the arteries, measured in millimetres of mercury.</p>
+          <p><mark>Normal adult blood pressure is defined as a systolic pressure below 120 mmHg and a diastolic pressure below 80 mmHg.</mark> Readings vary with age, activity, posture and stress.</p>
+          <span class="pin" style="top:150px">1</span>
+          <p><span class="sel">The difference between systolic and diastolic pressure is called the pulse pressure.</span> It reflects the volume of blood ejected with each beat.</p>
+          <div class="pop"><span>✦ Explain</span><span>Ask</span><span>🖍 Highlight</span><span>✎ Note</span><span>◈ Flashcard</span></div>
+          <div class="fig">
+            <svg viewBox="0 0 400 96" role="img" aria-label="Bar chart of blood pressure categories">
+              <rect x="0" y="60" width="92" height="28" fill="var(--ok)"/><rect x="102" y="44" width="92" height="44" fill="var(--warn)" opacity=".55"/>
+              <rect x="204" y="26" width="92" height="62" fill="var(--warn)"/><rect x="306" y="6" width="92" height="82" fill="var(--err)"/>
+              <g font-size="11" fill="var(--ink)" font-family="sans-serif"><text x="6" y="54">Normal</text><text x="108" y="38">Elevated</text><text x="210" y="20">Stage 1</text><text x="314" y="22" fill="#fff">Stage 2</text></g>
+            </svg>
+            Figure 12-6. Blood pressure categories in adults. Figures and tables show exactly as in the PDF.
+          </div>
+          <p><mark class="b">A cuff that is too small gives a falsely high reading.</mark> Choose a cuff whose bladder covers about 80% of the arm.</p>
+          <span class="pin" style="top:438px;background:var(--hl2)">2</span>
+          <svg class="ink">
+            <path stroke="#D6453D" stroke-width="3" d="M44 68 q10 -5 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0"/>
+            <path stroke="#2F6FDB" stroke-width="3" d="M16 118 l10 24 l-16 -15 h22 l-17 15 z"/>
+          </svg>
+        </div>
+
+        <div class="slide only-ppt"><div class="sl-in">
+          <h5>The cardiac cycle</h5>
+          <ul>
+            <li><mark>Systole: ventricles contract and eject blood</mark></li>
+            <li>Diastole: ventricles relax and fill</li>
+            <li>One cycle lasts about 0.8 s at 75 beats per minute</li>
+          </ul>
+          <svg class="dia" viewBox="0 0 220 160" role="img" aria-label="Cycle diagram: systole and diastole">
+            <rect x="50" y="12" width="120" height="40" rx="8" fill="var(--soft)" stroke="var(--accent)"/>
+            <rect x="50" y="108" width="120" height="40" rx="8" fill="var(--soft)" stroke="var(--accent)"/>
+            <g font-size="14" font-family="sans-serif" fill="var(--ink)" text-anchor="middle"><text x="110" y="37">Systole</text><text x="110" y="133">Diastole</text></g>
+            <g fill="none" stroke="var(--muted)" stroke-width="2"><path d="M176 40 q30 40 0 80"/><path d="M44 120 q-30 -40 0 -80"/></g>
+            <g fill="var(--muted)"><path d="M176 120 l10 -3 l-4 -9 z"/><path d="M44 40 l-10 3 l4 9 z"/></g>
+            <path fill="none" stroke="#D6453D" stroke-width="3" stroke-linecap="round" d="M40 30 C38 0 185 -4 184 32 C183 66 42 66 40 30 C40 22 48 14 60 10"/>
+          </svg>
+          <span class="pn">Slide 14 / 24</span>
+        </div><svg class="ink"></svg></div>
+      </div>
+
+      <aside class="dock">
+        <div class="dtabs"><span class="tb on">✦ Ask</span><span class="tb">✎ Notes (2)</span></div>
+        <div class="dbody">
+          <section class="stack only-pdf">
+            <div class="ctx">About your selection on p. 112: "The difference between systolic and diastolic pressure is called the pulse pressure."</div>
+            <div class="q" style="align-self:flex-start;max-width:100%">Explain this more simply</div>
+            <div class="a"><p>Take the top number and subtract the bottom number. For 120/80 the pulse pressure is 40. It shows how hard each heartbeat pushes.<span class="cite on">1</span></p></div>
+            <h4 style="margin:8px 0 0">My notes on this page</h4>
+            <div class="note">Exam: know the normal cut-offs by heart.<small>Highlight 1 · p. 112</small></div>
+            <div class="note b">Cuff size error came up in lab.<small>Highlight 2 · p. 112</small></div>
+          </section>
+          <section class="stack only-ppt">
+            <div class="ctx">About slide 14: The cardiac cycle</div>
+            <div class="q" style="align-self:flex-start;max-width:100%">Explain the diagram</div>
+            <div class="a"><p>Systole is when the ventricles squeeze and push blood out. Diastole is when they relax and fill again. The two repeat as one cycle.<span class="cite on">1</span></p></div>
+            <h4 style="margin:8px 0 0">My notes on this slide</h4>
+            <div class="note">Systole = squeeze. Circled it on the diagram.<small>Drawing · slide 14</small></div>
+          </section>
+        </div>
+        <div class="ask"><div class="box"><span>Ask about this page…</span><button class="send">Ask</button></div></div>
+      </aside>
+    </div>
+
+    <!-- NOTES -->
+    <div class="pg p-notes" data-pg="notes"><div class="inner">
+      <h3>Notes</h3><p class="sub">Everything you highlighted, wrote or saved. Each one links back to its page.</p>
+      <div class="filters"><span class="chip on">All</span><span class="chip">Highlights</span><span class="chip">My notes</span><span class="chip">Drawings</span><span class="chip">Saved answers</span><span class="chip">All documents ▾</span></div>
+      <div class="grid">
+        <div class="ncard"><div class="kind"><i></i>Highlight</div><p>Normal adult blood pressure is defined as a systolic pressure below 120 mmHg and a diastolic pressure below 80 mmHg.</p><div class="mine">Exam: know the normal cut-offs by heart.</div><div class="ft"><span>Vital Signs, ch. 12</span><span class="link" data-go="read">p. 112 →</span></div></div>
+        <div class="ncard"><div class="kind"><i class="c"></i>Saved answer</div><p>Take the top number and subtract the bottom number. For 120/80 the pulse pressure is 40.</p><div class="ft"><span>From chat · 1 source</span><span class="link" data-go="read">p. 112 →</span></div></div>
+        <div class="ncard"><div class="kind"><i class="b"></i>Highlight</div><p>A cuff that is too small gives a falsely high reading.</p><div class="mine">Cuff size error came up in lab.</div><div class="ft"><span>Vital Signs, ch. 12</span><span class="link" data-go="read">p. 112 →</span></div></div>
+        <div class="ncard"><div class="kind">✏ Drawing</div>
+          <svg class="nthumb" viewBox="0 0 240 84" role="img" aria-label="Your drawing on slide 14">
+            <rect x="60" y="22" width="120" height="40" rx="8" fill="var(--soft)" stroke="var(--accent)"/>
+            <text x="120" y="47" font-size="14" font-family="sans-serif" fill="var(--ink)" text-anchor="middle">Systole</text>
+            <path fill="none" stroke="#D6453D" stroke-width="3" stroke-linecap="round" d="M50 40 C48 10 195 6 194 42 C193 76 52 76 50 40 C50 32 58 24 70 20"/>
+          </svg>
+          <div class="mine">Systole = squeeze. Circled it on the diagram.</div><div class="ft"><span>Cardio lecture 3 · slides</span><span class="link" data-go="read" data-doc="ppt">Slide 14 →</span></div></div>
+        
+      </div>
+    </div></div>
+
+    <!-- BOOKMARKS -->
+    <div class="pg p-marks" data-pg="marks"><div class="inner">
+      <h3>Bookmarks</h3><p class="sub">Pages you marked, each with your own line about what is there. Click one to jump straight to it.</p>
+      <div class="bhead"><div class="find">⌕ Find a bookmark…</div><span class="chip on">By document</span><span class="chip">Newest first</span></div>
+
+      <div class="bgroup">
+        <h4>Vital Signs, ch. 12.pdf <span>· 3 bookmarks</span></h4>
+        <div class="rows">
+          <div class="bm"><span class="bpg">p. 98</span><div><b>About: fever stages</b><span>This page has the table of the four stages of fever.</span></div><span class="meta">Last week</span><span class="link" data-go="read">Open →</span><button class="del" title="Remove">✕</button></div>
+          <div class="bm"><span class="bpg">p. 112</span><div><b>About: blood pressure ranges</b><span>This page has the normal cut-offs and figure 12-6.</span></div><span class="meta">2 days ago</span><span class="link" data-go="read">Open →</span><button class="del" title="Remove">✕</button></div>
+          <div class="bm"><span class="bpg">p. 127</span><div><b>About: oxygen saturation</b><span>This page has the steps for using a pulse oximeter. Review before lab.</span></div><span class="meta">Today</span><span class="link" data-go="read">Open →</span><button class="del" title="Remove">✕</button></div>
+        </div>
+      </div>
+
+      <div class="bgroup">
+        <h4>Cardio lecture 3.pptx <span>· 2 bookmarks</span></h4>
+        <div class="rows">
+          <div class="bm"><span class="bpg">Slide 9</span><div><b>About: heart valves</b><span>This slide has the diagram of the four valves.</span></div><span class="meta">Last week</span><span class="link" data-go="read" data-doc="ppt">Open →</span><button class="del" title="Remove">✕</button></div>
+          <div class="bm"><span class="bpg">Slide 14</span><div><b>About: cardiac cycle</b><span>This slide has systole and diastole. I circled systole.</span></div><span class="meta">Yesterday</span><span class="link" data-go="read" data-doc="ppt">Open →</span><button class="del" title="Remove">✕</button></div>
+        </div>
+      </div>
+    </div></div>
+
+    <!-- STUDY -->
+    <div class="pg p-study" data-pg="study"><div class="inner">
+      <h3>Study <span class="later" style="vertical-align:middle">later</span></h3><p class="sub">Practice from your own documents. Every card and question shows the page it came from.</p>
+      <div class="due"><div class="stat"><b>12</b><span>cards due today</span></div><div class="stat"><b>4 days</b><span>review streak</span></div><div class="stat"><b>78%</b><span>last quiz, ch. 12</span></div></div>
+      <div class="grid">
+        <div class="flash">
+          <h4>Flashcard · 3 of 12</h4>
+          <div class="f">What is pulse pressure?</div>
+          <div class="b">Systolic minus diastolic pressure. For 120/80 it is 40 mmHg.</div>
+          <span class="link" data-go="read">Source: p. 112 →</span>
+          <div class="rate"><button class="ghost">Again</button><button class="ghost">Good</button><button class="send">Easy</button></div>
+        </div>
+        <div class="flash" style="text-align:left">
+          <h4>Quiz · question 2 of 10</h4>
+          <div style="font:500 16px/1.4 var(--head)">A cuff that is too small will give a reading that is:</div>
+          <div class="opts"><div class="o">Falsely low</div><div class="o right">✓ Falsely high</div><div class="o">Unchanged</div></div>
+          <span class="link" data-go="read">Why: p. 112 →</span>
+        </div>
+      </div>
+    </div></div>
+
+    <!-- VOICE -->
+    <div class="pg p-voice" data-pg="voice">
+      <div class="vc">
+        <span class="later">later</span>
+        <div class="orb"><div class="wave"><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div><h3>Ery is speaking</h3><div class="st">Just talk. Say "Hey Ery" to interrupt.</div></div>
+        <div class="vbtns"><button class="round" title="Mute">🎙</button><button class="round" title="Pause">⏸</button><button class="round end" title="End">✕</button></div>
+        <div class="heard">Pages Ery used so far: <span class="chip" data-go="read">p. 112</span><span class="chip" data-go="read">p. 113</span></div>
+        <div class="st" style="font-size:12px">No text on screen while talking. The conversation is saved to Notes when you end.</div>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="sec">
+    <h2>Same app on a phone</h2>
+    <p>One column. Sidebar becomes a bottom tab bar within thumb reach. Sources slide up from the bottom. Tablet sits in between: sidebar shrinks to icons, sources become a slide-in panel.</p>
+  </div>
+  <div class="phones">
+    <div class="ph-wrap"><b>Chat</b><div class="ph">
+      <div class="pbar"><span>Nursing 2A ▾</span><span>⌕</span></div>
+      <div class="pbody">
+        <div class="q">What is the normal blood pressure for an adult?</div>
+        <div class="a"><p>Normal adult blood pressure is a systolic reading below 120 mmHg and a diastolic reading below 80 mmHg.<span class="cite on">1</span></p><p>130 to 139 systolic or 80 to 89 diastolic is stage 1 hypertension.<span class="cite">2</span></p></div>
+      </div>
+      <div class="sheetb"><div class="ct"><span class="num">1</span><b>Vital Signs, ch. 12.pdf</b><span>p. 112</span></div><span class="link">Open page →</span></div>
+      <div class="pask"><div class="box"><span>Ask…</span><button class="ghost">🎙</button><button class="send">Ask</button></div></div>
+      <div class="tabbar"><div class="on"><span>✦</span>Chat</div><div><span>▤</span>Library</div><div><span>✎</span>Notes</div><div><span>◈</span>Study</div><div><span>◉</span>Voice</div></div>
+    </div></div>
+
+    <div class="ph-wrap"><b>Reader</b><div class="ph">
+      <div class="pbar"><span>‹ Vital Signs</span><span>112 / 340</span></div>
+      <div class="pbody">
+        <div class="ptools"><span class="tb on">🖍</span><span class="tb">✎</span><span class="tb">🔖</span><span class="tb">⛶</span></div>
+        <div class="ppage"><h5>12.4 Blood pressure</h5>
+          <p style="margin-bottom:8px">Blood pressure is the force exerted by circulating blood on the walls of the arteries.</p>
+          <p style="margin-bottom:8px"><mark>Normal adult blood pressure is defined as a systolic pressure below 120 mmHg and a diastolic pressure below 80 mmHg.</mark></p>
+          <p>The difference between systolic and diastolic pressure is called the pulse pressure. It reflects the volume of blood ejected with each beat.</p>
+        </div>
+        <button class="fab">✦ Ask about this page</button>
+      </div>
+      <div class="tabbar"><div><span>✦</span>Chat</div><div class="on"><span>▤</span>Library</div><div><span>✎</span>Notes</div><div><span>◈</span>Study</div><div><span>◉</span>Voice</div></div>
+    </div></div>
+
+    <div class="ph-wrap"><b>Voice</b><div class="ph">
+      <div class="pbar"><span>Nursing 2A ▾</span><span></span></div>
+      <div class="pbody" style="align-items:center;justify-content:center;gap:24px;background:radial-gradient(circle at 50% 40%, var(--soft), var(--bg) 65%)">
+        <div class="orb"><div class="wave"><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div style="text-align:center"><b style="font:600 18px var(--head)">Ery is speaking</b><div style="color:var(--muted)">Just talk</div></div>
+        <div class="vbtns"><button class="round">🎙</button><button class="round">⏸</button><button class="round end">✕</button></div>
+        <div class="heard">Pages used: <span class="chip">p. 112</span><span class="chip">p. 113</span></div>
+      </div>
+      <div class="tabbar"><div><span>✦</span>Chat</div><div><span>▤</span>Library</div><div><span>✎</span>Notes</div><div><span>◈</span>Study</div><div class="on"><span>◉</span>Voice</div></div>
+    </div></div>
+  </div>
+</div>
+
+<script>
+const root = document.documentElement, app = document.getElementById('app');
+const read = app.querySelector('.p-read');
+const $ = id => document.getElementById(id);
+function go(p, doc) {
+  doc = doc || 'pdf';
+  app.querySelectorAll('.pg').forEach(x => x.classList.toggle('show', x.dataset.pg === p));
+  if (p === 'read') read.classList.toggle('ppt', doc === 'ppt'); else setFocus(false);
+  document.querySelectorAll('.ni[data-go], #jump button').forEach(x =>
+    x.classList.toggle('on', x.dataset.go === p && (p !== 'read' || (x.dataset.doc || 'pdf') === doc)));
+}
+document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go, b.dataset.doc)));
+
+// hide and show panels
+$('sbtoggle').onclick = () => app.classList.toggle('nosb');
+$('srctoggle').onclick = e => {
+  const off = app.querySelector('.p-chat').classList.toggle('nosrc');
+  e.currentTarget.textContent = off ? '‹ Show sources' : 'Hide sources ›';
+};
+$('outtoggle').onclick = e => e.currentTarget.classList.toggle('on', !read.classList.toggle('noout'));
+$('docktoggle').onclick = e => e.currentTarget.classList.toggle('on', !read.classList.toggle('nodock'));
+function setFocus(on) {
+  app.classList.toggle('focus', on);
+  read.classList.toggle('noout', on); read.classList.toggle('nodock', on);
+  $('outtoggle').classList.toggle('on', !on); $('docktoggle').classList.toggle('on', !on);
+  $('focusbtn').textContent = on ? '✕ Exit focus' : '⛶ Focus';
+}
+$('focusbtn').onclick = () => setFocus(!app.classList.contains('focus'));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') setFocus(false); });
+
+// reader tools and pen
+let tool = 'highlight', color = '#D6453D';
+function setTool(t) {
+  tool = t;
+  read.querySelectorAll('[data-tool]').forEach(x => x.classList.toggle('on', x.dataset.tool === t));
+  read.classList.toggle('drawing', t === 'pen'); read.classList.toggle('erasing', t === 'eraser');
+}
+read.querySelectorAll('[data-tool]').forEach(b => b.onclick = () => setTool(b.dataset.tool));
+read.querySelectorAll('.dots i').forEach(d => d.onclick = () => {
+  color = d.dataset.c;
+  read.querySelectorAll('.dots i').forEach(x => x.classList.toggle('on', x === d));
+  setTool('pen');
+});
+read.querySelectorAll('.ink').forEach(svg => {
+  let path = null;
+  const pt = e => { const r = svg.getBoundingClientRect(); return (e.clientX - r.left).toFixed(1) + ' ' + (e.clientY - r.top).toFixed(1); };
+  svg.addEventListener('pointerdown', e => {
+    if (tool === 'eraser') { if (e.target.tagName === 'path') e.target.remove(); return; }
+    if (tool !== 'pen') return;
+    path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('stroke', color); path.setAttribute('stroke-width', 3); path.setAttribute('d', 'M' + pt(e));
+    svg.appendChild(path); svg.setPointerCapture(e.pointerId);
+  });
+  svg.addEventListener('pointermove', e => { if (path) path.setAttribute('d', path.getAttribute('d') + ' L' + pt(e)); });
+  svg.addEventListener('pointerup', () => { path = null; });
+});
+setTool('highlight');
+
+// bookmark popover
+const bmToggle = on => { $('bmpop').classList.toggle('show', on); $('bmbtn').classList.toggle('on', on); };
+$('bmbtn').onclick = () => bmToggle(!$('bmpop').classList.contains('show'));
+$('bmsave').onclick = () => bmToggle(false);
+function seg(id, key) {
+  document.querySelectorAll(`#${id} button`).forEach(b => b.addEventListener('click', () => {
+    root.dataset[key] = b.dataset[key];
+    document.querySelectorAll(`#${id} button`).forEach(x => x.classList.toggle('on', x === b));
+  }));
+}
+seg('themes', 'theme'); seg('modes', 'mode');
+</script>
+</body>
+</html>
