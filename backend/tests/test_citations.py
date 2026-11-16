@@ -71,6 +71,29 @@ def test_removed_marker_leaves_no_gap_but_kept_marker_keeps_its_space():
     assert p.text == "Real [1]. Invented. Mixed [1], end."
 
 
+def test_brackets_inside_inline_code_are_not_citations():
+    # "items[1]" is code, not a citation. Counting it let an uncited claim through.
+    assert parse_answer("Use `items[1]` to get the second item.", passage_count=3) == REFUSED
+
+
+def test_brackets_inside_a_code_block_are_not_citations():
+    raw = "Lists start at 0 [1].\n```\nx = items[2]\ny = items[3]\n```"
+    p = parse_answer(raw, passage_count=3)
+    assert p.cited == [1]
+
+
+def test_code_is_left_exactly_as_written_even_with_out_of_range_numbers():
+    # Outside code, [9] would be removed as an invented citation. Inside code it is just code.
+    raw = "Indexing is zero-based [1]. Try `a[9]` and:\n```\nb = c[0][9]\n```"
+    assert parse_answer(raw, passage_count=1).text == raw
+
+
+def test_repeated_identical_markers_are_collapsed():
+    assert parse_answer("Lava cools [2][2]. Rock forms [2].", passage_count=3).text == "Lava cools [2]. Rock forms [2]."
+    assert parse_answer("Both [1][2].", passage_count=3).text == "Both [1][2]."    # different: kept
+    assert parse_answer("Grouped [2, 2].", passage_count=3).text == "Grouped [2]."
+
+
 def test_an_answer_with_no_valid_citation_becomes_a_refusal():
     assert parse_answer("Paris is the capital of France.", passage_count=2) == REFUSED
     assert parse_answer("Paris is the capital [7].", passage_count=2) == REFUSED

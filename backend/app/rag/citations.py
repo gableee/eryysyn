@@ -15,6 +15,11 @@ from app.rag.prompt import REFUSAL
 _GROUP = re.compile(r"([ \t]*)\[\s*\d+(?:\s*,\s*\d+)*\s*\]")
 # A single clean marker, after normalising: [1]
 _MARKER = re.compile(r"\[(\d+)\]")
+# The same marker repeated right after itself: "[2][2]". \1 = "whatever group 1 matched".
+_REPEATED = re.compile(r"(\[\d+\])\1+")
+# Code: a ```fenced block``` (may span lines) or `inline code` (one line).
+# The outer ( ) makes re.split KEEP the code pieces in its result, at the odd positions.
+_CODE = re.compile(r"(```.*?```|`[^`\n]*`)", re.DOTALL)
 
 
 @dataclass(frozen=True)
@@ -43,7 +48,14 @@ def parse_answer(raw: str, passage_count: int) -> ParsedAnswer:
         markers = "".join(f"[{n}]" for n in numbers if 1 <= n <= passage_count)
         return space_before + markers if markers else ""   # nothing valid: drop the marker AND its gap
 
-    text = _GROUP.sub(keep_valid, raw).strip()
+    #    Only the prose is processed. Code is not ours to edit, and "items[1]" in code is not a
+    #    citation. re.split with a capturing group returns [prose, code, prose, code, prose, ...]:
+    #    even positions are prose, odd positions are code.
+    parts = _CODE.split(raw)
+    for i in range(0, len(parts), 2):
+        parts[i] = _REPEATED.sub(r"\1", _GROUP.sub(keep_valid, parts[i]))   # "[2][2]" -> "[2]"
+    text = "".join(parts).strip()
+    prose = "".join(parts[0::2])     # every second item from 0: the prose pieces only
 
     # 2. Does the reply START with the refusal sentence (give or take quotes, capitals, markers)?
     #    Small models often refuse and then add a remark, sometimes with a citation:
@@ -54,7 +66,8 @@ def parse_answer(raw: str, passage_count: int) -> ParsedAnswer:
         return _REFUSED
 
     # 3. Which passages are cited? dict.fromkeys keeps first-seen order and drops repeats.
-    cited = list(dict.fromkeys(int(n) for n in _MARKER.findall(text)))
+    #    Counted in the prose only, so brackets inside code never count as citations.
+    cited = list(dict.fromkeys(int(n) for n in _MARKER.findall(prose)))
 
     # 4. A claim with no checkable source is not allowed out.
     if not cited:
