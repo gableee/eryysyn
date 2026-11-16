@@ -82,7 +82,7 @@ def test_the_model_receives_rules_passages_and_question(chat, monkeypatch):
     ask(token, conv)
     assert REFUSAL in seen["system"] and "<style>" not in seen["system"]
     assert '<passage n="1" file="facts.pdf" page="2">' in seen["user"]
-    assert f"Question: {QUESTION}" in seen["user"]
+    assert f"<question>\n{QUESTION}\n</question>" in seen["user"]
 
 
 def test_chat_instructions_reach_the_model_after_the_rules(env, monkeypatch):
