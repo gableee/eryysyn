@@ -200,6 +200,9 @@ Principle: Understand -> Implement -> Evaluate -> Improve. Every technology must
 - uvicorn and pytest run from `backend/`. Scratch scripts run with `PYTHONPATH=. python ../scratch/file.py`.
 - Commit often (conventional commits: feat, fix, docs, chore, refactor, test).
 - Reactivate: `cd ~/projects/eryysyn && source .venv/bin/activate && cd backend`.
+- Measure before explaining slowness (2026-11-17). One round trip to Supabase = ~227 ms from here; first connection = ~1.5 s. `search_chunks` warm = ~0.9 s, almost all network (BEGIN + set local + select + COMMIT = 4 round trips); embedding warm = ~20 ms, cold = ~6.8 s (bge load, once per process). Saving an answer = 7 round trips (~1.6 s). Fixes for later: load bge at startup, psycopg pipeline mode, a closer region or local Postgres for tests.
+- A test that passes is only proof if it FAILS when the code is wrong. Check with a mutation: break the line, run the test, `git checkout` the file. The chat-deleted race test passed without `for update`; `test_chat_row_is_locked_while_the_answer_is_saved` now covers the lock.
+- No `Co-Authored-By: Claude` lines in commits or PRs (history rewritten 2026-11-17 to remove them).
 
 ## 11. Open items
 
