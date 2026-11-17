@@ -6,6 +6,7 @@ the right page never reached the model (retrieval), or it did and the answer was
 
 from __future__ import annotations
 
+import statistics
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -59,3 +60,74 @@ def score_question(q: Question, hits: list[SearchHit], parsed: ParsedAnswer) -> 
     return Scores(hit=hit, rr=1 / rank if hit else 0.0, refused=parsed.refused,
                   citation_ok=citation_ok, keywords_ok=keywords_ok,
                   correct=not parsed.refused and citation_ok and keywords_ok, failed=failed)
+
+
+# --- A whole run --------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class Result:
+    question: Question
+    scores: Scores
+    seconds: float                            # search + model + parse, for this question
+    retrieved: list[tuple[str, int, float]]   # (filename, page, score) in rank order
+    answer: str                               # what the user would have seen
+
+
+def _ratio(part: int | float, whole: int) -> float:
+    return part / whole if whole else 0.0      # an empty group scores 0, not ZeroDivisionError
+
+
+def summarize(results: list[Result]) -> dict:
+    # Traps are reported one by one; mixing them into the averages would hide them.
+    answers = [r for r in results if r.question.expect == "answer" and r.question.kind != "trap"]
+    refusals = [r for r in results if r.question.expect == "refuse"]
+    not_refused = [r for r in answers if not r.scores.refused]
+    hits = sum(r.scores.hit for r in answers)          # True counts as 1, False as 0
+    return {
+        "questions": len(results),
+        "hits": hits,
+        "answer_total": len(answers),
+        "hit_at_k": _ratio(hits, len(answers)),
+        "mrr": _ratio(sum(r.scores.rr for r in answers), len(answers)),
+        "answered_correct": sum(r.scores.correct for r in answers),
+        "answered_total": len(answers),
+        "false_refusals": sum(r.scores.refused for r in answers),
+        "citation_ok": sum(r.scores.citation_ok for r in not_refused),
+        "citation_total": len(not_refused),
+        "refused_correct": sum(r.scores.correct for r in refusals),
+        "refuse_total": len(refusals),
+        "traps": {r.question.id: r.scores.correct for r in results if r.question.kind == "trap"},
+        "median_seconds": statistics.median(r.seconds for r in results) if results else 0.0,
+    }
+
+
+def format_summary(s: dict, model: str, k: int) -> str:
+    traps = "  ".join(f"{qid} {'✓' if ok else '✗'}" for qid, ok in s["traps"].items()) or "-"
+    return "\n".join([
+        f"model {model} · k {k} · {s['questions']} questions",
+        f"retrieval   Hit@{k} {s['hit_at_k']:.0%} ({s['hits']}/{s['answer_total']})   MRR {s['mrr']:.2f}",
+        f"answers     correct {s['answered_correct']}/{s['answered_total']}   "
+        f"false refusals {s['false_refusals']}/{s['answered_total']}   "
+        f"citation ok {s['citation_ok']}/{s['citation_total']}",
+        f"refusals    {s['refused_correct']}/{s['refuse_total']} not-in-docs refused",
+        f"traps       {traps}",
+        f"time        {s['median_seconds']:.1f} s/answer (median)",
+    ])
+
+
+def format_failures(results: list[Result]) -> str:
+    blocks = []
+    for r in results:
+        if r.scores.correct:
+            continue
+        q = r.question
+        expected = (f"{q.file} p.{', '.join(map(str, q.pages))}" if q.expect == "answer"
+                    else "a refusal")
+        retrieved = " · ".join(f"{f} p.{p} {score:.2f}" for f, p, score in r.retrieved) or "-"
+        blocks.append("\n".join([
+            f"✗ {q.id} [{', '.join(r.scores.failed)}]  {q.q}",
+            f"  expected   {expected}",
+            f"  retrieved  {retrieved}",
+            f"  answer     {r.answer}",
+        ]))
+    return "\n\n".join(blocks) if blocks else "No failures."

@@ -80,3 +80,68 @@ def test_refuse_question_correct_only_when_refused():
     assert score_question(REFUSE_Q, hits, REFUSED).failed == ()
     s = score_question(REFUSE_Q, hits, answer("Mix flour and eggs [1].", [1]))
     assert s.correct is False and s.failed == ("not_refused",)
+
+
+# --- Task 3: summary of a whole run --------------------------------------------------------
+
+from app.evals.scoring import Result, Scores, format_failures, format_summary, summarize  # noqa: E402
+
+TRAP_Q = Question(id="d2", set="d2", q="Does gas put out a fire?", expect="answer", file="d2.pdf",
+                  pages=(1,), kind="trap")
+
+
+def result(q: Question, hit: bool, rr: float, correct: bool, refused: bool = False,
+           failed: tuple[str, ...] = (), seconds: float = 1.0) -> Result:
+    scores = Scores(hit=hit, rr=rr, refused=refused, citation_ok=correct, keywords_ok=correct,
+                    correct=correct, failed=failed)
+    return Result(question=q, scores=scores, seconds=seconds,
+                  retrieved=[("ethics.pdf", 10, 0.83)], answer="some answer")
+
+
+def run_of_six() -> list[Result]:
+    a1 = Question(**{**ANSWER_Q.__dict__, "id": "e01"})
+    a2 = Question(**{**ANSWER_Q.__dict__, "id": "e02"})
+    a3 = Question(**{**ANSWER_Q.__dict__, "id": "e03"})
+    r1 = Question(**{**REFUSE_Q.__dict__, "id": "n01"})
+    r2 = Question(**{**REFUSE_Q.__dict__, "id": "n02"})
+    return [
+        result(a1, hit=True, rr=1.0, correct=True, seconds=1.0),
+        result(a2, hit=True, rr=0.5, correct=True, seconds=2.0),
+        result(a3, hit=False, rr=0.0, correct=False, failed=("retrieval", "keywords"), seconds=3.0),
+        result(r1, hit=False, rr=0.0, correct=True, refused=True, seconds=4.0),
+        result(r2, hit=False, rr=0.0, correct=False, failed=("not_refused",), seconds=5.0),
+        result(TRAP_Q, hit=True, rr=1.0, correct=False, failed=("keywords",), seconds=6.0),
+    ]
+
+
+def test_summary_counts_by_type():
+    s = summarize(run_of_six())
+    assert s["questions"] == 6
+    assert s["hit_at_k"] == 2 / 3                 # traps excluded: the trap's hit does not count
+    assert s["mrr"] == (1.0 + 0.5 + 0.0) / 3
+    assert (s["answered_correct"], s["answered_total"]) == (2, 3)
+    assert s["false_refusals"] == 0
+    assert (s["citation_ok"], s["citation_total"]) == (2, 3)
+    assert (s["refused_correct"], s["refuse_total"]) == (1, 2)
+    assert s["traps"] == {"d2": False}
+    assert s["median_seconds"] == 3.5
+
+
+def test_summary_of_empty_run_does_not_divide_by_zero():
+    s = summarize([])
+    assert s["hit_at_k"] == 0.0 and s["mrr"] == 0.0 and s["median_seconds"] == 0.0
+
+
+def test_summary_text_shows_the_headline_numbers():
+    text = format_summary(summarize(run_of_six()), model="bonsai-2:4b", k=5)
+    assert "bonsai-2:4b" in text and "Hit@5 67% (2/3)" in text and "MRR 0.50" in text
+    assert "correct 2/3" in text and "1/2" in text and "d2 ✗" in text
+
+
+def test_failures_list_only_incorrect_results():
+    text = format_failures(run_of_six())
+    for failing in ("e03", "n02", "d2"):
+        assert failing in text
+    for passing in ("e01", "e02", "n01"):
+        assert passing not in text
+    assert "retrieval, keywords" in text and "ethics.pdf p.10 0.83" in text
