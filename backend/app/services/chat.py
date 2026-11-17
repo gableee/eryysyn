@@ -48,13 +48,15 @@ class Draft:
     parsed: ParsedAnswer  # after our checks
 
 
-def draft_answer(workspace_id: uuid.UUID, question: str, instructions: str = "") -> Draft:
+def draft_answer(
+    workspace_id: uuid.UUID, question: str, instructions: str = "", k: int = DEFAULT_K
+) -> Draft:
     """Retrieve, build the prompt, call the model, validate. Saves nothing.
 
     The caller must already have verified that the user owns workspace_id.
     Raises LLMError if the model fails.
     """
-    hits = search_chunks(workspace_id, question, DEFAULT_K)
+    hits = search_chunks(workspace_id, question, k)   # k = passages the model will see
     if not hits:
         # No documents: the answer is known. Don't spend a model call on it.
         return Draft(hits, None, None, None, ParsedAnswer(text=REFUSAL, cited=[], refused=True))

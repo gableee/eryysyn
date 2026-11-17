@@ -1,4 +1,5 @@
 import os
+import uuid
 from contextlib import contextmanager
 from types import SimpleNamespace
 
@@ -298,3 +299,13 @@ def test_input_is_validated(chat):
     assert client.post(f"/workspaces/{ws}/conversations", headers=h, json={"instructions": "x" * 501}).status_code == 422
     assert client.patch(f"/conversations/{conv}", headers=h, json={"instructions": "x" * 501}).status_code == 422
     assert client.patch(f"/conversations/{conv}", headers=h, json={"title": ""}).status_code == 422
+
+
+def test_draft_answer_searches_k_passages(env, monkeypatch):
+    """The eval varies k (how many passages the model sees); the API keeps the default 5."""
+    from app.services.chat import draft_answer
+    _, ws = env
+    monkeypatch.setattr(llm_client, "generate", fake("Crash [1]."))
+    workspace = uuid.UUID(ws)
+    assert len(draft_answer(workspace, QUESTION, k=1).hits) == 1
+    assert len(draft_answer(workspace, QUESTION).hits) == 3      # default 5, the PDF has 3 chunks
