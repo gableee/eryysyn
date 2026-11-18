@@ -172,6 +172,30 @@ Measured by me in scratch.py:
 - Frontend: "check the cited page" wording for medical subjects is required, not optional.
 - D1, D2, D3 go into the evaluation set as fixed cases.
 
+**Eval results, golden set round 1 (2026-11-18, 34 questions, k=5, bge-small).** Run: `cd backend && PYTHONPATH=. python scripts/run_eval.py --model <name>`. Files: `backend/evals/results/`.
+
+| | bonsai-2:4b | qwen3.5:9b |
+|---|---|---|
+| Retrieval (same for both) | Hit@5 100% · MRR 0.98 · Recall@5 0.98 · Precision@5 0.35 | same |
+| Answers correct | 21/25 | 23/25 |
+| Not-in-docs refused / false refusals | 6/6 · 0/25 | 6/6 · 0/25 |
+| Multi-page | 1/3 | 3/3 |
+| Negation | 6/6 | 6/6 |
+| Traps | d1 ✗ d2 ✓ d3 ✗ | d1 ✗ d2 ✓ d3 ✗ |
+| Median time | 1.6 s | 2.1 s |
+
+(Numbers after the review fixes. First run before fixes: bonsai 20/25, qwen 21/25.)
+
+What I learned:
+- Retrieval is not the bottleneck on this document: the right page is almost always found and first. One 21-page article is easy; round 2 with my study files will be harder.
+- One question = 4%, so 21 vs 23 is close to noise. The real difference is by type: the small model fails questions whose answer spans two pages (1/3 vs 3/3).
+- Both refuse correctly, including near-misses (GDPR, CAN-SPAM penalties, ACM founders).
+- Both still repeat a false document (D1) and state both sides of a conflict as facts (D3). Both resisted the hidden instruction (D2).
+- bonsai sometimes "thinks out loud" into the answer: 26 s and about 150 lines of "Wait, let me re-read" on m01, which a user would see. It also adds a stray "Not found in your documents." after a correct answer (d2).
+- A citation check catches real misattribution: qwen wrote that Therac-25 developers "followed standard procedures [3]", but page 7 says that about the operators.
+- Reviewing failures fixed 3 rules that were too strict (p01, p04, e10) and allowed citing the negation twin (`also_ok_pages`: fine to cite, not a page search must find).
+- Negation: twin pages have cosine 0.61-0.88. The right twin still ranked first 6/6, even with "dangerous" or "avoid" instead of "not", but the margin was as small as 0.014. Embeddings carry topic strongly and polarity weakly; in a big workspace that margin can push the right page out of the top 5. Fix if it shows up: a reranker or hybrid (keyword) search.
+
 ## 9. Roadmap and where I am
 
 | Phase | Subject | Status |
@@ -186,7 +210,7 @@ Measured by me in scratch.py:
 | 7 | LangGraph and agents | Not started |
 | 8 | Production and MLOps | Not started |
 
-Phase 3 progress: Users can upload PDFs and ask questions through the backend API, and Eryysyn answers from their documents with page citations or says the answer is not in them. Extraction, chunking, embeddings, retrieval and generation work end to end (77 tests), merged to main in PR #1. Left in Phase 3: the 20-50 question evaluation set, the tiny-chunk decision, follow-up questions (history), and the frontend screens.
+Phase 3 progress: Users can upload PDFs and ask questions through the backend API, and Eryysyn answers from their documents with page citations or says the answer is not in them; a 34-question evaluation now measures how often it is right. Retrieval found the right page for every answerable question; answers were correct 21-23 of 25 depending on the model, and every out-of-scope question was refused (113 tests). Left in Phase 3: the conflict prompt rule (D3), the tiny-chunk decision, follow-up questions (history), and the frontend screens.
 
 Principle: Understand -> Implement -> Evaluate -> Improve. Every technology must solve a real Eryysyn problem.
 
@@ -202,6 +226,8 @@ Principle: Understand -> Implement -> Evaluate -> Improve. Every technology must
 - Reactivate: `cd ~/projects/eryysyn && source .venv/bin/activate && cd backend`.
 - Measure before explaining slowness (2026-11-17). One round trip to Supabase = ~227 ms from here; first connection = ~1.5 s. `search_chunks` warm = ~0.9 s, almost all network (BEGIN + set local + select + COMMIT = 4 round trips); embedding warm = ~20 ms, cold = ~6.8 s (bge load, once per process). Saving an answer = 7 round trips (~1.6 s). Fixes for later: load bge at startup, psycopg pipeline mode, a closer region or local Postgres for tests.
 - A test that passes is only proof if it FAILS when the code is wrong. Check with a mutation: break the line, run the test, `git checkout` the file. The chat-deleted race test passed without `for update`; `test_chat_row_is_locked_while_the_answer_is_saved` now covers the lock.
+- Never run the eval and pytest at the same time: both use test user A's `eval:*` workspaces, and each run deletes leftovers at start, so one deletes the other's documents mid-run (code review #6, a known limit; fix later with a per-run id).
+- The eval is code too and can lie (code review, 2026-11-18): a keyword "3" matched inside the citation "[3]", a forbidden phrase matched a correct "will not ...", a flat keyword list loaded as single letters, a file-name typo showed up as a fake retrieval failure, and one model timeout lost the whole run. All fixed test-first; none had changed the numbers yet. Results now record the commit before the run.
 - No `Co-Authored-By: Claude` lines in commits or PRs (history rewritten 2026-11-17 to remove them).
 
 ## 11. Open items
@@ -216,7 +242,19 @@ Principle: Understand -> Implement -> Evaluate -> Improve. Every technology must
 - [x] Step 6 generation done and merged to main (PR #1, 2026-11-17): `rag/prompt.py`, `rag/citations.py`, `llm/client.py` (Ollama), `services/chat.py`, `api/conversations.py`, migrations 002 and 003. Tests: `test_prompt.py`, `test_citations.py`, `test_llm_client.py`, `test_chat.py`, `test_auth.py`, `test_schema.py` (77 tests in the whole suite, incl. the row-lock test). Try the real model with `scripts/try_chat.py`.
 - [x] Walkthrough of every step 6 change done (problem, decision, alternatives, code line by line, real runs).
 - [x] Working rules for Claude in `CLAUDE.local.md` at the repo root (gitignored, loads every session, not on GitHub): read CONTEXT first, update it after every step, roadmap table format for the portfolio, no Claude co-author lines, ask before every commit.
-- [ ] Next: evaluation set of 20-50 questions from the real PDF (answerable, not answerable, trap passages), then run both models on it.
+- [ ] Evaluation set (in progress on branch `eval-test`). Design: `docs/superpowers/specs/2026-11-17-eval-set-design.md`, plan: `docs/superpowers/plans/2026-11-17-eval-set.md` (7 tasks).
+  - [x] Task 1, load the golden set: `app/evals/golden.py` reads `evals/golden.jsonl` (one question per line) and checks every line before any slow work; a typo stops the run in under a second with "golden.jsonl line N: ...". Tests: `tests/test_eval_golden.py` (9).
+  - [x] Task 2, score one question: `app/evals/scoring.py` `score_question` gives hit (right page in the top 5), rr (1 / rank of the first right page), citation_ok, keywords_ok (must_contain groups = AND of ORs, case-insensitive), correct, and `failed` (which rule broke). Pure function, no DB or model. Tests: `tests/test_eval_scoring.py`.
+  - [x] Task 3, summarise a run: `summarize`, `format_summary`, `format_failures`. Answers, refusals and traps are reported separately (one blended number would hide which stage failed); time is the median (robust to a cold start). 99 tests in the suite.
+  - [x] Task 4, temporary workspaces: `app/evals/sets.py` (sets ethics, d1, d2, d3; trap PDFs generated from text) and `app/evals/workspaces.py` (`eval_workspaces` context manager: deletes leftover `eval:*` workspaces, creates one per set, indexes, and deletes them in `finally`, so also on errors and Ctrl+C). Real PDFs go in `backend/evals/docs/` (gitignored). Tests: `tests/test_eval_workspaces.py` (6); mutation without `finally` left `eval:d3` behind and the test caught it. 105 tests.
+  - [x] Task 5, runner: `scripts/run_eval.py [--model] [--only] [--k]`. Fail-fast order: validate golden.jsonl → warm up the model (wrong name or Ollama down = one line, exit 1, nothing created) → temporary workspaces → `draft_answer` per question (the API's pipeline; it now takes `k`) → summary + failures → `evals/results/<date>_<model>.json` with settings, commit (`+dirty` if uncommitted), raw replies and scores. Smoke run on bonsai (d2, d3, one refusal): 3/3, about 1.2 s per answer, 0 workspaces left. Test: `test_draft_answer_searches_k_passages`. 106 tests.
+  - Finding: d3 "passed" while the answer stated both contradicting claims as facts without saying they disagree. A pass is only as good as its rule: the real golden set must require a conflict word for d3.
+  - [x] Task 6, golden set round 1: `backend/evals/golden.jsonl`, 34 questions (10 direct, 6 paraphrase, 3 multi-page, 6 not-in-docs, 3 traps, 6 negation). Doubts written in the notes of d1, e09, n02, p04. I review on failures in Task 7 (with the page text shown), not all up front; my own 5 questions come later, after reading the PDF.
+  - [x] Added before the first run: Recall@5 (expected pages found / expected pages: completeness, matters for multi-page) and Precision@5 (chunks on an expected page / chunks returned: noise; max is below 1 because a page has only 1-3 chunks, so compare runs, not the raw number), plus correct/total per question kind. 111 tests.
+  - [x] Negation set `neg` (3 twin pairs: "safe" / "not safe", "very good" / "not good", "very nice" / "not very nice", each about a different subject). Measured: twin pages have cosine 0.61-0.88; a question still ranked the right twin first 6/6, but "Which cable is not safe?" won by only 0.034. Embeddings capture topic more than polarity (negation insensitivity).
+  - [x] Task 7: ran bonsai and qwen, reviewed every failure (model wrong vs rule too strict), fixed 3 rules, reran. Results and findings in section 8.
+  - [ ] Later: write my own 5 questions after reading the PDF; round 2 with my study files (several documents, file-level hit).
+- Eval terms (write in my own words): Hit@k = any right result in the top k. Precision@k = share of the top k that is right (noise). Recall@k = share of all right results inside the top k (completeness). MRR = mean of 1 / rank of the first right result (how early). nDCG = all right results weighted by position and grade. MMR is not a metric: a re-ranking for diverse results. I use Hit@5 + MRR because the model sees exactly the top 5, most questions have 1-2 right pages, and a small model reads the first passages most.
 - [x] `leeway=10` added to the token check in `core/auth.py`. Code review fixes 1-10 done (72 tests), migration 003 adds citation indexes.
 - [ ] Prompt rule for conflicting passages: say so and cite both (D3).
 - [ ] Phase 4: claim checker (sentence + cited passage → supported?) and a labelled warning for unsupported claims (option 3).

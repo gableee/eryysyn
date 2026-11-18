@@ -158,3 +158,6 @@ scratch/
 # Brainstorm and plan workspace (mockup server, execution ledger)
 .superpowers/
 /CLAUDE.local.md
+# Eval documents: real PDFs are not ours to publish (generated trap PDFs live in code)
+backend/evals/docs/*
+!backend/evals/docs/.gitkeep
