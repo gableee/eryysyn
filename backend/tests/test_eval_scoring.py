@@ -145,3 +145,33 @@ def test_failures_list_only_incorrect_results():
     for passing in ("e01", "e02", "n01"):
         assert passing not in text
     assert "retrieval, keywords" in text and "ethics.pdf p.10 0.83" in text
+
+
+# --- Recall@k and Precision@k (added before the first full run) ------------------------------
+
+def test_recall_counts_distinct_expected_pages_found():
+    # expected pages 10 and 11; only 10 retrieved (twice) -> half the answer is missing
+    hits = [hit("ethics.pdf", 10), hit("ethics.pdf", 10), hit("ethics.pdf", 3)]
+    s = score_question(ANSWER_Q, hits, answer(GOOD_TEXT, [1]))
+    assert s.recall == 0.5
+
+
+def test_precision_is_share_of_returned_chunks_on_target():
+    hits = [hit("ethics.pdf", 10), hit("ethics.pdf", 3), hit("ethics.pdf", 11), hit("ethics.pdf", 4)]
+    s = score_question(ANSWER_Q, hits, answer(GOOD_TEXT, [1]))
+    assert s.precision == 2 / 4          # divided by chunks returned, not by k
+
+
+def test_recall_and_precision_are_zero_without_hits():
+    s = score_question(ANSWER_Q, [], REFUSED)
+    assert s.recall == 0.0 and s.precision == 0.0
+
+
+def test_summary_reports_recall_precision_and_results_per_kind():
+    neg = Question(id="neg1", set="neg", q="Which cable is not safe?", expect="answer", file="neg.pdf",
+                   pages=(2,), kind="negation")
+    results = run_of_six() + [result(neg, hit=True, rr=0.5, correct=False, failed=("keywords",))]
+    s = summarize(results)
+    assert s["by_kind"]["negation"] == [0, 1]           # [correct, total]
+    text = format_summary(s, model="m", k=5)
+    assert "Recall@5" in text and "Precision@5" in text and "negation 0/1" in text

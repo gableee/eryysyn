@@ -32,6 +32,13 @@ def test_trap_sets_are_defined():
     assert len(SETS["d2"][0].pages) == 2
 
 
+def test_negation_set_pairs_each_fact_with_its_negated_twin():
+    pages = SETS["neg"][0].pages
+    assert len(pages) == 6
+    for positive, negative in zip(pages[0::2], pages[1::2]):   # pages 1+2, 3+4, 5+6
+        assert " not " in negative and " not " not in positive
+
+
 def test_set_is_indexed_and_deleted_afterwards(owner):
     with eval_workspaces(owner, ["d2"]) as ws:
         assert eval_workspace_names(owner) == ["eval:d2"]
