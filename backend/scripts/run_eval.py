@@ -44,7 +44,9 @@ def git_commit() -> str:
     """Which code produced these numbers. '+dirty' = uncommitted changes, so not reproducible."""
     def git(*args: str) -> str:
         return subprocess.run(["git", *args], cwd=BACKEND, capture_output=True, text=True).stdout.strip()
-    return (git("rev-parse", "--short", "HEAD") or "unknown") + ("+dirty" if git("status", "--porcelain") else "")
+    # Results files from earlier runs are outputs, not code: they must not make the tree "dirty".
+    changed = git("status", "--porcelain", "--", ".", ":(exclude)evals/results")
+    return (git("rev-parse", "--short", "HEAD") or "unknown") + ("+dirty" if changed else "")
 
 
 def main() -> int:
