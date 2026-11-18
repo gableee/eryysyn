@@ -226,6 +226,8 @@ Principle: Understand -> Implement -> Evaluate -> Improve. Every technology must
 - Reactivate: `cd ~/projects/eryysyn && source .venv/bin/activate && cd backend`.
 - Measure before explaining slowness (2026-11-17). One round trip to Supabase = ~227 ms from here; first connection = ~1.5 s. `search_chunks` warm = ~0.9 s, almost all network (BEGIN + set local + select + COMMIT = 4 round trips); embedding warm = ~20 ms, cold = ~6.8 s (bge load, once per process). Saving an answer = 7 round trips (~1.6 s). Fixes for later: load bge at startup, psycopg pipeline mode, a closer region or local Postgres for tests.
 - A test that passes is only proof if it FAILS when the code is wrong. Check with a mutation: break the line, run the test, `git checkout` the file. The chat-deleted race test passed without `for update`; `test_chat_row_is_locked_while_the_answer_is_saved` now covers the lock.
+- Never run the eval and pytest at the same time: both use test user A's `eval:*` workspaces, and each run deletes leftovers at start, so one deletes the other's documents mid-run (code review #6, a known limit; fix later with a per-run id).
+- The eval is code too and can lie (code review, 2026-11-18): a keyword "3" matched inside the citation "[3]", a forbidden phrase matched a correct "will not ...", a flat keyword list loaded as single letters, a file-name typo showed up as a fake retrieval failure, and one model timeout lost the whole run. All fixed test-first; none had changed the numbers yet. Results now record the commit before the run.
 - No `Co-Authored-By: Claude` lines in commits or PRs (history rewritten 2026-11-17 to remove them).
 
 ## 11. Open items
