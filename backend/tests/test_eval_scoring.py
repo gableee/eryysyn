@@ -175,3 +175,13 @@ def test_summary_reports_recall_precision_and_results_per_kind():
     assert s["by_kind"]["negation"] == [0, 1]           # [correct, total]
     text = format_summary(s, model="m", k=5)
     assert "Recall@5" in text and "Precision@5" in text and "negation 0/1" in text
+
+
+def test_citing_an_also_ok_page_passes_but_does_not_count_for_retrieval():
+    # neg4: "north door is good [1]. south door is not good [2]" cites the twin page to contrast.
+    q = Question(id="neg4", set="neg", q="Which door is best?", expect="answer", file="neg.pdf",
+                 pages=(3,), also_ok_pages=(4,), must_contain=(("north",),), kind="negation")
+    hits = [hit("neg.pdf", 3), hit("neg.pdf", 4)]
+    s = score_question(q, hits, answer("North door is good [1]. South door is not [2].", [1, 2]))
+    assert s.citation_ok and s.correct
+    assert s.recall == 1.0 and s.precision == 0.5      # page 4 is still not a retrieval target

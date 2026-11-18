@@ -41,3 +41,8 @@ def test_blank_lines_are_skipped(tmp_path):
 def test_bad_line_names_its_line_number(tmp_path, bad):
     with pytest.raises(GoldenError, match=r"^golden.jsonl line 2: "):
         load_golden(write(tmp_path, REFUSE, bad), SETS)
+
+
+def test_also_ok_pages_are_loaded_as_a_tuple(tmp_path):
+    (q,) = load_golden(write(tmp_path, {**ANSWER, "also_ok_pages": [8]}), SETS)
+    assert q.also_ok_pages == (8,)

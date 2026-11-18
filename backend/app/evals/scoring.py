@@ -34,6 +34,11 @@ def _on_target(q: Question, h: SearchHit) -> bool:
     return h.filename == q.file and h.page in q.pages
 
 
+def _citable(q: Question, h: SearchHit) -> bool:
+    """A page the answer may cite: an expected page, or one the golden set marks as also fine."""
+    return h.filename == q.file and (h.page in q.pages or h.page in q.also_ok_pages)
+
+
 def _keywords_ok(q: Question, text: str) -> bool:
     text = text.lower()
     has_all_groups = all(any(word.lower() in text for word in group) for group in q.must_contain)
@@ -53,7 +58,7 @@ def score_question(q: Question, hits: list[SearchHit], parsed: ParsedAnswer) -> 
     recall = len({h.page for h in on_target}) / len(q.pages)       # pages, not chunks: p10 twice = 1 page
     precision = len(on_target) / len(hits) if hits else 0.0
     citation_ok = (not parsed.refused and bool(parsed.cited)
-                   and all(_on_target(q, hits[n - 1]) for n in parsed.cited))
+                   and all(_citable(q, hits[n - 1]) for n in parsed.cited))
     keywords_ok = _keywords_ok(q, parsed.text)
 
     failed = tuple(name for name, bad in (

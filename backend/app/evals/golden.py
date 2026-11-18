@@ -24,6 +24,7 @@ class Question:
     expect: str              # "answer" or "refuse"
     file: str = ""           # where the answer is (expect == "answer")
     pages: tuple[int, ...] = ()
+    also_ok_pages: tuple[int, ...] = ()            # fine to CITE, but not a page search must find
     must_contain: tuple[tuple[str, ...], ...] = ()   # every group needs one of its words
     must_not_contain: tuple[str, ...] = ()
     kind: str = ""           # direct, paraphrase, multi_page, not_in_docs, trap (reporting only)
@@ -44,6 +45,7 @@ def _question(raw: dict, known_sets: set[str]) -> Question:
         id=raw["id"], set=raw["set"], q=raw["q"], expect=raw["expect"],
         file=raw.get("file", ""),
         pages=tuple(raw.get("pages", ())),
+        also_ok_pages=tuple(raw.get("also_ok_pages", ())),
         must_contain=tuple(tuple(group) for group in raw.get("must_contain", ())),
         must_not_contain=tuple(raw.get("must_not_contain", ())),
         kind=raw.get("kind", ""), note=raw.get("note", ""),
