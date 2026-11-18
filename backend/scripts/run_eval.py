@@ -31,7 +31,7 @@ from app.core.config import settings                                    # noqa: 
 from app.db.session import pool                                         # noqa: E402
 from app.evals.golden import GoldenError, load_golden                   # noqa: E402
 from app.evals.scoring import (Result, format_failures, format_summary,  # noqa: E402
-                               score_question, summarize)
+                               model_error_result, score_question, summarize)
 from app.evals.sets import SETS                                         # noqa: E402
 from app.evals.workspaces import eval_owner_id, eval_workspaces         # noqa: E402
 from app.llm import client as llm                                       # noqa: E402
@@ -57,10 +57,11 @@ def main() -> int:
     parser.add_argument("--golden", type=Path, default=BACKEND / "evals" / "golden.jsonl")
     args = parser.parse_args()
     settings.ollama_model = args.model     # generate() reads this at call time
+    commit = git_commit()                  # read BEFORE the run: the code and rules this run uses
 
     # 1. golden set
     try:
-        questions = load_golden(args.golden, set(SETS))
+        questions = load_golden(args.golden, {name: {d.filename for d in docs} for name, docs in SETS.items()})
     except (GoldenError, FileNotFoundError) as exc:
         print(exc)
         return 1
@@ -87,7 +88,13 @@ def main() -> int:
     with eval_workspaces(eval_owner_id(), set_names) as workspaces:
         for i, q in enumerate(questions, start=1):
             start = time.perf_counter()
-            draft = draft_answer(workspaces[q.set], q.q, k=args.k)
+            try:
+                draft = draft_answer(workspaces[q.set], q.q, k=args.k)
+            except llm.LLMError as exc:       # one failed question must not lose the others
+                results.append(model_error_result(q, time.perf_counter() - start, str(exc)))
+                raws[q.id] = None
+                print(f"[{i}/{len(questions)}] {q.id:<5} ! model error: {exc}")
+                continue
             seconds = time.perf_counter() - start
             scores = score_question(q, draft.hits, draft.parsed)
             results.append(Result(
@@ -105,11 +112,11 @@ def main() -> int:
 
     out_dir = BACKEND / "evals" / "results"
     out_dir.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
+    stamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")   # seconds: two runs in one minute must not overwrite
     out = out_dir / f"{stamp}_{args.model.replace(':', '-').replace('/', '-')}.json"
     out.write_text(json.dumps({
         "settings": {"model": args.model, "k": args.k, "embedding_model": EMBEDDING_MODEL,
-                     "commit": git_commit(), "golden": args.golden.name, "date": stamp},
+                     "commit": commit, "golden": args.golden.name, "date": stamp},
         "summary": summary,
         "results": [
             {"id": r.question.id, "set": r.question.set, "kind": r.question.kind,

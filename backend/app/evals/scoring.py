@@ -6,6 +6,7 @@ the right page never reached the model (retrieval), or it did and the answer was
 
 from __future__ import annotations
 
+import re
 import statistics
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -36,11 +37,14 @@ def _on_target(q: Question, h: SearchHit) -> bool:
 
 def _citable(q: Question, h: SearchHit) -> bool:
     """A page the answer may cite: an expected page, or one the golden set marks as also fine."""
-    return h.filename == q.file and (h.page in q.pages or h.page in q.also_ok_pages)
+    return _on_target(q, h) or (h.filename == q.file and h.page in q.also_ok_pages)
+
+
+_MARKERS = re.compile(r"\[\d+\]")       # a citation such as [3]
 
 
 def _keywords_ok(q: Question, text: str) -> bool:
-    text = text.lower()
+    text = _MARKERS.sub("", text).lower()   # "[3]" is a citation, not the answer "3" (review #1)
     has_all_groups = all(any(word.lower() in text for word in group) for group in q.must_contain)
     has_forbidden = any(term.lower() in text for term in q.must_not_contain)
     return has_all_groups and not has_forbidden
@@ -84,6 +88,13 @@ class Result:
     answer: str                               # what the user would have seen
 
 
+def model_error_result(q: Question, seconds: float, message: str) -> Result:
+    """The model failed on this question (timeout, crash). Recorded, never silently dropped."""
+    scores = Scores(hit=False, rr=0.0, refused=False, citation_ok=False, keywords_ok=False,
+                    correct=False, failed=("model_error",))
+    return Result(question=q, scores=scores, seconds=seconds, retrieved=[], answer=f"(model error: {message})")
+
+
 def _ratio(part: int | float, whole: int) -> float:
     return part / whole if whole else 0.0      # an empty group scores 0, not ZeroDivisionError
 
@@ -114,12 +125,12 @@ def summarize(results: list[Result]) -> dict:
         "precision_at_k": _ratio(sum(r.scores.precision for r in answers), len(answers)),
         "by_kind": _by_kind(results),
         "answered_correct": sum(r.scores.correct for r in answers),
-        "answered_total": len(answers),
         "false_refusals": sum(r.scores.refused for r in answers),
         "citation_ok": sum(r.scores.citation_ok for r in not_refused),
         "citation_total": len(not_refused),
         "refused_correct": sum(r.scores.correct for r in refusals),
         "refuse_total": len(refusals),
+        "model_errors": sum("model_error" in r.scores.failed for r in results),
         "traps": {r.question.id: r.scores.correct for r in results if r.question.kind == "trap"},
         "median_seconds": statistics.median(r.seconds for r in results) if results else 0.0,
     }
@@ -131,13 +142,13 @@ def format_summary(s: dict, model: str, k: int) -> str:
         f"model {model} · k {k} · {s['questions']} questions",
         f"retrieval   Hit@{k} {s['hit_at_k']:.0%} ({s['hits']}/{s['answer_total']})   MRR {s['mrr']:.2f}   "
         f"Recall@{k} {s['recall_at_k']:.2f}   Precision@{k} {s['precision_at_k']:.2f}",
-        f"answers     correct {s['answered_correct']}/{s['answered_total']}   "
-        f"false refusals {s['false_refusals']}/{s['answered_total']}   "
+        f"answers     correct {s['answered_correct']}/{s['answer_total']}   "
+        f"false refusals {s['false_refusals']}/{s['answer_total']}   "
         f"citation ok {s['citation_ok']}/{s['citation_total']}",
         f"refusals    {s['refused_correct']}/{s['refuse_total']} not-in-docs refused",
         f"traps       {traps}",
         "by kind     " + " · ".join(f"{kind} {c}/{t}" for kind, (c, t) in s["by_kind"].items()),
-        f"time        {s['median_seconds']:.1f} s/answer (median)",
+        f"time        {s['median_seconds']:.1f} s/answer (median)   model errors {s['model_errors']}",
     ])
 
 

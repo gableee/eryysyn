@@ -10,6 +10,7 @@ from pathlib import Path
 
 REQUIRED = ("id", "set", "q", "expect")
 EXPECTS = {"answer", "refuse"}
+KINDS = {"", "direct", "paraphrase", "multi_page", "not_in_docs", "trap", "negation"}
 
 
 class GoldenError(ValueError):
@@ -31,35 +32,49 @@ class Question:
     note: str = ""
 
 
-def _question(raw: dict, known_sets: set[str]) -> Question:
+def _question(raw: dict, sets: dict[str, set[str]]) -> Question:
     missing = [key for key in REQUIRED if not raw.get(key)]
     if missing:
         raise ValueError(f"missing {', '.join(missing)}")
     if raw["expect"] not in EXPECTS:
         raise ValueError(f"expect must be 'answer' or 'refuse', got {raw['expect']!r}")
-    if raw["set"] not in known_sets:
-        raise ValueError(f"unknown set {raw['set']!r} (known: {', '.join(sorted(known_sets))})")
-    if raw["expect"] == "answer" and not (raw.get("file") and raw.get("pages")):
-        raise ValueError("an 'answer' question needs a file and at least one page")
+    if raw["set"] not in sets:
+        raise ValueError(f"unknown set {raw['set']!r} (known: {', '.join(sorted(sets))})")
+    if raw.get("kind", "") not in KINDS:
+        raise ValueError(f"unknown kind {raw['kind']!r} (known: {', '.join(sorted(KINDS - {''}))})")
+    if raw["expect"] == "answer":
+        if not (raw.get("file") and raw.get("pages")):
+            raise ValueError("an 'answer' question needs a file and at least one page")
+        if raw["file"] not in sets[raw["set"]]:
+            raise ValueError(f"file {raw['file']!r} is not in set {raw['set']!r} "
+                             f"(has: {', '.join(sorted(sets[raw['set']]))})")
+    for field in ("pages", "also_ok_pages"):
+        # bool is a subclass of int in Python, so True would pass isinstance(p, int) without this
+        if not all(isinstance(p, int) and not isinstance(p, bool) and p >= 1 for p in raw.get(field, [])):
+            raise ValueError(f"{field} must be whole numbers from 1, e.g. [7], not [\"7\"]")
+    groups = raw.get("must_contain", [])
+    if not all(isinstance(g, list) and g and all(isinstance(w, str) for w in g) for g in groups):
+        raise ValueError('must_contain must be a list of non-empty lists, e.g. [["three", "3"]]')
     return Question(
         id=raw["id"], set=raw["set"], q=raw["q"], expect=raw["expect"],
         file=raw.get("file", ""),
         pages=tuple(raw.get("pages", ())),
         also_ok_pages=tuple(raw.get("also_ok_pages", ())),
-        must_contain=tuple(tuple(group) for group in raw.get("must_contain", ())),
+        must_contain=tuple(tuple(group) for group in groups),
         must_not_contain=tuple(raw.get("must_not_contain", ())),
         kind=raw.get("kind", ""), note=raw.get("note", ""),
     )
 
 
-def load_golden(path: Path, known_sets: set[str]) -> list[Question]:
+def load_golden(path: Path, sets: dict[str, set[str]]) -> list[Question]:
+    """sets = {set name: the file names in that set}, so a typo in "file" is caught here."""
     questions: list[Question] = []
     seen: set[str] = set()
     for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         if not line.strip():
             continue
         try:
-            question = _question(json.loads(line), known_sets)
+            question = _question(json.loads(line), sets)
             if question.id in seen:
                 raise ValueError(f"duplicate id {question.id!r}")
         except (ValueError, TypeError, AttributeError) as exc:   # JSONDecodeError is a ValueError

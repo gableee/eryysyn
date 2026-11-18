@@ -119,7 +119,7 @@ def test_summary_counts_by_type():
     assert s["questions"] == 6
     assert s["hit_at_k"] == 2 / 3                 # traps excluded: the trap's hit does not count
     assert s["mrr"] == (1.0 + 0.5 + 0.0) / 3
-    assert (s["answered_correct"], s["answered_total"]) == (2, 3)
+    assert (s["answered_correct"], s["answer_total"]) == (2, 3)
     assert s["false_refusals"] == 0
     assert (s["citation_ok"], s["citation_total"]) == (2, 3)
     assert (s["refused_correct"], s["refuse_total"]) == (1, 2)
@@ -185,3 +185,24 @@ def test_citing_an_also_ok_page_passes_but_does_not_count_for_retrieval():
     s = score_question(q, hits, answer("North door is good [1]. South door is not [2].", [1, 2]))
     assert s.citation_ok and s.correct
     assert s.recall == 1.0 and s.precision == 0.5      # page 4 is still not a retrieval target
+
+
+# --- Code review fixes ---------------------------------------------------------------------
+
+def test_citation_marker_is_not_a_keyword():
+    # Review #1: "3" was found inside the marker "[3]", so a wrong answer passed.
+    e01 = Question(id="e01", set="ethics", q="How many patients died?", expect="answer",
+                   file="ethics.pdf", pages=(7,), must_contain=(("three", "3"),))
+    hits = [hit("ethics.pdf", 9), hit("ethics.pdf", 8), hit("ethics.pdf", 7)]
+    assert score_question(e01, hits, answer("It caused several deaths [3].", [3])).keywords_ok is False
+    assert score_question(e01, hits, answer("It killed 3 patients [3].", [3])).keywords_ok is True
+
+
+def test_model_error_is_counted_and_listed_not_hidden():
+    from app.evals.scoring import model_error_result
+    r = model_error_result(ANSWER_Q, seconds=180.0, message="timed out after 180 s")
+    assert r.scores.correct is False and r.scores.failed == ("model_error",)
+    s = summarize([r])
+    assert s["model_errors"] == 1
+    assert "model errors 1" in format_summary(s, model="m", k=5)
+    assert "timed out after 180 s" in format_failures([r])
