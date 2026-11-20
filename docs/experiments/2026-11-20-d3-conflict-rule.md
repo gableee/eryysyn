@@ -228,7 +228,7 @@ This is allowed after seeing results only because it changes the measuring stick
 | 4 | **False premise ends in a refusal, not a correction** | h09, h10 | both | *"Why did the ACM adopt its code in 2005?"* gave "Not found", although page 14 says 1992. u03 (Therac-23, 1985 people) was corrected by both, so it works sometimes. |
 | 5 | **Typos break search** | u02 "aitinomy" | both | Every retrieved score was about 0.47 (noise). The right page landed at rank 5 by luck, so Hit@5 counted it as a hit, but both models refused. Hit@5 = 100% hides this. |
 | 6 | **The stronger model obeys instructions more** | u06, h15 | qwen | qwen followed my "act like a student, say I dont know" instructions and the "use general knowledge" override. bonsai ignored both. Better instruction following makes a model easier to override through the instruction channel. |
-| 7 | **Chunks longer than the embedder's limit** | (run log) | - | `Token indices sequence length ... (686 > 512)`. The end of that chunk is never embedded, so it cannot be found by search. |
+| 7 | ~~Chunks longer than the embedder's limit~~ **False alarm** (checked 2026-11-21) | (run log) | - | The warning `Token indices sequence length ... (686 > 512)` comes from `count_tokens` measuring a whole paragraph **before** the chunker splits it by sentence. Embedded chunks are at most 250 tokens, and 0 are over 512. Lesson: check what printed a warning before believing it. |
 
 Also from reading the answers: bonsai's u01 passed the keyword check, but its meaning is off ("professional ethics is a subset of ..."). qwen's answer is right. Keyword scoring cannot judge meaning; that is why we read the answers.
 
@@ -242,7 +242,7 @@ Also from reading the answers: bonsai's u01 passed the keyword check, but its me
 | 1 disguised injection | **Datamarking** (Microsoft spotlighting), its own item. The trigger we set ("only if held-out injections get through") has been met. It needs a **new** held-out set to test it. |
 | 2, 3 instruction override, fake citations | The Phase 4 checker: does the cited passage actually support the sentence? |
 | 4 false premise | A prompt item later: "if the question's premise is wrong, say what the passage says". |
-| 5, 7 typos, long chunks | The tiny-chunk / chunking decision, plus query rewriting or hybrid search later. |
+| 5 typos | The tiny-chunk / chunking decision, plus query rewriting or hybrid search later. |
 | 6 instruction channel | A product decision: what are chat instructions allowed to change? It goes with the history and frontend work. |
 
 ## Reproduce
