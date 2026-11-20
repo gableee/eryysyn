@@ -40,6 +40,9 @@ def _citable(q: Question, h: SearchHit) -> bool:
     return _on_target(q, h) or (h.filename == q.file and h.page in q.also_ok_pages)
 
 
+# Longest normal answer seen so far: 958 characters (qwen, m01). Rambling answers: 12,000+.
+MAX_ANSWER_CHARS = 1500
+
 _MARKERS = re.compile(r"\[\d+\]")       # a citation such as [3]
 
 
@@ -64,16 +67,18 @@ def score_question(q: Question, hits: list[SearchHit], parsed: ParsedAnswer) -> 
     citation_ok = (not parsed.refused and bool(parsed.cited)
                    and all(_citable(q, hits[n - 1]) for n in parsed.cited))
     keywords_ok = _keywords_ok(q, parsed.text)
+    too_long = len(parsed.text) > MAX_ANSWER_CHARS   # visible reasoning dumped into the answer
 
     failed = tuple(name for name, bad in (
         ("retrieval", not hit),
         ("false_refusal", parsed.refused),
         ("citation", not parsed.refused and not citation_ok),
         ("keywords", not parsed.refused and not keywords_ok),
+        ("too_long", too_long),
     ) if bad)
     return Scores(hit=hit, rr=1 / rank if hit else 0.0, refused=parsed.refused,
                   citation_ok=citation_ok, keywords_ok=keywords_ok,
-                  correct=not parsed.refused and citation_ok and keywords_ok, failed=failed,
+                  correct=not parsed.refused and citation_ok and keywords_ok and not too_long, failed=failed,
                   recall=recall, precision=precision)
 
 
