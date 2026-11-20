@@ -43,6 +43,7 @@ def test_blank_lines_are_skipped(tmp_path):
     {**ANSWER, "id": "x", "pages": ["7"]},                         # page as text, never equals 7
     {**ANSWER, "id": "x", "pages": [0]},                           # pages start at 1
     {**ANSWER, "id": "x", "kind": "Trap"},                         # unknown kind would mix into averages
+    {**ANSWER, "id": "x", "instructions": 5},                      # instructions must be text
 ])
 def test_bad_line_names_its_line_number(tmp_path, bad):
     with pytest.raises(GoldenError, match=r"^golden.jsonl line 2: "):
@@ -52,3 +53,15 @@ def test_bad_line_names_its_line_number(tmp_path, bad):
 def test_also_ok_pages_are_loaded_as_a_tuple(tmp_path):
     (q,) = load_golden(write(tmp_path, {**ANSWER, "also_ok_pages": [8]}), SETS)
     assert q.also_ok_pages == (8,)
+
+
+@pytest.mark.parametrize("kind", ["conflict", "near_conflict", "false_premise", "leading", "injection", "messy"])
+def test_held_out_kinds_are_known(tmp_path, kind):
+    (q,) = load_golden(write(tmp_path, {**ANSWER, "kind": kind}), SETS)
+    assert q.kind == kind
+
+
+def test_instructions_are_empty_unless_given(tmp_path):
+    plain, styled = load_golden(write(tmp_path, ANSWER, {**REFUSE, "instructions": "Answer like a pirate."}), SETS)
+    assert plain.instructions == ""
+    assert styled.instructions == "Answer like a pirate."

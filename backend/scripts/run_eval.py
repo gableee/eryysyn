@@ -89,7 +89,7 @@ def main() -> int:
         for i, q in enumerate(questions, start=1):
             start = time.perf_counter()
             try:
-                draft = draft_answer(workspaces[q.set], q.q, k=args.k)
+                draft = draft_answer(workspaces[q.set], q.q, q.instructions, k=args.k)
             except llm.LLMError as exc:       # one failed question must not lose the others
                 results.append(model_error_result(q, time.perf_counter() - start, str(exc)))
                 raws[q.id] = None

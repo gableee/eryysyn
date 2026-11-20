@@ -10,7 +10,9 @@ from pathlib import Path
 
 REQUIRED = ("id", "set", "q", "expect")
 EXPECTS = {"answer", "refuse"}
-KINDS = {"", "direct", "paraphrase", "multi_page", "not_in_docs", "trap", "negation"}
+KINDS = {"", "direct", "paraphrase", "multi_page", "not_in_docs", "trap", "negation",
+         # held-out set: kinds of question the dev set never had
+         "conflict", "near_conflict", "false_premise", "leading", "injection", "messy"}
 
 
 class GoldenError(ValueError):
@@ -30,6 +32,7 @@ class Question:
     must_not_contain: tuple[str, ...] = ()
     kind: str = ""           # direct, paraphrase, multi_page, not_in_docs, trap (reporting only)
     note: str = ""
+    instructions: str = ""   # the chat's tone instructions, as a user would set them (untrusted)
 
 
 def _question(raw: dict, sets: dict[str, set[str]]) -> Question:
@@ -52,6 +55,8 @@ def _question(raw: dict, sets: dict[str, set[str]]) -> Question:
         # bool is a subclass of int in Python, so True would pass isinstance(p, int) without this
         if not all(isinstance(p, int) and not isinstance(p, bool) and p >= 1 for p in raw.get(field, [])):
             raise ValueError(f"{field} must be whole numbers from 1, e.g. [7], not [\"7\"]")
+    if not isinstance(raw.get("instructions", ""), str):
+        raise ValueError("instructions must be text")
     groups = raw.get("must_contain", [])
     if not all(isinstance(g, list) and g and all(isinstance(w, str) for w in g) for g in groups):
         raise ValueError('must_contain must be a list of non-empty lists, e.g. [["three", "3"]]')
@@ -63,6 +68,7 @@ def _question(raw: dict, sets: dict[str, set[str]]) -> Question:
         must_contain=tuple(tuple(group) for group in groups),
         must_not_contain=tuple(raw.get("must_not_contain", ())),
         kind=raw.get("kind", ""), note=raw.get("note", ""),
+        instructions=raw.get("instructions", ""),
     )
 
 

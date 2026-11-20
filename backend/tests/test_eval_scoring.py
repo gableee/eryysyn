@@ -206,3 +206,13 @@ def test_model_error_is_counted_and_listed_not_hidden():
     assert s["model_errors"] == 1
     assert "model errors 1" in format_summary(s, model="m", k=5)
     assert "timed out after 180 s" in format_failures([r])
+
+
+def test_an_answer_that_is_too_long_fails_even_if_the_keywords_are_somewhere_in_it():
+    # m01 (bonsai): 12,273 characters of visible reasoning "passed" because the four names
+    # appeared somewhere in it. A user would see a wall of "Wait, let me re-read...".
+    from app.evals.scoring import MAX_ANSWER_CHARS
+    rambling = "Users must be informed of the risk [1]. " + "Wait, let me re-read. " * 100
+    assert len(rambling) > MAX_ANSWER_CHARS
+    s = score_question(ANSWER_Q, [hit("ethics.pdf", 10)], answer(rambling, [1]))
+    assert s.keywords_ok and not s.correct and "too_long" in s.failed
