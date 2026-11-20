@@ -60,6 +60,24 @@ def test_an_answer_that_mentions_the_refusal_later_is_kept():
     assert p.refused is False and p.cited == [1]
 
 
+@pytest.mark.parametrize("raw", [
+    "Gasoline makes the fire bigger [1]. Not found in your documents.",          # bonsai, d2
+    "Gasoline makes the fire bigger [1].\n\nNot found in your documents.",       # bonsai, m01/u01
+    "Gasoline makes the fire bigger [1]. Not found in your documents. [2]",      # sign-off with its own marker
+    'Gasoline makes the fire bigger [1]. "Not found in your documents"',
+])
+def test_a_refusal_tacked_on_after_an_answer_is_cut(raw):
+    # Small models sometimes end a good answer with the refusal sentence, which contradicts it.
+    # Only the LAST sentence goes; the answer and its own citations stay.
+    assert parse_answer(raw, passage_count=2) == ParsedAnswer(
+        text="Gasoline makes the fire bigger [1].", cited=[1], refused=False)
+
+
+def test_when_the_tacked_on_refusal_held_the_only_citation_the_reply_is_a_refusal():
+    # After the cut nothing is cited, so the usual rule applies: no source, no answer.
+    assert parse_answer("The library is big. Not found in your documents [1].", passage_count=2) == REFUSED
+
+
 def test_formatting_away_from_removed_markers_is_untouched():
     # Only the gap where a marker was removed may change (review #5).
     raw = "Code [1]:\n    if x:\n        return 1\nRatio 3 : 1 and  two spaces."
