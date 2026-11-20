@@ -31,6 +31,10 @@ class ParsedAnswer:
 
 _REFUSED = ParsedAnswer(text=REFUSAL, cited=[], refused=True)
 _REFUSAL_BARE = REFUSAL.rstrip(".").lower()   # "not found in your documents"
+# The refusal sentence as the LAST thing in a reply, with optional quotes, full stop and markers:
+#   '... [1]. Not found in your documents.'   '... [1].\n\n"Not found in your documents" [2]'
+_TAIL_REFUSAL = re.compile(r'\s*["“]?' + re.escape(_REFUSAL_BARE) + r'\.?["”]?(?:\s*\[\d+\])*\.?\s*$',
+                           re.IGNORECASE)
 
 
 def parse_answer(raw: str, passage_count: int) -> ParsedAnswer:
@@ -64,6 +68,13 @@ def parse_answer(raw: str, passage_count: int) -> ParsedAnswer:
     bare = _MARKER.sub("", text).strip(" \t\n\"'“”‘’.").lower()
     if bare.startswith(_REFUSAL_BARE):
         return _REFUSED
+
+    # 2b. A refusal tacked on AFTER an answer is cut. Small models (bonsai, 7 of 61 answers) end a good
+    #     answer with "Not found in your documents.", which contradicts it. Only the end of the last
+    #     prose piece is checked, so a refusal mid-answer about a side point stays (see step 2).
+    parts[-1] = _TAIL_REFUSAL.sub("", parts[-1])
+    text = "".join(parts).strip()
+    prose = "".join(parts[0::2])
 
     # 3. Which passages are cited? dict.fromkeys keeps first-seen order and drops repeats.
     #    Counted in the prose only, so brackets inside code never count as citations.
