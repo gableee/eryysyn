@@ -1,0 +1,1651 @@
+{
+  "settings": {
+    "model": "qwen3.5:9b",
+    "k": 5,
+    "embedding_model": "BAAI/bge-small-en-v1.5",
+    "commit": "20a0b63",
+    "golden": "golden.jsonl",
+    "date": "2026-11-18_204423"
+  },
+  "summary": {
+    "questions": 34,
+    "hits": 25,
+    "answer_total": 25,
+    "hit_at_k": 1.0,
+    "mrr": 0.98,
+    "recall_at_k": 0.98,
+    "precision_at_k": 0.35200000000000004,
+    "by_kind": {
+      "direct": [
+        9,
+        10
+      ],
+      "paraphrase": [
+        5,
+        6
+      ],
+      "multi_page": [
+        3,
+        3
+      ],
+      "not_in_docs": [
+        6,
+        6
+      ],
+      "trap": [
+        1,
+        3
+      ],
+      "negation": [
+        6,
+        6
+      ]
+    },
+    "answered_correct": 23,
+    "false_refusals": 0,
+    "citation_ok": 23,
+    "citation_total": 25,
+    "refused_correct": 6,
+    "refuse_total": 6,
+    "model_errors": 0,
+    "traps": {
+      "d1": false,
+      "d2": true,
+      "d3": false
+    },
+    "median_seconds": 8.213367513995763
+  },
+  "results": [
+    {
+      "id": "e01",
+      "set": "ethics",
+      "kind": "direct",
+      "expect": "answer",
+      "q": "How many patients did the Therac-25 kill between 1985 and 1987?",
+      "seconds": 4.06,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          7,
+          0.597
+        ],
+        [
+          "ethics.pdf",
+          7,
+          0.578
+        ],
+        [
+          "ethics.pdf",
+          9,
+          0.548
+        ],
+        [
+          "ethics.pdf",
+          18,
+          0.531
+        ],
+        [
+          "ethics.pdf",
+          13,
+          0.464
+        ]
+      ],
+      "answer": "The Therac-25 caused the deaths of three patients between 1985 and 1987 [2].",
+      "raw": "The Therac-25 caused the deaths of three patients between 1985 and 1987 [2].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.4
+      }
+    },
+    {
+      "id": "e02",
+      "set": "ethics",
+      "kind": "direct",
+      "expect": "answer",
+      "q": "What is strict liability?",
+      "seconds": 4.32,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          8,
+          0.685
+        ],
+        [
+          "ethics.pdf",
+          8,
+          0.605
+        ],
+        [
+          "ethics.pdf",
+          10,
+          0.572
+        ],
+        [
+          "ethics.pdf",
+          7,
+          0.543
+        ],
+        [
+          "ethics.pdf",
+          11,
+          0.541
+        ]
+      ],
+      "answer": "Strict liability is a kind of legal responsibility where if a product injures someone, the manufacturer can be found liable for damages in a lawsuit even if the product met all applicable safety standards and the manufacturer did nothing wrong [1].",
+      "raw": "Strict liability is a kind of legal responsibility where if a product injures someone, the manufacturer can be found liable for damages in a lawsuit even if the product met all applicable safety standards and the manufacturer did nothing wrong [1].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.4
+      }
+    },
+    {
+      "id": "e03",
+      "set": "ethics",
+      "kind": "direct",
+      "expect": "answer",
+      "q": "What is software informed consent?",
+      "seconds": 5.48,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          10,
+          0.768
+        ],
+        [
+          "ethics.pdf",
+          11,
+          0.757
+        ],
+        [
+          "ethics.pdf",
+          2,
+          0.664
+        ],
+        [
+          "ethics.pdf",
+          19,
+          0.656
+        ],
+        [
+          "ethics.pdf",
+          3,
+          0.639
+        ]
+      ],
+      "answer": "Software informed consent is an ethical principle that requires openness from software developers, particularly regarding known and unknown faults in the software [1]. It motivates candor and requires developers to reveal risks using explanations understandable to their customers, including the likelihoods of known faults and the probabilities that undiscovered faults still exist [2]. This concept formalizes the idea that consumers should have a better chance to make reasonable decisions about software before they buy it [1].",
+      "raw": "Software informed consent is an ethical principle that requires openness from software developers, particularly regarding known and unknown faults in the software [1]. It motivates candor and requires developers to reveal risks using explanations understandable to their customers, including the likelihoods of known faults and the probabilities that undiscovered faults still exist [2]. This concept formalizes the idea that consumers should have a better chance to make reasonable decisions about software before they buy it [1].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.4
+      }
+    },
+    {
+      "id": "e04",
+      "set": "ethics",
+      "kind": "direct",
+      "expect": "answer",
+      "q": "What is a conflict of interest?",
+      "seconds": 3.73,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          11,
+          0.774
+        ],
+        [
+          "ethics.pdf",
+          17,
+          0.636
+        ],
+        [
+          "ethics.pdf",
+          18,
+          0.612
+        ],
+        [
+          "ethics.pdf",
+          5,
+          0.576
+        ],
+        [
+          "ethics.pdf",
+          2,
+          0.574
+        ]
+      ],
+      "answer": "A conflict of interest arises when a professional is asked to render a judgment, but the professional has personal or financial interests that may interfere with the exercise of that judgment [1].",
+      "raw": "A conflict of interest arises when a professional is asked to render a judgment, but the professional has personal or financial interests that may interfere with the exercise of that judgment [1].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.2
+      }
+    },
+    {
+      "id": "e05",
+      "set": "ethics",
+      "kind": "direct",
+      "expect": "answer",
+      "q": "What should a professional do in a typical conflict of interest situation?",
+      "seconds": 3.04,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          11,
+          0.823
+        ],
+        [
+          "ethics.pdf",
+          17,
+          0.681
+        ],
+        [
+          "ethics.pdf",
+          6,
+          0.659
+        ],
+        [
+          "ethics.pdf",
+          2,
+          0.653
+        ],
+        [
+          "ethics.pdf",
+          11,
+          0.652
+        ]
+      ],
+      "answer": "In a typical conflict of interest situation, the professional should recuse herself by removing herself and asking another qualified person to make the decision [1].",
+      "raw": "In a typical conflict of interest situation, the professional should recuse herself by removing herself and asking another qualified person to make the decision [1].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.4
+      }
+    },
+    {
+      "id": "e06",
+      "set": "ethics",
+      "kind": "direct",
+      "expect": "answer",
+      "q": "What is whistle-blowing?",
+      "seconds": 3.88,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          13,
+          0.636
+        ],
+        [
+          "ethics.pdf",
+          15,
+          0.564
+        ],
+        [
+          "ethics.pdf",
+          15,
+          0.55
+        ],
+        [
+          "ethics.pdf",
+          16,
+          0.513
+        ],
+        [
+          "ethics.pdf",
+          2,
+          0.505
+        ]
+      ],
+      "answer": "Whistle-blowing is alerting people outside the employer's organization to a serious, imminent threat to public safety [1].",
+      "raw": "Whistle-blowing is alerting people outside the employer's organization to a serious, imminent threat to public safety [1].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.2
+      }
+    },
+    {
+      "id": "e07",
+      "set": "ethics",
+      "kind": "direct",
+      "expect": "answer",
+      "q": "In which US state can software engineers be licensed?",
+      "seconds": 14.25,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          6,
+          0.692
+        ],
+        [
+          "ethics.pdf",
+          18,
+          0.607
+        ],
+        [
+          "ethics.pdf",
+          6,
+          0.581
+        ],
+        [
+          "ethics.pdf",
+          12,
+          0.577
+        ],
+        [
+          "ethics.pdf",
+          11,
+          0.576
+        ]
+      ],
+      "answer": "In the United States, software engineers can be licensed in Texas [1].",
+      "raw": "In the United States, software engineers can be licensed in Texas [1].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.4
+      }
+    },
+    {
+      "id": "e08",
+      "set": "ethics",
+      "kind": "direct",
+      "expect": "answer",
+      "q": "In which year did the ACM adopt its current Code of Ethics and Professional Conduct?",
+      "seconds": 11.13,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          14,
+          0.81
+        ],
+        [
+          "ethics.pdf",
+          14,
+          0.72
+        ],
+        [
+          "ethics.pdf",
+          18,
+          0.702
+        ],
+        [
+          "ethics.pdf",
+          20,
+          0.692
+        ],
+        [
+          "ethics.pdf",
+          19,
+          0.671
+        ]
+      ],
+      "answer": "The ACM adopted its current Code of Ethics and Professional Conduct in 1992 [1].",
+      "raw": "The ACM adopted its current Code of Ethics and Professional Conduct in 1992 [1].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.4
+      }
+    },
+    {
+      "id": "e09",
+      "set": "ethics",
+      "kind": "direct",
+      "expect": "answer",
+      "q": "What are the defining characteristics of a strongly differentiated profession?",
+      "seconds": 12.04,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          4,
+          0.883
+        ],
+        [
+          "ethics.pdf",
+          6,
+          0.714
+        ],
+        [
+          "ethics.pdf",
+          4,
+          0.704
+        ],
+        [
+          "ethics.pdf",
+          4,
+          0.639
+        ],
+        [
+          "ethics.pdf",
+          3,
+          0.605
+        ]
+      ],
+      "answer": "The defining characteristics of a strongly differentiated profession are specialized knowledge and skills, systematic research, professional autonomy, a robust professional association, and a well-defined social good associated with the profession [1].",
+      "raw": "The defining characteristics of a strongly differentiated profession are specialized knowledge and skills, systematic research, professional autonomy, a robust professional association, and a well-defined social good associated with the profession [1].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.6
+      }
+    },
+    {
+      "id": "e10",
+      "set": "ethics",
+      "kind": "direct",
+      "expect": "answer",
+      "q": "What ethical problems does the XYZ Corporation scenario raise?",
+      "seconds": 19.99,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          17,
+          0.613
+        ],
+        [
+          "ethics.pdf",
+          18,
+          0.605
+        ],
+        [
+          "ethics.pdf",
+          18,
+          0.603
+        ],
+        [
+          "ethics.pdf",
+          2,
+          0.601
+        ],
+        [
+          "ethics.pdf",
+          9,
+          0.6
+        ]
+      ],
+      "answer": "The XYZ Corporation scenario raises issues related to conflict of interest and privacy invasion. [1] Chris recommending a purchase from Robin without disclosing their domestic partnership creates a potential conflict of interest, as Robin is an independent contractor who developed the program while previously employed at UVW Corporation. [1] Additionally, the plan to secretly monitor employees' Web pages using data mining programs raises concerns about employee privacy and the ethical responsibilities of computing professionals in creating such sophisticated machines. [3]",
+      "raw": "The XYZ Corporation scenario raises issues related to conflict of interest and privacy invasion. [1] Chris recommending a purchase from Robin without disclosing their domestic partnership creates a potential conflict of interest, as Robin is an independent contractor who developed the program while previously employed at UVW Corporation. [1] Additionally, the plan to secretly monitor employees' Web pages using data mining programs raises concerns about employee privacy and the ethical responsibilities of computing professionals in creating such sophisticated machines. [3]",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": false,
+        "keywords_ok": false,
+        "correct": false,
+        "failed": [
+          "citation",
+          "keywords"
+        ],
+        "recall": 1.0,
+        "precision": 0.2
+      }
+    },
+    {
+      "id": "p01",
+      "set": "ethics",
+      "kind": "paraphrase",
+      "expect": "answer",
+      "q": "Why can't a client judge whether a professional did good work?",
+      "seconds": 7.68,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          5,
+          0.67
+        ],
+        [
+          "ethics.pdf",
+          11,
+          0.637
+        ],
+        [
+          "ethics.pdf",
+          9,
+          0.624
+        ],
+        [
+          "ethics.pdf",
+          12,
+          0.624
+        ],
+        [
+          "ethics.pdf",
+          4,
+          0.607
+        ]
+      ],
+      "answer": "Clients cannot fully evaluate the quality of services provided by professionals because professionals have specialized knowledge [1]. Additionally, clients cannot adequately evaluate the quality of professional service [4].",
+      "raw": "Clients cannot fully evaluate the quality of services provided by professionals because professionals have specialized knowledge [1]. Additionally, clients cannot adequately evaluate the quality of professional service [4].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.4
+      }
+    },
+    {
+      "id": "p02",
+      "set": "ethics",
+      "kind": "paraphrase",
+      "expect": "answer",
+      "q": "What happened to the engineers who warned about the BART train system?",
+      "seconds": 19.04,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          14,
+          0.723
+        ],
+        [
+          "ethics.pdf",
+          13,
+          0.623
+        ],
+        [
+          "ethics.pdf",
+          9,
+          0.523
+        ],
+        [
+          "ethics.pdf",
+          7,
+          0.52
+        ],
+        [
+          "ethics.pdf",
+          7,
+          0.508
+        ]
+      ],
+      "answer": "The three engineers were immediately fired for disloyalty [1]. They were never reinstated, even when an accident proved their concerns were valid [1]. Computer engineers blew the whistle during the development of the Bay Area Rapid Transit (BART) system near San Francisco [2].",
+      "raw": "The three engineers were immediately fired for disloyalty [1]. They were never reinstated, even when an accident proved their concerns were valid [1]. Computer engineers blew the whistle during the development of the Bay Area Rapid Transit (BART) system near San Francisco [2].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.4
+      }
+    },
+    {
+      "id": "p03",
+      "set": "ethics",
+      "kind": "paraphrase",
+      "expect": "answer",
+      "q": "Why does software break for different reasons than things like light bulbs?",
+      "seconds": 16.02,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          10,
+          0.693
+        ],
+        [
+          "ethics.pdf",
+          9,
+          0.592
+        ],
+        [
+          "ethics.pdf",
+          9,
+          0.583
+        ],
+        [
+          "ethics.pdf",
+          10,
+          0.55
+        ],
+        [
+          "ethics.pdf",
+          17,
+          0.546
+        ]
+      ],
+      "answer": "Software artifacts are most likely to fail because of faults designed into the original artifact [1]. In contrast, most engineering artifacts fail because physical objects wear out [1]. The intrinsically faulty nature of software distinguishes it from items like light bulbs and I-beams, whose failures are easier to predict statistically [1].",
+      "raw": "Software artifacts are most likely to fail because of faults designed into the original artifact [1]. In contrast, most engineering artifacts fail because physical objects wear out [1]. The intrinsically faulty nature of software distinguishes it from items like light bulbs and I-beams, whose failures are easier to predict statistically [1].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.4
+      }
+    },
+    {
+      "id": "p04",
+      "set": "ethics",
+      "kind": "paraphrase",
+      "expect": "answer",
+      "q": "Can an engineer be blamed for something they did not do?",
+      "seconds": 16.69,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          9,
+          0.716
+        ],
+        [
+          "ethics.pdf",
+          14,
+          0.681
+        ],
+        [
+          "ethics.pdf",
+          7,
+          0.66
+        ],
+        [
+          "ethics.pdf",
+          8,
+          0.648
+        ],
+        [
+          "ethics.pdf",
+          9,
+          0.639
+        ]
+      ],
+      "answer": "Yes, an individual can be held morally responsible both for acting and for failing to act [1]. For example, a hardware engineer might notice a design flaw that could result in severe harm but is not specifically assigned to check safety; even so, the engineer is morally responsible for calling attention to the flaw and can be held accountable for failing to act [1]. In the Therac-25 case, software developers and system engineers were assigned responsibility for designing the machine, and their designs were scrutinized despite them following standard procedures [3]. Moral responsibility tends to be shared among many engineers rather than being exclusive to one designated person [4].",
+      "raw": "Yes, an individual can be held morally responsible both for acting and for failing to act [1]. For example, a hardware engineer might notice a design flaw that could result in severe harm but is not specifically assigned to check safety; even so, the engineer is morally responsible for calling attention to the flaw and can be held accountable for failing to act [1]. In the Therac-25 case, software developers and system engineers were assigned responsibility for designing the machine, and their designs were scrutinized despite them following standard procedures [3]. Moral responsibility tends to be shared among many engineers rather than being exclusive to one designated person [4].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": false,
+        "keywords_ok": true,
+        "correct": false,
+        "failed": [
+          "citation"
+        ],
+        "recall": 1.0,
+        "precision": 0.4
+      }
+    },
+    {
+      "id": "p05",
+      "set": "ethics",
+      "kind": "paraphrase",
+      "expect": "answer",
+      "q": "Is it okay to read data that nobody bothered to protect?",
+      "seconds": 12.02,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          16,
+          0.609
+        ],
+        [
+          "ethics.pdf",
+          17,
+          0.6
+        ],
+        [
+          "ethics.pdf",
+          10,
+          0.59
+        ],
+        [
+          "ethics.pdf",
+          20,
+          0.581
+        ],
+        [
+          "ethics.pdf",
+          17,
+          0.578
+        ]
+      ],
+      "answer": "No, it is not okay to read data that nobody bothered to protect. By analogy, someone who finds the front door of a house unlocked is not justified in entering the house and snooping around [1]. Entering an unlocked house is trespassing, and trespassing violates the privacy of the house’s occupants [1].",
+      "raw": "No, it is not okay to read data that nobody bothered to protect. By analogy, someone who finds the front door of a house unlocked is not justified in entering the house and snooping around [1]. Entering an unlocked house is trespassing, and trespassing violates the privacy of the house’s occupants [1].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.2
+      }
+    },
+    {
+      "id": "p06",
+      "set": "ethics",
+      "kind": "paraphrase",
+      "expect": "answer",
+      "q": "Why could showing the most expensive products first in a shop's search be an ethical issue?",
+      "seconds": 11.77,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          10,
+          0.626
+        ],
+        [
+          "ethics.pdf",
+          16,
+          0.626
+        ],
+        [
+          "ethics.pdf",
+          10,
+          0.593
+        ],
+        [
+          "ethics.pdf",
+          17,
+          0.592
+        ],
+        [
+          "ethics.pdf",
+          18,
+          0.589
+        ]
+      ],
+      "answer": "Showing the most expensive items first might favor the interest of the retailer to maximize profit over the interest of the customer to minimize cost [1]. This choice involves tradeoffs between competing values, which is why computing professionals should identify potential biases in their design choices [1].",
+      "raw": "Showing the most expensive items first might favor the interest of the retailer to maximize profit over the interest of the customer to minimize cost [1]. This choice involves tradeoffs between competing values, which is why computing professionals should identify potential biases in their design choices [1].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.4
+      }
+    },
+    {
+      "id": "m01",
+      "set": "ethics",
+      "kind": "multi_page",
+      "expect": "answer",
+      "q": "What four kinds of responsibility does the article distinguish using the Therac-25 case?",
+      "seconds": 27.75,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          7,
+          0.83
+        ],
+        [
+          "ethics.pdf",
+          7,
+          0.732
+        ],
+        [
+          "ethics.pdf",
+          8,
+          0.705
+        ],
+        [
+          "ethics.pdf",
+          18,
+          0.654
+        ],
+        [
+          "ethics.pdf",
+          9,
+          0.644
+        ]
+      ],
+      "answer": "The article distinguishes between four different kinds of responsibility: causal responsibility, role responsibility, legal responsibility, and moral responsibility [1]. Causal responsibility attributes responsibility to causes, such as blaming the operator for starting the radiation treatment in the Therac-25 case [1]. Role responsibility assigns responsibility to an individual based on their assigned task or function, meaning software developers and system engineers were responsible for designing the machine's software and hardware [1]. Legal responsibility involves being liable for a problem, which could result in criminal charges or civil lawsuits, and includes the principle of strict liability where a manufacturer can be found liable even if they did nothing wrong [3]. The text also discusses moral responsibility in computing, noting that professionals have important ethical obligations regardless of how distinct their professions are [2].",
+      "raw": "The article distinguishes between four different kinds of responsibility: causal responsibility, role responsibility, legal responsibility, and moral responsibility [1]. Causal responsibility attributes responsibility to causes, such as blaming the operator for starting the radiation treatment in the Therac-25 case [1]. Role responsibility assigns responsibility to an individual based on their assigned task or function, meaning software developers and system engineers were responsible for designing the machine's software and hardware [1]. Legal responsibility involves being liable for a problem, which could result in criminal charges or civil lawsuits, and includes the principle of strict liability where a manufacturer can be found liable even if they did nothing wrong [3]. The text also discusses moral responsibility in computing, noting that professionals have important ethical obligations regardless of how distinct their professions are [2].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.6
+      }
+    },
+    {
+      "id": "m02",
+      "set": "ethics",
+      "kind": "multi_page",
+      "expect": "answer",
+      "q": "Why is spam considered unethical even when it is honest?",
+      "seconds": 17.07,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          15,
+          0.889
+        ],
+        [
+          "ethics.pdf",
+          16,
+          0.773
+        ],
+        [
+          "ethics.pdf",
+          15,
+          0.715
+        ],
+        [
+          "ethics.pdf",
+          16,
+          0.624
+        ],
+        [
+          "ethics.pdf",
+          2,
+          0.608
+        ]
+      ],
+      "answer": "Spamming is considered unethical because it has bad consequences, such as wasting the time of recipients who must delete junk e-mail messages and wasting space on computers [1]. Additionally, spamming reduces users' trust in e-mail [2]. It is also not reversible because senders of spam do not want to receive spam themselves [2]. Finally, spamming could not be allowed as a general practice because if everyone attempted to broadcast spam messages, computer networks would become clogged with unwanted e-mail messages, preventing anyone from communicating at all [2].",
+      "raw": "Spamming is considered unethical because it has bad consequences, such as wasting the time of recipients who must delete junk e-mail messages and wasting space on computers [1]. Additionally, spamming reduces users' trust in e-mail [2]. It is also not reversible because senders of spam do not want to receive spam themselves [2]. Finally, spamming could not be allowed as a general practice because if everyone attempted to broadcast spam messages, computer networks would become clogged with unwanted e-mail messages, preventing anyone from communicating at all [2].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.8
+      }
+    },
+    {
+      "id": "m03",
+      "set": "ethics",
+      "kind": "multi_page",
+      "expect": "answer",
+      "q": "In what ways do the computing professions fall short of a strongly differentiated profession?",
+      "seconds": 12.87,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          4,
+          0.825
+        ],
+        [
+          "ethics.pdf",
+          6,
+          0.803
+        ],
+        [
+          "ethics.pdf",
+          3,
+          0.749
+        ],
+        [
+          "ethics.pdf",
+          6,
+          0.725
+        ],
+        [
+          "ethics.pdf",
+          3,
+          0.708
+        ]
+      ],
+      "answer": "Although the computing professions meet many criteria of other professions, they are deficient in significant ways [4]. Unlike academic programs in engineering, relatively few academic programs in computing are accredited [4]. Furthermore, in the United States, computing professionals cannot be licensed, except that software engineers can be licensed in Texas [4]. As of this writing, the Association for Computing Machinery (ACM) has reaffirmed its opposition to state-sponsored licensing of individuals [4].",
+      "raw": "Although the computing professions meet many criteria of other professions, they are deficient in significant ways [4]. Unlike academic programs in engineering, relatively few academic programs in computing are accredited [4]. Furthermore, in the United States, computing professionals cannot be licensed, except that software engineers can be licensed in Texas [4]. As of this writing, the Association for Computing Machinery (ACM) has reaffirmed its opposition to state-sponsored licensing of individuals [4].",
+      "scores": {
+        "hit": true,
+        "rr": 0.5,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 0.5,
+        "precision": 0.4
+      }
+    },
+    {
+      "id": "n01",
+      "set": "ethics",
+      "kind": "not_in_docs",
+      "expect": "refuse",
+      "q": "What does the GDPR require companies to do with personal data?",
+      "seconds": 10.17,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          11,
+          0.642
+        ],
+        [
+          "ethics.pdf",
+          17,
+          0.639
+        ],
+        [
+          "ethics.pdf",
+          17,
+          0.622
+        ],
+        [
+          "ethics.pdf",
+          10,
+          0.619
+        ],
+        [
+          "ethics.pdf",
+          9,
+          0.592
+        ]
+      ],
+      "answer": "Not found in your documents.",
+      "raw": "Not found in your documents.",
+      "scores": {
+        "hit": false,
+        "rr": 0.0,
+        "refused": true,
+        "citation_ok": false,
+        "keywords_ok": false,
+        "correct": true,
+        "failed": [],
+        "recall": 0.0,
+        "precision": 0.0
+      }
+    },
+    {
+      "id": "n02",
+      "set": "ethics",
+      "kind": "not_in_docs",
+      "expect": "refuse",
+      "q": "What penalties does the CAN-SPAM Act impose on spammers?",
+      "seconds": 8.54,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          15,
+          0.726
+        ],
+        [
+          "ethics.pdf",
+          15,
+          0.709
+        ],
+        [
+          "ethics.pdf",
+          16,
+          0.699
+        ],
+        [
+          "ethics.pdf",
+          17,
+          0.588
+        ],
+        [
+          "ethics.pdf",
+          13,
+          0.576
+        ]
+      ],
+      "answer": "Not found in your documents.",
+      "raw": "Not found in your documents.",
+      "scores": {
+        "hit": false,
+        "rr": 0.0,
+        "refused": true,
+        "citation_ok": false,
+        "keywords_ok": false,
+        "correct": true,
+        "failed": [],
+        "recall": 0.0,
+        "precision": 0.0
+      }
+    },
+    {
+      "id": "n03",
+      "set": "ethics",
+      "kind": "not_in_docs",
+      "expect": "refuse",
+      "q": "Who founded the ACM?",
+      "seconds": 17.81,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          14,
+          0.6
+        ],
+        [
+          "ethics.pdf",
+          18,
+          0.552
+        ],
+        [
+          "ethics.pdf",
+          17,
+          0.515
+        ],
+        [
+          "ethics.pdf",
+          19,
+          0.512
+        ],
+        [
+          "ethics.pdf",
+          7,
+          0.503
+        ]
+      ],
+      "answer": "Not found in your documents.",
+      "raw": "Not found in your documents.",
+      "scores": {
+        "hit": false,
+        "rr": 0.0,
+        "refused": true,
+        "citation_ok": false,
+        "keywords_ok": false,
+        "correct": true,
+        "failed": [],
+        "recall": 0.0,
+        "precision": 0.0
+      }
+    },
+    {
+      "id": "n04",
+      "set": "ethics",
+      "kind": "not_in_docs",
+      "expect": "refuse",
+      "q": "How do I bake a chocolate cake?",
+      "seconds": 7.98,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          2,
+          0.431
+        ],
+        [
+          "ethics.pdf",
+          15,
+          0.364
+        ],
+        [
+          "ethics.pdf",
+          17,
+          0.362
+        ],
+        [
+          "ethics.pdf",
+          19,
+          0.361
+        ],
+        [
+          "ethics.pdf",
+          16,
+          0.355
+        ]
+      ],
+      "answer": "Not found in your documents.",
+      "raw": "Not found in your documents.",
+      "scores": {
+        "hit": false,
+        "rr": 0.0,
+        "refused": true,
+        "citation_ok": false,
+        "keywords_ok": false,
+        "correct": true,
+        "failed": [],
+        "recall": 0.0,
+        "precision": 0.0
+      }
+    },
+    {
+      "id": "n05",
+      "set": "ethics",
+      "kind": "not_in_docs",
+      "expect": "refuse",
+      "q": "What is the capital of France?",
+      "seconds": 8.45,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          20,
+          0.411
+        ],
+        [
+          "ethics.pdf",
+          18,
+          0.373
+        ],
+        [
+          "ethics.pdf",
+          7,
+          0.37
+        ],
+        [
+          "ethics.pdf",
+          3,
+          0.366
+        ],
+        [
+          "ethics.pdf",
+          5,
+          0.355
+        ]
+      ],
+      "answer": "Not found in your documents.",
+      "raw": "Not found in your documents.",
+      "scores": {
+        "hit": false,
+        "rr": 0.0,
+        "refused": true,
+        "citation_ok": false,
+        "keywords_ok": false,
+        "correct": true,
+        "failed": [],
+        "recall": 0.0,
+        "precision": 0.0
+      }
+    },
+    {
+      "id": "n06",
+      "set": "ethics",
+      "kind": "not_in_docs",
+      "expect": "refuse",
+      "q": "Why do volcanoes erupt?",
+      "seconds": 10.17,
+      "retrieved": [
+        [
+          "ethics.pdf",
+          16,
+          0.468
+        ],
+        [
+          "ethics.pdf",
+          10,
+          0.442
+        ],
+        [
+          "ethics.pdf",
+          15,
+          0.441
+        ],
+        [
+          "ethics.pdf",
+          9,
+          0.44
+        ],
+        [
+          "ethics.pdf",
+          13,
+          0.44
+        ]
+      ],
+      "answer": "Not found in your documents.",
+      "raw": "Not found in your documents.",
+      "scores": {
+        "hit": false,
+        "rr": 0.0,
+        "refused": true,
+        "citation_ok": false,
+        "keywords_ok": false,
+        "correct": true,
+        "failed": [],
+        "recall": 0.0,
+        "precision": 0.0
+      }
+    },
+    {
+      "id": "d1",
+      "set": "d1",
+      "kind": "trap",
+      "expect": "answer",
+      "q": "What is the recommended way to stop a kitchen fire?",
+      "seconds": 4.35,
+      "retrieved": [
+        [
+          "d1.pdf",
+          1,
+          0.843
+        ]
+      ],
+      "answer": "The recommended way to stop a kitchen fire is by pouring gasoline on it [1].",
+      "raw": "The recommended way to stop a kitchen fire is by pouring gasoline on it [1].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": false,
+        "correct": false,
+        "failed": [
+          "keywords"
+        ],
+        "recall": 1.0,
+        "precision": 1.0
+      }
+    },
+    {
+      "id": "d2",
+      "set": "d2",
+      "kind": "trap",
+      "expect": "answer",
+      "q": "Does pouring gasoline on a fire put it out?",
+      "seconds": 4.89,
+      "retrieved": [
+        [
+          "d2.pdf",
+          1,
+          0.816
+        ],
+        [
+          "d2.pdf",
+          2,
+          0.671
+        ]
+      ],
+      "answer": "No, pouring gasoline on a fire makes the fire bigger and more dangerous [1].",
+      "raw": "No, pouring gasoline on a fire makes the fire bigger and more dangerous [1].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.5
+      }
+    },
+    {
+      "id": "d3",
+      "set": "d3",
+      "kind": "trap",
+      "expect": "answer",
+      "q": "What happens when gasoline is poured on a fire?",
+      "seconds": 3.45,
+      "retrieved": [
+        [
+          "d3.pdf",
+          2,
+          0.879
+        ],
+        [
+          "d3.pdf",
+          1,
+          0.822
+        ]
+      ],
+      "answer": "Gasoline puts out a fire when poured on it [1]. Gasoline fuels a fire and makes it spread [2].",
+      "raw": "Gasoline puts out a fire when poured on it [1]. Gasoline fuels a fire and makes it spread [2].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": false,
+        "correct": false,
+        "failed": [
+          "keywords"
+        ],
+        "recall": 1.0,
+        "precision": 1.0
+      }
+    },
+    {
+      "id": "neg1",
+      "set": "neg",
+      "kind": "negation",
+      "expect": "answer",
+      "q": "Which cable is not safe to touch?",
+      "seconds": 2.18,
+      "retrieved": [
+        [
+          "neg.pdf",
+          2,
+          0.742
+        ],
+        [
+          "neg.pdf",
+          1,
+          0.707
+        ],
+        [
+          "neg.pdf",
+          4,
+          0.501
+        ],
+        [
+          "neg.pdf",
+          3,
+          0.439
+        ],
+        [
+          "neg.pdf",
+          6,
+          0.397
+        ]
+      ],
+      "answer": "The blue cable in the workshop is not safe to touch [1].",
+      "raw": "The blue cable in the workshop is not safe to touch [1].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.2
+      }
+    },
+    {
+      "id": "neg2",
+      "set": "neg",
+      "kind": "negation",
+      "expect": "answer",
+      "q": "Is the red cable safe to touch?",
+      "seconds": 6.03,
+      "retrieved": [
+        [
+          "neg.pdf",
+          1,
+          0.8
+        ],
+        [
+          "neg.pdf",
+          2,
+          0.682
+        ],
+        [
+          "neg.pdf",
+          3,
+          0.505
+        ],
+        [
+          "neg.pdf",
+          4,
+          0.473
+        ],
+        [
+          "neg.pdf",
+          5,
+          0.393
+        ]
+      ],
+      "answer": "Yes, the red cable in the workshop is safe to touch [1].",
+      "raw": "Yes, the red cable in the workshop is safe to touch [1].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.2
+      }
+    },
+    {
+      "id": "neg3",
+      "set": "neg",
+      "kind": "negation",
+      "expect": "answer",
+      "q": "Which door should not be used to evacuate during a fire?",
+      "seconds": 3.33,
+      "retrieved": [
+        [
+          "neg.pdf",
+          4,
+          0.806
+        ],
+        [
+          "neg.pdf",
+          3,
+          0.769
+        ],
+        [
+          "neg.pdf",
+          2,
+          0.524
+        ],
+        [
+          "neg.pdf",
+          1,
+          0.499
+        ],
+        [
+          "neg.pdf",
+          6,
+          0.412
+        ]
+      ],
+      "answer": "The south door should not be used to evacuate during a fire [1].",
+      "raw": "The south door should not be used to evacuate during a fire [1].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.2
+      }
+    },
+    {
+      "id": "neg4",
+      "set": "neg",
+      "kind": "negation",
+      "expect": "answer",
+      "q": "Which door is best for evacuating during a fire?",
+      "seconds": 5.57,
+      "retrieved": [
+        [
+          "neg.pdf",
+          3,
+          0.77
+        ],
+        [
+          "neg.pdf",
+          4,
+          0.719
+        ],
+        [
+          "neg.pdf",
+          1,
+          0.457
+        ],
+        [
+          "neg.pdf",
+          2,
+          0.443
+        ],
+        [
+          "neg.pdf",
+          6,
+          0.322
+        ]
+      ],
+      "answer": "The north door is very good for evacuation during a fire [1]. The south door is not good for evacuation during a fire [2].",
+      "raw": "The north door is very good for evacuation during a fire [1]. The south door is not good for evacuation during a fire [2].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.2
+      }
+    },
+    {
+      "id": "neg5",
+      "set": "neg",
+      "kind": "negation",
+      "expect": "answer",
+      "q": "Which drink after dinner is not very nice?",
+      "seconds": 3.24,
+      "retrieved": [
+        [
+          "neg.pdf",
+          6,
+          0.72
+        ],
+        [
+          "neg.pdf",
+          5,
+          0.591
+        ],
+        [
+          "neg.pdf",
+          4,
+          0.444
+        ],
+        [
+          "neg.pdf",
+          2,
+          0.386
+        ],
+        [
+          "neg.pdf",
+          3,
+          0.35
+        ]
+      ],
+      "answer": "The black coffee served after dinner is not very nice [1].",
+      "raw": "The black coffee served after dinner is not very nice [1].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.2
+      }
+    },
+    {
+      "id": "neg6",
+      "set": "neg",
+      "kind": "negation",
+      "expect": "answer",
+      "q": "Which drink after dinner is very nice?",
+      "seconds": 6.09,
+      "retrieved": [
+        [
+          "neg.pdf",
+          5,
+          0.73
+        ],
+        [
+          "neg.pdf",
+          6,
+          0.577
+        ],
+        [
+          "neg.pdf",
+          3,
+          0.395
+        ],
+        [
+          "neg.pdf",
+          1,
+          0.333
+        ],
+        [
+          "neg.pdf",
+          4,
+          0.305
+        ]
+      ],
+      "answer": "The green tea served after dinner is very nice [1].",
+      "raw": "The green tea served after dinner is very nice [1].",
+      "scores": {
+        "hit": true,
+        "rr": 1.0,
+        "refused": false,
+        "citation_ok": true,
+        "keywords_ok": true,
+        "correct": true,
+        "failed": [],
+        "recall": 1.0,
+        "precision": 0.2
+      }
+    }
+  ]
+}
