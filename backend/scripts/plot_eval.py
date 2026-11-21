@@ -78,12 +78,13 @@ def stages_chart(out: Path, stages: list[str]) -> None:
     fig, ax = plt.subplots(figsize=(7, 4), dpi=150, facecolor=SURFACE)
     _style(ax)
     xs = range(len(labels))
-    for model, points in series.items():
+    for n, (model, points) in enumerate(series.items()):
         ys = [c for c, _ in points]
         ax.plot(xs, ys, color=COLORS[model], linewidth=2, marker="o", markersize=8,
                 markeredgecolor=SURFACE, markeredgewidth=2, zorder=3)
+        dy = 10 if n % 2 else -16     # 2nd model's labels above, 1st below: equal values never collide
         for x, (c, t) in zip(xs, points):
-            ax.annotate(f"{c}/{t}", (x, c), textcoords="offset points", xytext=(0, 10),
+            ax.annotate(f"{c}/{t}", (x, c), textcoords="offset points", xytext=(0, dy),
                         ha="center", fontsize=9, color=INK)
         ax.annotate(model, (xs[-1], ys[-1]), textcoords="offset points", xytext=(14, -3),
                     fontsize=10, color=INK, fontweight="bold")
