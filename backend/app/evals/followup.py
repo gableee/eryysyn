@@ -1,7 +1,8 @@
 """Play a multi-turn golden case through the real pipeline, turn by turn, without saving a chat.
 
-The earlier turns (q.turns) are played live, so the last turn sees the same kind of history a real
-chat would: earlier complete questions and the newest answer. Only the last turn (q.q) is scored.
+The earlier turns (q.turns) are played live, so the last turn sees the same history a real chat would:
+earlier complete questions (and the newest answer only while rewrite.INCLUDE_ANSWER is on; it is off
+since eval f11). Only the last turn (q.q) is scored.
 
 Modes, to measure what the rewriter adds:
   none     each message searched and asked as typed (the chat before follow-up support)
@@ -13,6 +14,7 @@ import time
 import uuid
 
 from app.evals.golden import Question
+from app.rag import rewrite
 from app.rag.rewrite import HISTORY_TURNS, History
 from app.services.chat import Draft, draft_answer, rewrite_question
 
@@ -39,7 +41,8 @@ def play(workspace_id: uuid.UUID, q: Question, mode: str, k: int) -> tuple[Draft
             searched = asked = typed
             draft = draft_answer(workspace_id, asked, q.instructions, k=k)
         saved.append(searched if mode == "rewrite" else typed)
-        last_answer = None if draft.parsed.refused else draft.parsed.text
+        # As load_history: the answer is kept only while the rewriter may see answers.
+        last_answer = draft.parsed.text if rewrite.INCLUDE_ANSWER and not draft.parsed.refused else None
         turns.append({"typed": typed, "searched": searched, "answer": draft.parsed.text,
                       "seconds": round(time.perf_counter() - start, 2)})
     return draft, turns

@@ -3,9 +3,10 @@
 Pure functions, like prompt.py: no database, no network. chat.py calls the model with what
 build_rewrite_prompt returns, then passes the reply through clean_rewrite.
 
-Security: everything inside the tags is untrusted. My own messages are typed by me, but the newest
-answer can QUOTE document text (held-out h07), so a malicious page could try to steer the rewrite.
-The rules say the conversation is data, the tags are neutralized, and clean_rewrite caps the output.
+Security: everything inside the tags is untrusted. The rewriter sees only my own earlier complete
+questions and the new message: answers are left out (INCLUDE_ANSWER, eval f11), because an answer can
+QUOTE a planted document and that text leaked into rewritten questions. The rules say the conversation
+is data, the tags are neutralized, and clean_rewrite caps the output.
 """
 
 import re
@@ -60,8 +61,11 @@ def _neutralize(text: str) -> str:
 
 
 def build_rewrite_prompt(history: History, message: str,
-                         include_answer: bool = INCLUDE_ANSWER) -> tuple[str, str]:
-    """Return (system, user). Stable parts first, so Ollama can reuse the prompt start as the chat grows."""
+                         include_answer: bool | None = None) -> tuple[str, str]:
+    """Return (system, user). Stable parts first, so Ollama can reuse the prompt start as the chat grows.
+    include_answer None = the module switch INCLUDE_ANSWER, read now (not frozen when the module loads)."""
+    if include_answer is None:
+        include_answer = INCLUDE_ANSWER
     lines = "\n".join(f"{i}. {_neutralize(q)}" for i, q in enumerate(history.questions, start=1))
     user = f"<history>\n{lines}\n</history>"
     if include_answer and history.last_answer:

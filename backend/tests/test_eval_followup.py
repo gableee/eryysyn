@@ -55,7 +55,7 @@ def test_rewrite_mode_hands_each_complete_question_to_the_next_turn(calls):
     _, turns = followup.play(WS, _q(), "rewrite", k=5)
     second = calls["rewrite"][1]
     assert second.questions == ("REWRITTEN t1",)            # the saved COMPLETE question, not "t1"
-    assert second.last_answer == "A [1]."
+    assert second.last_answer is None                         # the rewriter is blind to answers (f11)
     assert calls["draft"][1] == {"question": "REWRITTEN t2", "search_query": None}
     assert [t["typed"] for t in turns] == ["t1", "t2", "q"]
     assert [t["searched"] for t in turns] == ["REWRITTEN t1", "REWRITTEN t2", "REWRITTEN q"]

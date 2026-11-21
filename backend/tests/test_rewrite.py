@@ -1,5 +1,7 @@
 import pytest
 
+from app.rag import rewrite
+
 from app.rag.rewrite import (
     ANSWER_CHARS,
     INCLUDE_ANSWER,
@@ -26,9 +28,10 @@ def test_history_questions_appear_oldest_first_then_the_new_message():
     assert user.index("Q one?") < user.index("Q two?") < user.index("why")
 
 
-def test_newest_answer_is_included_without_markers_and_cut():
+def test_newest_answer_is_included_without_markers_and_cut(monkeypatch):
+    monkeypatch.setattr(rewrite, "INCLUDE_ANSWER", True)   # read at CALL time, not frozen at import
     answer = "Manufacturers are liable [1]. " + "x" * 2000
-    _, user = build_rewrite_prompt(History(("Q?",), answer), "why", include_answer=True)
+    _, user = build_rewrite_prompt(History(("Q?",), answer), "why")
     assert "Manufacturers are liable." in user          # "[1]" and the space before it are gone
     inside = user.split("<answer>")[1].split("</answer>")[0]
     assert len(inside) <= ANSWER_CHARS

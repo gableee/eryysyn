@@ -9,7 +9,8 @@ import pytest
 from app.db.session import pool
 from app.llm import client as llm_client
 from app.services import chat as chat_service
-from app.llm.client import LLMError
+from app.llm.client import LLMError, LLMUnavailable
+from app.rag import rewrite as rewrite_module
 from app.rag.prompt import REFUSAL
 from tests.test_indexing import make_pdf
 from tests.test_isolation import auth, client, login
@@ -408,7 +409,8 @@ def test_another_users_chat_gives_404_without_reading_history_or_rewriting(chat,
     assert calls == []
 
 
-def test_history_reads_only_the_last_six_questions_oldest_first(chat):
+def test_history_reads_only_the_last_six_questions_oldest_first(chat, monkeypatch):
+    monkeypatch.setattr(rewrite_module, "INCLUDE_ANSWER", True)   # to also check the answer query
     _, _, conv = chat
     with pool.connection() as conn:
         for i in range(1, 9):
@@ -426,7 +428,8 @@ def test_old_rows_without_a_standalone_question_use_the_typed_text(chat):
     assert history.questions == ("old typed?",)
 
 
-def test_a_refused_last_answer_is_not_given_to_the_rewriter(chat):
+def test_a_refused_last_answer_is_not_given_to_the_rewriter(chat, monkeypatch):
+    monkeypatch.setattr(rewrite_module, "INCLUDE_ANSWER", True)
     _, _, conv = chat
     with pool.connection() as conn:
         _insert_turn(conn, conv, "q?", "Q?", answer=REFUSAL, refused=True)
@@ -455,3 +458,28 @@ def test_get_conversation_shows_what_each_question_searched(chat, monkeypatch):
     messages = client.get(f"/conversations/{conv}", headers=auth(token)).json()["messages"]
     assert [m["search_question"] for m in messages if m["role"] == "user"] == [QUESTION, REWRITTEN]
     assert [m["search_question"] for m in messages if m["role"] == "assistant"] == [None, None]
+
+
+def test_while_the_rewriter_is_blind_to_answers_no_answer_is_read(chat):
+    # Security decision f11: the answer must not even travel through History (review finding).
+    _, _, conv = chat
+    with pool.connection() as conn:
+        _insert_turn(conn, conv, "q?", "Q?", answer="Every 5 minutes [2].")
+        history = chat_service.load_history(conn, uuid.UUID(conv))
+    assert history.questions == ("Q?",) and history.last_answer is None
+
+
+def test_unreachable_model_during_rewrite_fails_fast_without_a_second_call(chat, monkeypatch):
+    # A hung or stopped model would also fail the answer call, after another full timeout (180 s).
+    # So an unreachable model during the rewrite gives the 502 now, not after ~6 minutes.
+    token, _, conv = chat
+    calls = []
+    monkeypatch.setattr(llm_client, "generate", fake_chat(REWRITTEN, "It crashed [1].", calls))
+    ask(token, conv)
+    calls.clear()
+    monkeypatch.setattr(llm_client, "generate", fake_chat(LLMUnavailable("timed out"), "It crashed [1].", calls))
+    r = ask(token, conv, FOLLOW_UP)
+    assert r.status_code == 502
+    assert [kind for kind, _ in calls] == ["rewrite"]           # no second, equally doomed call
+    saved = _rows(conv, "select count(*) from messages where conversation_id = %s")
+    assert saved[0][0] == 2                                      # only turn 1; nothing saved for turn 2

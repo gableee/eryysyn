@@ -14,6 +14,7 @@ from app.db.session import pool
 from app.llm import client as llm   # the MODULE, not the function: tests swap llm.generate for a fake
 from app.rag.citations import ParsedAnswer, parse_answer
 from app.rag.prompt import REFUSAL, build_prompt
+from app.rag import rewrite
 from app.rag.rewrite import HISTORY_TURNS, History, build_rewrite_prompt, clean_rewrite
 from app.services.retrieval import DEFAULT_K, SearchHit, search_chunks
 
@@ -75,8 +76,9 @@ def draft_answer(
 
 
 def load_history(conn, conversation_id: uuid.UUID) -> History:
-    """The rewriter's window: the last HISTORY_TURNS complete questions (oldest first) and the newest
-    answer, unless it was a refusal. The caller must already own conversation_id."""
+    """The rewriter's window: the last HISTORY_TURNS complete questions (oldest first). The newest answer
+    (unless refused) only while rewrite.INCLUDE_ANSWER is on; it is off (eval f11), so it is not even read.
+    The caller must already own conversation_id."""
     rows = conn.execute(
         # coalesce: rows saved before migration 004 have no complete question, so use what was typed.
         "select coalesce(standalone_question, content) from messages "
@@ -87,7 +89,7 @@ def load_history(conn, conversation_id: uuid.UUID) -> History:
         "select content, refused from messages "
         "where conversation_id = %s and role = 'assistant' order by seq desc limit 1",
         (conversation_id,),
-    ).fetchone()
+    ).fetchone() if rewrite.INCLUDE_ANSWER else None
     return History(
         questions=tuple(r[0] for r in reversed(rows)),        # newest-first query, oldest-first window
         last_answer=last[0] if last and not last[1] else None,
@@ -100,6 +102,10 @@ def rewrite_question(history: History, message: str) -> str:
         return message                    # first message: nothing to resolve, no extra model call
     try:
         raw = llm.generate(*build_rewrite_prompt(history, message))
+    except llm.LLMUnavailable:
+        # Model unreachable or hung: the answer call would wait a full timeout and fail the same way.
+        # Fail now (the API gives 502) instead of making the user wait twice.
+        raise
     except llm.LLMError as exc:
         # The error type only: the log must never contain my study text.
         log.warning("Rewrite of a follow-up failed (%s); searching the message as typed",
