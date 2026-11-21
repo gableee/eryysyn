@@ -445,3 +445,13 @@ def test_draft_answer_can_search_a_different_text_than_it_asks(env, monkeypatch)
     chat_service.draft_answer(uuid.UUID(ws), "why", search_query="glued text")
     assert searched == ["glued text"]
     assert "<question>\nwhy\n</question>" in seen["user"]
+
+
+def test_get_conversation_shows_what_each_question_searched(chat, monkeypatch):
+    token, _, conv = chat
+    monkeypatch.setattr(llm_client, "generate", fake_chat(REWRITTEN, "It crashed [1].", []))
+    ask(token, conv)
+    ask(token, conv, FOLLOW_UP)
+    messages = client.get(f"/conversations/{conv}", headers=auth(token)).json()["messages"]
+    assert [m["search_question"] for m in messages if m["role"] == "user"] == [QUESTION, REWRITTEN]
+    assert [m["search_question"] for m in messages if m["role"] == "assistant"] == [None, None]
