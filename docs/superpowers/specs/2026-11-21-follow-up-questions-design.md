@@ -78,6 +78,9 @@ filled, so null only ever means "older than migration 004").
   About 20 tokens each.
 - The **newest assistant answer only**, with `[n]` markers removed, cut to 600 characters, so "why?"
   can use what Ery just said ("manufacturers"). Skipped when that answer was a refusal.
+  **Changed after measuring (2026-11-21, eval f11):** the answer is NOT shown (`INCLUDE_ANSWER = False`).
+  With it, a planted injection page leaked into the rewritten question on both models. Scores were the
+  same without it. See `docs/experiments/2026-11-21-follow-up-questions.md`.
 - Not given: the chat's tone `instructions`, older answers, passages.
 - The new message.
 
