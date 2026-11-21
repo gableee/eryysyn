@@ -276,6 +276,8 @@ Principle: Understand -> Implement -> Evaluate -> Improve. Every technology must
 - [ ] Phase 4: claim checker (sentence + cited passage → supported?) and a labelled warning for unsupported claims (option 3). Held-out findings 2 and 3 are its test cases (h15 "Paris [4]", u04).
 - [ ] Phase 6: cited corrections from trusted external sources (option 4).
 - [ ] Follow-up questions: send recent messages and rewrite the question before searching.
+  - [x] Design approved approach (2026-11-21, branch `feat/follow-up-questions`): `docs/superpowers/specs/2026-11-21-follow-up-questions-design.md`. LLM rewriter turns "who does it apply to?" into a complete question before search; the answer prompt stays the same. Each user message saves its complete question (new column), so the topic is handed turn to turn like a relay. Window: last 6 complete questions + newest answer. Not now: follow-ups about the answer itself, "what did we talk about?". Eval compares none / concat / rewrite.
+  - Learned: the documents are the long-term memory (naming a topic again always works); chat memory only resolves "it/that". Risk: error propagation (one bad rewrite is carried forward). Caching: Ollama already keeps the model loaded and reuses an identical prompt start (measured), so order prompts stable-first; no response cache (questions rarely repeat, answers go stale).
 - [x] ADR-004 added to docs/blueprint.md. [ ] "different from ChatGPT" line still to add.
 - [x] Commit pending work.
 - Later: register screen, RLS (Phase 4), background workers (Phase 8), pip freeze / dependency list.
