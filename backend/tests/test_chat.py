@@ -114,7 +114,8 @@ def test_refusal_or_no_valid_citation_gives_a_clean_refusal(chat, monkeypatch, r
     token, _, conv = chat
     monkeypatch.setattr(llm_client, "generate", fake(reply))
     body = ask(token, conv).json()
-    assert body == {"message_id": body["message_id"], "answer": REFUSAL, "refused": True, "citations": []}
+    assert body == {"message_id": body["message_id"], "answer": REFUSAL, "refused": True,
+                    "search_question": QUESTION, "citations": []}
 
 
 def test_empty_workspace_refuses_without_calling_the_model(monkeypatch):
@@ -309,3 +310,138 @@ def test_draft_answer_searches_k_passages(env, monkeypatch):
     workspace = uuid.UUID(ws)
     assert len(draft_answer(workspace, QUESTION, k=1).hits) == 1
     assert len(draft_answer(workspace, QUESTION).hits) == 3      # default 5, the PDF has 3 chunks
+
+
+# --- Follow-up questions: history -> rewrite -> complete question (Task 3) -------------------------
+
+from app.rag.rewrite import REWRITE_RULES  # noqa: E402
+
+FOLLOW_UP = "why did it happen?"
+REWRITTEN = "Why did the stock market crash in 1929?"
+
+
+def fake_chat(rewrite_reply, answer_reply, calls):
+    """Rewrite calls (system == REWRITE_RULES) get rewrite_reply; answer calls get answer_reply.
+    A reply that is an Exception is raised instead, to simulate the model failing."""
+    def generate(system, user):
+        kind = "rewrite" if system == REWRITE_RULES else "answer"
+        calls.append((kind, user))
+        reply = rewrite_reply if kind == "rewrite" else answer_reply
+        if isinstance(reply, Exception):
+            raise reply
+        return reply
+    return generate
+
+
+def _rows(conv, sql, *args):
+    with pool.connection() as conn:
+        return conn.execute(sql, (conv, *args)).fetchall()
+
+
+def _insert_turn(conn, conv, question, standalone, answer="Answer [1].", refused=False):
+    conn.execute("insert into messages (conversation_id, role, content, standalone_question) "
+                 "values (%s, 'user', %s, %s)", (conv, question, standalone))
+    conn.execute("insert into messages (conversation_id, role, content, refused) "
+                 "values (%s, 'assistant', %s, %s)", (conv, answer, refused))
+
+
+def test_first_message_makes_one_model_call_and_searches_the_typed_text(chat, monkeypatch):
+    token, _, conv = chat
+    calls = []
+    monkeypatch.setattr(llm_client, "generate", fake_chat("unused", "It crashed [1].", calls))
+    r = ask(token, conv)
+    assert [kind for kind, _ in calls] == ["answer"]            # no history -> no rewrite call
+    assert r.json()["search_question"] == QUESTION
+
+
+def test_follow_up_is_rewritten_and_the_complete_question_is_searched_and_answered(chat, monkeypatch):
+    token, _, conv = chat
+    calls = []
+    monkeypatch.setattr(llm_client, "generate", fake_chat(REWRITTEN, "It crashed [1].", calls))
+    ask(token, conv)
+    calls.clear()
+    r = ask(token, conv, FOLLOW_UP)
+    assert [kind for kind, _ in calls] == ["rewrite", "answer"]
+    assert QUESTION in calls[0][1]                               # the rewriter saw turn 1
+    assert REWRITTEN in calls[1][1]                              # the answer model got the complete question
+    assert r.json()["search_question"] == REWRITTEN
+
+
+def test_the_complete_question_is_saved_on_the_user_message(chat, monkeypatch):
+    token, _, conv = chat
+    monkeypatch.setattr(llm_client, "generate", fake_chat(REWRITTEN, "It crashed [1].", []))
+    ask(token, conv)
+    ask(token, conv, FOLLOW_UP)
+    rows = _rows(conv, "select standalone_question from messages "
+                       "where conversation_id = %s and role = 'user' order by seq")
+    assert [r[0] for r in rows] == [QUESTION, REWRITTEN]
+
+
+def test_rewriter_failure_falls_back_to_the_typed_message(chat, monkeypatch):
+    token, _, conv = chat
+    monkeypatch.setattr(llm_client, "generate", fake_chat(LLMError("down"), "It crashed [1].", []))
+    ask(token, conv)
+    r = ask(token, conv, FOLLOW_UP)
+    assert r.status_code == 201
+    assert r.json()["search_question"] == FOLLOW_UP
+    assert r.json()["refused"] is False                          # the answer was still made and saved
+
+
+def test_rewriter_failure_is_logged_without_the_users_text(chat, monkeypatch, caplog):
+    token, _, conv = chat
+    monkeypatch.setattr(llm_client, "generate", fake_chat(LLMError("down"), "It crashed [1].", []))
+    ask(token, conv)
+    with caplog.at_level("WARNING"):
+        ask(token, conv, FOLLOW_UP)
+    assert "rewrite" in caplog.text.lower()                      # the failure IS logged ...
+    assert FOLLOW_UP not in caplog.text and QUESTION not in caplog.text   # ... without my study text
+
+
+def test_another_users_chat_gives_404_without_reading_history_or_rewriting(chat, monkeypatch):
+    token, _, conv = chat
+    calls = []
+    monkeypatch.setattr(llm_client, "generate", fake_chat(REWRITTEN, "It crashed [1].", calls))
+    ask(token, conv)
+    calls.clear()
+    r = client.post(f"/conversations/{conv}/messages", headers=auth(_b()), json={"question": FOLLOW_UP})
+    assert r.status_code == 404
+    assert calls == []
+
+
+def test_history_reads_only_the_last_six_questions_oldest_first(chat):
+    _, _, conv = chat
+    with pool.connection() as conn:
+        for i in range(1, 9):
+            _insert_turn(conn, conv, f"q{i}", f"Q{i}?")
+        history = chat_service.load_history(conn, uuid.UUID(conv))
+    assert history.questions == ("Q3?", "Q4?", "Q5?", "Q6?", "Q7?", "Q8?")
+    assert history.last_answer == "Answer [1]."
+
+
+def test_old_rows_without_a_standalone_question_use_the_typed_text(chat):
+    _, _, conv = chat
+    with pool.connection() as conn:
+        _insert_turn(conn, conv, "old typed?", None)
+        history = chat_service.load_history(conn, uuid.UUID(conv))
+    assert history.questions == ("old typed?",)
+
+
+def test_a_refused_last_answer_is_not_given_to_the_rewriter(chat):
+    _, _, conv = chat
+    with pool.connection() as conn:
+        _insert_turn(conn, conv, "q?", "Q?", answer=REFUSAL, refused=True)
+        history = chat_service.load_history(conn, uuid.UUID(conv))
+    assert history.last_answer is None
+
+
+def test_draft_answer_can_search_a_different_text_than_it_asks(env, monkeypatch):
+    """The eval's concat mode: search with glued turns, but ask the model the typed message."""
+    _, ws = env
+    searched, seen = [], {}
+    real_search = chat_service.search_chunks
+    monkeypatch.setattr(chat_service, "search_chunks",
+                        lambda w, q, k: searched.append(q) or real_search(w, q, k))
+    monkeypatch.setattr(llm_client, "generate", fake("Crash [1].", seen))
+    chat_service.draft_answer(uuid.UUID(ws), "why", search_query="glued text")
+    assert searched == ["glued text"]
+    assert "<question>\nwhy\n</question>" in seen["user"]

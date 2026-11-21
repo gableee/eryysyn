@@ -208,6 +208,7 @@ def ask_question(
         "message_id": str(result.message_id),
         "answer": result.answer,
         "refused": result.refused,
+        "search_question": result.search_question,
         "citations": [
             _citation_json(c.n, c.chunk_id, c.document_id, c.filename, c.page, c.excerpt)
             for c in result.citations
