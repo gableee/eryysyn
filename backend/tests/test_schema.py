@@ -23,3 +23,14 @@ def test_citation_links_are_indexed_so_deleting_a_document_stays_fast():
     cols = _indexed_columns("message_citations")
     assert "chunk_id" in cols
     assert "document_id" in cols
+
+
+def test_messages_can_store_the_complete_question_that_was_searched():
+    # Migration 004: each user message saves the complete question it was searched as (the "relay").
+    with pool.connection() as conn:
+        row = conn.execute(
+            "select data_type, is_nullable from information_schema.columns "
+            # table_schema matters: Supabase has its own realtime.messages table too.
+            "where table_schema = 'public' and table_name = 'messages' "
+            "and column_name = 'standalone_question'").fetchone()
+    assert row == ("text", "YES")

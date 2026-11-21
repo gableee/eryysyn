@@ -18,6 +18,11 @@ class LLMError(Exception):
     """The model could not give us an answer (not running, not downloaded, too slow, empty reply)."""
 
 
+class LLMUnavailable(LLMError):
+    """The model could not be reached at all (connection refused, timeout). A second call right away
+    would fail the same way, so callers should not retry it within the same request."""
+
+
 def generate(system: str, user: str) -> str:
     """Send one question to the model and return its reply text.
 
@@ -43,7 +48,7 @@ def generate(system: str, user: str) -> str:
         )
     except httpx.HTTPError as exc:       # connection refused, timeout, DNS, ...
         log.exception("LLM request failed")
-        raise LLMError(f"Could not reach the model: {exc}") from exc
+        raise LLMUnavailable(f"Could not reach the model: {exc}") from exc
 
     if response.status_code != 200:      # e.g. 404 when the model is not downloaded
         reason = _error_reason(response)

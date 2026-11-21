@@ -123,7 +123,7 @@ def get_conversation(
             (conversation_id,),
         ).fetchone()
         messages = conn.execute(
-            "select id, role, content, refused, created_at from messages "
+            "select id, role, content, refused, created_at, standalone_question from messages "
             "where conversation_id = %s order by seq",       # seq, not created_at: see migration 002
             (conversation_id,),
         ).fetchall()
@@ -148,6 +148,7 @@ def get_conversation(
                 "content": m[2],
                 "refused": m[3],
                 "created_at": m[4],
+                "search_question": m[5],      # what a user message was searched as; null on answers
                 "citations": by_message.get(m[0], []),
             }
             for m in messages
@@ -208,6 +209,7 @@ def ask_question(
         "message_id": str(result.message_id),
         "answer": result.answer,
         "refused": result.refused,
+        "search_question": result.search_question,
         "citations": [
             _citation_json(c.n, c.chunk_id, c.document_id, c.filename, c.page, c.excerpt)
             for c in result.citations

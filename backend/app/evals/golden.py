@@ -12,7 +12,8 @@ REQUIRED = ("id", "set", "q", "expect")
 EXPECTS = {"answer", "refuse"}
 KINDS = {"", "direct", "paraphrase", "multi_page", "not_in_docs", "trap", "negation",
          # held-out set: kinds of question the dev set never had
-         "conflict", "near_conflict", "false_premise", "leading", "injection", "messy"}
+         "conflict", "near_conflict", "false_premise", "leading", "injection", "messy",
+         "follow_up"}
 
 
 class GoldenError(ValueError):
@@ -33,6 +34,7 @@ class Question:
     kind: str = ""           # direct, paraphrase, multi_page, not_in_docs, trap (reporting only)
     note: str = ""
     instructions: str = ""   # the chat's tone instructions, as a user would set them (untrusted)
+    turns: tuple[str, ...] = ()   # earlier messages of the chat, in order; q is the one being scored
 
 
 def _question(raw: dict, sets: dict[str, set[str]]) -> Question:
@@ -57,6 +59,9 @@ def _question(raw: dict, sets: dict[str, set[str]]) -> Question:
             raise ValueError(f"{field} must be whole numbers from 1, e.g. [7], not [\"7\"]")
     if not isinstance(raw.get("instructions", ""), str):
         raise ValueError("instructions must be text")
+    turns = raw.get("turns", [])
+    if not (isinstance(turns, list) and all(isinstance(t, str) and t.strip() for t in turns)):
+        raise ValueError('turns must be a list of non-empty messages, e.g. ["What is X?", "why"]')
     groups = raw.get("must_contain", [])
     if not all(isinstance(g, list) and g and all(isinstance(w, str) for w in g) for g in groups):
         raise ValueError('must_contain must be a list of non-empty lists, e.g. [["three", "3"]]')
@@ -69,6 +74,7 @@ def _question(raw: dict, sets: dict[str, set[str]]) -> Question:
         must_not_contain=tuple(raw.get("must_not_contain", ())),
         kind=raw.get("kind", ""), note=raw.get("note", ""),
         instructions=raw.get("instructions", ""),
+        turns=tuple(turns),
     )
 
 

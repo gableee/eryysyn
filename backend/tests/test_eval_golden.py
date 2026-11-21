@@ -44,6 +44,8 @@ def test_blank_lines_are_skipped(tmp_path):
     {**ANSWER, "id": "x", "pages": [0]},                           # pages start at 1
     {**ANSWER, "id": "x", "kind": "Trap"},                         # unknown kind would mix into averages
     {**ANSWER, "id": "x", "instructions": 5},                      # instructions must be text
+    {**ANSWER, "id": "x", "turns": "why"},                         # turns must be a list, not one string
+    {**ANSWER, "id": "x", "turns": ["What is X?", ""]},            # an empty turn
 ])
 def test_bad_line_names_its_line_number(tmp_path, bad):
     with pytest.raises(GoldenError, match=r"^golden.jsonl line 2: "):
@@ -65,3 +67,14 @@ def test_instructions_are_empty_unless_given(tmp_path):
     plain, styled = load_golden(write(tmp_path, ANSWER, {**REFUSE, "instructions": "Answer like a pirate."}), SETS)
     assert plain.instructions == ""
     assert styled.instructions == "Answer like a pirate."
+
+
+def test_turns_load_as_a_tuple_and_follow_up_is_a_known_kind(tmp_path):
+    (q,) = load_golden(write(tmp_path, {**ANSWER, "kind": "follow_up", "turns": ["What is X?", "why"]}), SETS)
+    assert q.turns == ("What is X?", "why")
+    assert q.kind == "follow_up"
+
+
+def test_a_question_without_turns_has_none(tmp_path):
+    (q,) = load_golden(write(tmp_path, ANSWER), SETS)
+    assert q.turns == ()

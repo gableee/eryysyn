@@ -3,7 +3,7 @@ import pytest
 
 from app.core.config import settings
 from app.llm import client
-from app.llm.client import LLMError, generate
+from app.llm.client import LLMError, LLMUnavailable, generate
 
 
 def reply(status=200, body=None):
@@ -36,7 +36,7 @@ def test_ollama_not_running_raises_llm_error(monkeypatch):
     def fake_post(url, json, timeout):
         raise httpx.ConnectError("refused")
     monkeypatch.setattr(client.httpx, "post", fake_post)
-    with pytest.raises(LLMError):
+    with pytest.raises(LLMUnavailable):   # a kind of LLMError: the model cannot be reached at all
         generate("s", "u")
 
 
@@ -44,7 +44,7 @@ def test_timeout_raises_llm_error(monkeypatch):
     def fake_post(url, json, timeout):
         raise httpx.ReadTimeout("slow")
     monkeypatch.setattr(client.httpx, "post", fake_post)
-    with pytest.raises(LLMError):
+    with pytest.raises(LLMUnavailable):   # a kind of LLMError: the model cannot be reached at all
         generate("s", "u")
 
 
@@ -77,3 +77,8 @@ def test_missing_or_empty_reply_raises_llm_error(monkeypatch, body):
     monkeypatch.setattr(client.httpx, "post", lambda url, json, timeout: reply(body=body))
     with pytest.raises(LLMError):
         generate("s", "u")
+
+
+def test_llm_unavailable_is_still_an_llm_error():
+    # Callers that only know LLMError (the API's 502) keep working.
+    assert issubclass(LLMUnavailable, LLMError)
