@@ -14,6 +14,8 @@ Status: **done** on the dev follow-up set. A held-out follow-up set comes later 
   leaked through it into the rewritten question (both models). Pre-agreed fix applied: the rewriter never sees
   answers. Same scores, no leak.
 
+![Follow-up answers correct per mode](img/follow-up-modes.png)
+
 ## 1. The problem
 
 ```
@@ -115,14 +117,31 @@ change. The saved complete questions carry the topic on their own.
 - **f07 typo**: qwen fixed "aitinomy" → "autonomy" but kept it a fragment ("And autonomy?"), so search still
   failed. bonsai made "anatomy". Typo + follow-up together is the hardest case.
 - Hit@5 says nothing here: the "none" failures were mostly retrieval of noise for "why" / "that".
+- **concat finds the page more often than rewrite** (Hit@5 10/10 vs 8-9/10): glued text searches wider. It
+  still loses on answers, because the answer model is asked "why" with no topic. Searching with the glued
+  text but asking the rewritten question was not tested (an idea for later, not a gap in this result).
+- **Old saved questions are clean.** Complete questions written while the rewriter still saw answers
+  (commits d39ecef..432111b) came only from the eval (which saves no chat rows) and the tests (which delete
+  theirs). No real chat was affected, so nothing needs cleaning.
 
-## 7. Decision
+## 7. Final review (fresh reviewer, whole branch)
+
+0 critical, 2 important, both fixed test-first (179 tests):
+1. A hung model made the user wait two full timeouts (rewrite, then answer: ~6 min to the 502).
+   Now `LLMUnavailable` (connection refused or timeout) fails the request at once. A short rewrite
+   timeout was rejected: a cold model load takes ~45 s and would drop every first follow-up.
+2. With the rewriter blind to answers, the answer was still read and carried along. Now it is not even
+   read, and the switch is checked at call time.
+
+8 minor findings: 4 fixed in docs/tests, 4 deferred by phase (CONTEXT).
+
+## 8. Decision
 
 Keep `rewrite` without answers. It clearly beats `none` (bonsai +3, qwen +5 of 10) for about half a second
 per follow-up, and first messages cost nothing extra. The answer stays out of the rewriter until datamarking
 or the Phase 4 checker exists, and then only with a new held-out set.
 
-## 8. Thinking checklist (what this experiment added)
+## 9. Thinking checklist (what this experiment added)
 
 1. Every new LLM call that reads untrusted text is a new injection surface. Draw the trust boundary first.
 2. Write the security test case and the rule for what to do if it fails **before** the run.
@@ -139,5 +158,14 @@ for m in bonsai-2:4b qwen3.5:9b; do
   done
   ollama stop $m
 done
+```
+Chart:
+```bash
+R=evals/results
+PYTHONPATH=. python scripts/plot_eval.py ../docs/experiments/img/follow-up-modes.png \
+ "none=bonsai:$R/2026-11-21_142826_bonsai-2-4b_followup-none.json,qwen:$R/2026-11-21_143242_qwen3.5-9b_followup-none.json" \
+ "concat=bonsai:$R/2026-11-21_142939_bonsai-2-4b_followup-concat.json,qwen:$R/2026-11-21_143419_qwen3.5-9b_followup-concat.json" \
+ "rewrite=bonsai:$R/2026-11-21_143057_bonsai-2-4b_followup-rewrite.json,qwen:$R/2026-11-21_143552_qwen3.5-9b_followup-rewrite.json" \
+ "rewrite, no answer=bonsai:$R/2026-11-21_153821_bonsai-2-4b_followup-rewrite.json,qwen:$R/2026-11-21_154012_qwen3.5-9b_followup-rewrite.json"
 ```
 Results: `evals/results/2026-11-21_14*_followup-*.json` (commit b1a9edf) and `2026-11-21_15*_followup-rewrite.json` (432111b).

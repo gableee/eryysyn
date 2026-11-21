@@ -27,8 +27,9 @@ def calls(monkeypatch):
         return Draft([], None, None, "A [1].", ParsedAnswer("A [1].", [1], False))
 
     def rewrite(history, message):
+        # Like the real rewrite_question: no earlier questions -> the message as typed, no rewrite.
         seen["rewrite"].append(history)
-        return "REWRITTEN " + message
+        return "REWRITTEN " + message if history.questions else message
 
     monkeypatch.setattr(followup, "draft_answer", draft)
     monkeypatch.setattr(followup, "rewrite_question", rewrite)
@@ -54,15 +55,16 @@ def test_concat_mode_glues_earlier_turns_into_the_search_only(calls):
 def test_rewrite_mode_hands_each_complete_question_to_the_next_turn(calls):
     _, turns = followup.play(WS, _q(), "rewrite", k=5)
     second = calls["rewrite"][1]
-    assert second.questions == ("REWRITTEN t1",)            # the saved COMPLETE question, not "t1"
+    assert second.questions == ("t1",)                      # turn 1 had no history: saved as typed
     assert second.last_answer is None                         # the rewriter is blind to answers (f11)
     assert calls["draft"][1] == {"question": "REWRITTEN t2", "search_query": None}
     assert [t["typed"] for t in turns] == ["t1", "t2", "q"]
-    assert [t["searched"] for t in turns] == ["REWRITTEN t1", "REWRITTEN t2", "REWRITTEN q"]
+    assert [t["searched"] for t in turns] == ["t1", "REWRITTEN t2", "REWRITTEN q"]
+    assert calls["rewrite"][2].questions == ("t1", "REWRITTEN t2")   # the COMPLETE question is handed on
 
 
 @pytest.mark.parametrize("mode", followup.MODES)
 def test_a_question_without_turns_is_one_plain_call_in_every_mode(calls, mode):
     draft, turns = followup.play(WS, _q(turns=()), mode, k=5)
-    assert len(calls["draft"]) == 1 and calls["draft"][0]["question"] in ("q", "REWRITTEN q")
+    assert len(calls["draft"]) == 1 and calls["draft"][0]["question"] == "q"
     assert len(turns) == 1 and draft.parsed.text == "A [1]."
