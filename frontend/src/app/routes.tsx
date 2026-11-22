@@ -5,6 +5,7 @@ import { RegisterPage } from '../features/auth/RegisterPage'
 import { AppShell } from './AppShell'
 import { DevStates } from './DevStates'
 import { RequireAuth, RequireGuest } from './guards'
+import { LibraryPage } from '../features/library/LibraryPage'
 import { Placeholder } from './Placeholder'
 
 /** `dev` decides whether /dev/states exists; production builds never route it. */
@@ -19,7 +20,7 @@ export function createRoutes(dev: boolean = import.meta.env.DEV): RouteObject[] 
       element: <RequireAuth><AppShell /></RequireAuth>,
       children: [
         { path: '/', element: <Navigate to="/chat" replace /> },
-        { path: '/library', element: <Placeholder title="Library" /> },
+        { path: '/library', element: <LibraryPage /> },
         { path: '/chat', element: <Placeholder title="New chat" /> },
         { path: '/chat/:id', element: <Placeholder title="Chat" /> },
         { path: '*', element: <Navigate to="/" replace /> },

@@ -1,4 +1,5 @@
 import { CircleAlert, CircleCheck, FileText, LoaderCircle } from 'lucide-react'
+import { motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { Button } from '../../shared/ui/Button'
 import { InlineConfirm } from '../../shared/ui/InlineConfirm'
@@ -10,18 +11,25 @@ type Props = { doc: LibraryDocument | UploadingDocument; onRetry?(): void; onDel
 /** One document. Status is always an icon AND words, never colour alone. */
 export function DocumentRow({ doc, onRetry, onDelete, busy = false }: Props) {
   const [confirming, setConfirming] = useState(false)
+  // Rows slide to their new place when one is added or removed (Motion layout animation).
+  const reduce = useReducedMotion()
+  const motionProps = reduce ? {} : {
+    layout: true as const,
+    initial: { opacity: 0, y: -6 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0 },
+    transition: { type: 'spring' as const, bounce: 0, duration: 0.25 },
+  }
 
   if (confirming && onDelete) {
     return (
-      <li className={styles.row}>
+      <motion.li className={styles.row} {...motionProps}>
         <InlineConfirm question={`Delete ${doc.filename}?`} confirmLabel="Delete"
           onConfirm={() => { setConfirming(false); onDelete() }} onCancel={() => setConfirming(false)} />
-      </li>
+      </motion.li>
     )
   }
 
   return (
-    <li className={styles.row}>
+    <motion.li className={styles.row} {...motionProps}>
       <span className={styles.title}>
         <FileText size={20} aria-hidden="true" className={styles.fileIcon} />
         <span className={styles.name}>{doc.filename}</span>
@@ -35,7 +43,7 @@ export function DocumentRow({ doc, onRetry, onDelete, busy = false }: Props) {
           <Button variant="quiet" aria-label={`Delete ${doc.filename}`} onClick={() => setConfirming(true)}>Delete</Button>
         )}
       </span>
-    </li>
+    </motion.li>
   )
 }
 

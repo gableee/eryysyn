@@ -45,3 +45,9 @@
 @container main (max-width: 520px) {
   .actions { margin-left: 0; width: 100%; }
 }
+
+.page { display: grid; gap: 24px; max-width: 900px; }
+.header { display: grid; gap: 4px; }
+.sub { color: var(--muted); }
+.skeleton { background: linear-gradient(90deg, var(--surface), var(--soft), var(--surface)); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
