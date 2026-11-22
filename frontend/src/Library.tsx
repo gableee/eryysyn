@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { supabase } from "./lib/supabase";
-import { api } from "./lib/api";
+import { supabase } from "./shared/supabase";
+import { http as api } from "./shared/http";
 
 type Doc = { id: string; filename: string; status: string };
 
@@ -14,7 +14,7 @@ export default function Library() {
   }
 
   useEffect(() => {
-    api("/workspaces")
+    api<{ id: string }[]>("/workspaces")
       .then((ws) => {
         setWorkspaceId(ws[0].id);
         return loadDocs(ws[0].id);
