@@ -1,0 +1,68 @@
+/* ---- messages ---- */
+.user { display: grid; justify-items: end; gap: 4px; }
+.bubble {
+  max-width: min(65ch, 85%); padding: 10px 14px; border-radius: var(--r-l) var(--r-l) 4px var(--r-l);
+  background: var(--soft); white-space: pre-wrap;
+}
+.searched { max-width: min(65ch, 85%); font-size: var(--t-14); color: var(--muted); text-align: right; }
+.answer { display: grid; gap: 10px; max-width: 65ch; font-size: var(--t-16); line-height: 1.65; white-space: pre-wrap; }
+.refusal { font-weight: 600; }
+.hint { color: var(--muted); font-size: var(--t-14); }
+.glue { white-space: nowrap; }   /* the last word + its citation marker never split */
+.pending { display: grid; gap: 4px; color: var(--muted); }
+.pending p { display: flex; align-items: center; gap: 10px; }
+
+.marker {
+  display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px;
+  border-radius: 11px; border: 1px solid var(--accent); background: var(--surface);
+  color: var(--accent); font-size: var(--t-12); font-weight: 600; line-height: 1; vertical-align: 2px;
+  cursor: pointer; transition: background-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.marker + .marker { margin-left: 3px; }
+.marker:hover { background: var(--soft); }
+.marker:active { transform: scale(0.92); }
+.markerActive { background: var(--accent); color: var(--on-accent); }
+@media (max-width: 599px) { .marker { min-width: 28px; height: 28px; border-radius: 14px; } }
+
+/* ---- sources ---- */
+.panel { display: grid; align-content: start; gap: 12px; }
+.panelTitle { font-size: var(--t-16); }
+.notice { font-size: var(--t-14); color: var(--muted); }
+.cards { display: grid; gap: 10px; }
+.card {
+  display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-l);
+  background: var(--surface); scroll-margin: 16px;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.cardActive { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.cardHead { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.cardNumber {
+  display: inline-grid; place-items: center; min-width: 22px; height: 22px; border-radius: 11px;
+  background: var(--accent); color: var(--on-accent); font-size: var(--t-12); font-weight: 600;
+}
+.cardFile { font-weight: 600; font-size: var(--t-14); flex: 1 1 12ch; }
+.cardPage { font-size: var(--t-14); color: var(--muted); }
+.removed { font-size: var(--t-12); font-weight: 600; color: var(--warn); }
+.excerpt {
+  margin: 0; padding: 10px 12px; border-radius: var(--r-s); background: var(--soft);
+  font-size: var(--t-14); line-height: 1.6; max-height: 14em; overflow-y: auto;
+}
+.inlineSources { display: grid; gap: 8px; max-width: 65ch; }
+.inlineSources summary { cursor: pointer; font-size: var(--t-14); font-weight: 600; color: var(--accent); min-height: 32px; display: flex; align-items: center; }
+
+/* ---- composer ---- */
+.composer {
+  display: flex; align-items: flex-end; gap: 8px; padding: 8px; border: 1px solid var(--line-strong);
+  border-radius: var(--r-l); background: var(--surface);
+}
+.composer:focus-within { border-color: var(--accent); }
+.input {
+  flex: 1; min-height: 40px; max-height: 40vh; padding: 8px; resize: none; border: 0; outline: none;
+  background: transparent; field-sizing: content;   /* grows with the text where supported */
+}
+.counter { font-size: var(--t-12); color: var(--muted); align-self: center; }
+@container main (max-width: 420px) { .askLabel { display: none; } }
+.inlineSources summary { gap: 6px; list-style: none; }
+.inlineSources summary::-webkit-details-marker { display: none; }
+.chevron { transition: transform var(--dur) var(--ease); }
+.inlineSources[open] .chevron { transform: rotate(180deg); }   /* the arrow shows it can open and close */

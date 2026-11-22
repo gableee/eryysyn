@@ -1,3 +1,4 @@
+import '../features/chat/chat.states'
 import '../features/library/library.states'
 import { Moon, Sun } from 'lucide-react'
 import { useTheme } from '../shared/theme'
