@@ -1,0 +1,59 @@
+/* Sage theme (docs/superpowers/specs/2026-11-15-frontend-design.md, section 7), light and dark.
+   Components use these variables only, so other themes are a values-only addition later.
+   Contrast is checked by src/styles/tokens.test.ts (WCAG 2.2 AA). */
+
+:root {
+  --font: 'DM Sans', system-ui, sans-serif;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);   /* ease-out-quint: fast start, soft landing */
+  --dur-fast: 150ms;
+  --dur: 220ms;
+
+  /* type scale, ratio ~1.2, rem so browser zoom and large system text work */
+  --t-12: 0.75rem;
+  --t-14: 0.875rem;
+  --t-16: 1rem;
+  --t-19: 1.1875rem;
+  --t-23: 1.4375rem;
+
+  --r-s: 10px;   /* small radius: buttons, inputs */
+  --r-l: 16px;   /* large radius: cards, panels */
+  --space: 8px;  /* everything in multiples of 8 */
+}
+
+html[data-mode="light"] {
+  color-scheme: light;
+  --bg: #EFF3EE;
+  --surface: #FBFCFA;
+  --side: #E7EDE6;
+  --ink: #1E2A24;
+  --muted: #56655C;
+  --line: #D8E1D8;          /* dividers only (decorative) */
+  --line-strong: #7A8A81;   /* input and control borders: >= 3:1 (new) */
+  --accent: #3F6B57;
+  --on-accent: #FFFFFF;
+  --soft: #DCE9E0;
+  --ok: #2F6F4F;
+  --warn: #85601A;
+  --err: #A33B3B;
+  --hl: #F3E6A8;
+  --focus: #2B5C47;         /* 2px focus ring (new) */
+}
+
+html[data-mode="dark"] {
+  color-scheme: dark;
+  --bg: #121815;
+  --surface: #1A221E;
+  --side: #0F1512;
+  --ink: #E3EBE5;
+  --muted: #93A39A;
+  --line: #2A352F;
+  --line-strong: #6E7F75;
+  --accent: #8FC3A8;
+  --on-accent: #10201A;
+  --soft: #223129;
+  --ok: #8FC3A8;
+  --warn: #DDB872;
+  --err: #E69A9A;
+  --hl: #544A1B;
+  --focus: #A9DCC1;
+}
