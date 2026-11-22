@@ -1,0 +1,92 @@
+/* Structure only changes where it must (Global Constraints, width zones).
+   >= 960: full sidebar · 600-959: icon sidebar · < 600: bottom tabs · height < 500: no tabs, menu button. */
+.shell {
+  min-height: 100dvh;
+  display: grid;
+  grid-template: 'bar bar' auto 'side main' 1fr / 232px 1fr;
+}
+.bar {
+  grid-area: bar; position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 8px;
+  padding: max(8px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left));
+  background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.logo { font-weight: 600; font-size: var(--t-19); }
+.spacer { flex: 1; }
+.menu { display: none; }
+
+.sidebar {
+  grid-area: side; position: sticky; top: 57px; align-self: start; height: calc(100dvh - 57px);
+  overflow-y: auto; padding: 16px 12px; display: grid; align-content: start; gap: 16px;
+  background: var(--side); border-right: 1px solid var(--line);
+}
+.nav { display: grid; gap: 4px; }
+.link, .newChat {
+  display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 12px;
+  border-radius: var(--r-s); color: var(--ink); text-decoration: none; font-size: var(--t-14);
+  transition: background-color var(--dur-fast) var(--ease);
+}
+.link:hover, .newChat:hover { background: var(--soft); }
+.active { background: var(--surface); font-weight: 600; box-shadow: inset 0 0 0 1px var(--line); }
+.newChat { border: 1px solid var(--line-strong); margin-bottom: 8px; font-weight: 600; }
+
+.main {
+  grid-area: main; min-width: 0; container-type: inline-size; container-name: main;
+  padding: 24px max(24px, env(safe-area-inset-right)) 24px 24px;
+}
+
+.tabs { display: none; }
+
+/* 600-959: icon sidebar, labels for screen readers and on focus/hover via title */
+@media (max-width: 959px) {
+  .shell { grid-template-columns: 72px 1fr; }
+  .sidebar { padding: 16px 8px; }
+  .sidebar .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .sidebar > :not(nav) { display: none; }          /* recent chats live in the drawer here */
+  .link, .newChat { justify-content: center; padding: 0; }
+  .menu { display: inline-grid; }
+}
+
+/* < 600: one column, bottom tabs in thumb reach */
+@media (max-width: 599px) {
+  .shell { grid-template: 'bar' auto 'main' 1fr 'tabs' auto / 1fr; }
+  .sidebar { display: none; }
+  .main { padding: 16px max(16px, env(safe-area-inset-right)) 16px max(16px, env(safe-area-inset-left)); }
+  .bar .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tabs {
+    grid-area: tabs; position: sticky; bottom: 0; z-index: 20; display: grid; grid-auto-flow: column;
+    background: var(--bg); border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tab {
+    display: grid; justify-items: center; gap: 2px; min-height: 56px; padding: 6px 0;
+    color: var(--muted); text-decoration: none; font-size: var(--t-12);
+  }
+  .tab.active { color: var(--accent); background: none; box-shadow: none; font-weight: 600; }
+}
+
+/* short screens (landscape phone): no bottom tabs, the menu button opens the drawer */
+@media (max-height: 499px) {
+  .tabs { display: none; }
+  .menu { display: inline-grid; }
+  .bar { padding-top: max(4px, env(safe-area-inset-top)); padding-bottom: 4px; }
+}
+
+@media (min-width: 1600px) {
+  .main { padding-inline: max(24px, calc((100vw - 232px - 1200px) / 2)); }
+}
+
+/* drawer */
+.drawerLayer { position: fixed; inset: 0; z-index: 40; }
+.backdrop { position: absolute; inset: 0; background: rgb(0 0 0 / 0.35); }
+.drawer {
+  position: absolute; inset: 0 auto 0 0; width: min(85vw, 300px); overflow-y: auto;
+  padding: max(16px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: var(--side); display: grid; align-content: start; gap: 16px;
+}
+.drawer .label { position: static; width: auto; height: auto; clip: auto; }
+.drawer .link, .drawer .newChat { justify-content: flex-start; padding: 0 12px; min-height: 44px; }
+.close { justify-self: end; }
+
+/* page cross-fade (View Transitions API), shell stays still */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 180ms; animation-timing-function: var(--ease); }
