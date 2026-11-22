@@ -49,8 +49,8 @@ describe('routes', () => {
     expect(router.state.location.pathname).not.toBe('/dev/states')
   })
 
-  it('/dev/states exists in development', async () => {
-    sessionState.value = signedIn
+  it('/dev/states exists in development, without logging in (sample data only)', async () => {
+    sessionState.value = signedOut
     open('/dev/states', true)
     expect(await screen.findByRole('heading', { name: 'Component states' })).toBeInTheDocument()
   })

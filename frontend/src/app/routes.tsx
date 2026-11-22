@@ -13,6 +13,8 @@ export function createRoutes(dev: boolean = import.meta.env.DEV): RouteObject[] 
     { path: '/login', element: <RequireGuest><LoginPage /></RequireGuest> },
     { path: '/register', element: <RequireGuest><RegisterPage /></RequireGuest> },
     { path: '/check-inbox', element: <RequireGuest><CheckInboxPage /></RequireGuest> },
+    // sample data only, no user data: reachable without logging in, and never in production
+    ...(dev ? [{ path: '/dev/states', element: <DevStates /> }] : []),
     {
       element: <RequireAuth><AppShell /></RequireAuth>,
       children: [
@@ -20,7 +22,6 @@ export function createRoutes(dev: boolean = import.meta.env.DEV): RouteObject[] 
         { path: '/library', element: <Placeholder title="Library" /> },
         { path: '/chat', element: <Placeholder title="New chat" /> },
         { path: '/chat/:id', element: <Placeholder title="Chat" /> },
-        ...(dev ? [{ path: '/dev/states', element: <DevStates /> }] : []),
         { path: '*', element: <Navigate to="/" replace /> },
       ],
     },

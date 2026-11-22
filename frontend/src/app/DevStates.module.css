@@ -3,3 +3,4 @@
 .state { display: grid; gap: 8px; }
 .name { font-size: var(--t-14); color: var(--muted); font-weight: 600; }
 .frame { padding: 16px; border: 1px dashed var(--line-strong); border-radius: var(--r-l); background: var(--bg); }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
