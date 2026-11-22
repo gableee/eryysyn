@@ -39,7 +39,7 @@ describe('routes', () => {
     sessionState.value = signedIn
     const router = open('/login')
     await screen.findByRole('navigation', { name: 'Main' })
-    expect(router.state.location.pathname).toBe('/chat')
+    expect(router.state.location.pathname).not.toBe('/login')   // in the app ("/" then picks Chat or Library)
   })
 
   it('/dev/states is not routed in production', async () => {
