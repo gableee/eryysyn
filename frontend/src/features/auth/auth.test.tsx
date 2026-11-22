@@ -91,11 +91,21 @@ describe('Login', () => {
 })
 
 describe('Register', () => {
+  it('asks for at least 8 characters before sending anything', async () => {
+    const user = userEvent.setup()
+    at('/register', <RegisterPage />)
+    expect(screen.getByLabelText('Password')).toHaveAccessibleDescription(/At least 8 characters/)
+    await fill(user, 'a@b.co', 'short12')                       // 7 characters
+    await user.click(screen.getByRole('button', { name: 'Create account' }))
+    expect(await screen.findByText('Use at least 8 characters.')).toBeInTheDocument()
+    expect(auth.signUp).not.toHaveBeenCalled()
+  })
+
   it('with a returned session goes to /library', async () => {
     auth.signUp.mockResolvedValue({ data: { session: session('u1'), user: { id: 'u1', identities: [{}] } }, error: null })
     const user = userEvent.setup()
     at('/register', <RegisterPage />)
-    await fill(user, 'a@b.co', 'secret1')
+    await fill(user, 'a@b.co', 'secret12')
     await user.click(screen.getByRole('button', { name: 'Create account' }))
     expect(await screen.findByRole('heading', { name: 'Library page' })).toBeInTheDocument()
   })
@@ -104,7 +114,7 @@ describe('Register', () => {
     auth.signUp.mockResolvedValue({ data: { session: null, user: { id: 'u1', identities: [{}] } }, error: null })
     const user = userEvent.setup()
     at('/register', <RegisterPage />)
-    await fill(user, 'new@b.co', 'secret1')
+    await fill(user, 'new@b.co', 'secret12')
     await user.click(screen.getByRole('button', { name: 'Create account' }))
     expect(await screen.findByText('We sent a link to new@b.co. Open it, then log in.')).toBeInTheDocument()
   })
@@ -116,7 +126,7 @@ describe('Register', () => {
     auth.signUp.mockResolvedValue(reply)
     const user = userEvent.setup()
     at('/register', <RegisterPage />)
-    await fill(user, 'old@b.co', 'secret1')
+    await fill(user, 'old@b.co', 'secret12')
     await user.click(screen.getByRole('button', { name: 'Create account' }))
     const message = await screen.findByRole('alert')
     expect(message).toHaveTextContent('This email already has an account.')

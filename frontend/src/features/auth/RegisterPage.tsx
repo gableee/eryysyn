@@ -8,6 +8,11 @@ import { authMessage } from './authErrors'
 import { GoogleButton } from './GoogleButton'
 import { PasswordField } from './PasswordField'
 
+// NIST 800-63B: length matters, composition rules ("must have a symbol") do not. Supabase enforces
+// the same minimum (Authentication > Providers > Email > Minimum password length = 8); this check
+// only gives the message sooner. Login does not check it: older accounts may have 6 characters.
+export const MIN_PASSWORD = 8
+
 /**
  * Works whether Supabase's "Confirm email" is on or off:
  *   a session comes back  -> confirmation is off, the user is in: go to the Library
@@ -27,6 +32,10 @@ export function RegisterPage() {
     e.preventDefault()
     setError('')
     setExists(false)
+    if (password.length < MIN_PASSWORD) {
+      setError(`Use at least ${MIN_PASSWORD} characters.`)
+      return
+    }
     setBusy(true)
     try {
       const { data, error: authError } = await supabase.auth.signUp({
@@ -56,7 +65,7 @@ export function RegisterPage() {
         <TextField label="Email" type="email" autoComplete="email" required value={email}
           onChange={(e) => setEmail(e.target.value)} />
         <PasswordField value={password} onChange={setPassword} autoComplete="new-password"
-          hint="At least 6 characters" />
+          hint={`At least ${MIN_PASSWORD} characters`} />
         {exists && (
           <p className={styles.error} role="alert">
             This email already has an account. <Link to="/login">Log in</Link>
