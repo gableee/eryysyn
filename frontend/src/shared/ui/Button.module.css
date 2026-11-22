@@ -1,0 +1,15 @@
+.button {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space);
+  min-height: 40px; padding: 0 calc(var(--space) * 2);
+  border-radius: var(--r-s); border: 1px solid transparent;
+  font-size: var(--t-14); font-weight: 600; cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
+}
+.button:active:not(:disabled) { transform: scale(0.97); }   /* iOS-like press feedback */
+.button:disabled { opacity: 0.55; cursor: not-allowed; }
+.primary { background: var(--accent); color: var(--on-accent); }
+.secondary { background: var(--surface); color: var(--ink); border-color: var(--line-strong); }
+.quiet { background: transparent; color: var(--ink); }
+.quiet:hover:not(:disabled), .secondary:hover:not(:disabled) { background: var(--soft); }
+.danger { background: var(--surface); color: var(--err); border-color: var(--err); }
+@media (max-width: 599px) { .button { min-height: 44px; } }  /* touch target */

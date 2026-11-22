@@ -1,0 +1,8 @@
+.iconButton {
+  display: inline-grid; place-items: center; width: 40px; height: 40px;
+  border: 0; border-radius: var(--r-s); background: transparent; color: var(--ink); cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
+}
+.iconButton:hover { background: var(--soft); }
+.iconButton:active { transform: scale(0.94); }
+@media (max-width: 599px) { .iconButton { width: 44px; height: 44px; } }
