@@ -60,3 +60,13 @@ describe('base.css', () => {
     expect(base).toContain('prefers-reduced-motion')
   })
 })
+
+describe('focus on the question box', () => {
+  // The textarea hides its own outline, so the whole composer must show the 2px focus ring instead
+  // (found in the keyboard-only check: the box had only a 1px colour change).
+  it('the composer shows the focus ring while its textarea has focus', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/features/chat/Chat.module.css'), 'utf8')
+    const rule = css.match(/\.composer:focus-within\s*\{([^}]*)\}/)?.[1] ?? ''
+    expect(rule).toMatch(/outline:\s*2px solid var\(--focus\)/)
+  })
+})
