@@ -39,8 +39,10 @@ export function PdfView({ url, page, highlights, onPageChange, onExpired, onBrok
   const callbacks = useRef({ onPageChange, onExpired, onBroken, onHighlightMissing })
   useEffect(() => { callbacks.current = { onPageChange, onExpired, onBroken, onHighlightMissing } })
   // highlights not found on the cited page are looked for on the next one (a passage can cross a page end)
-  const [spill, setSpill] = useState<{ page: number; sentences: string[] } | null>(null)
-  const marked = useRef({ scrolled: false, missingReported: false })
+  // both belong to one set of highlights: opening another citation in the same PDF starts afresh
+  const [spillState, setSpill] = useState<{ for: string[]; page: number; sentences: string[] } | null>(null)
+  const spill = spillState?.for === highlights ? spillState : null
+  const marked = useRef({ for: highlights, scrolled: false, missingReported: false })
 
   // open (and reopen when the link is renewed)
   useEffect(() => {
@@ -117,6 +119,7 @@ export function PdfView({ url, page, highlights, onPageChange, onExpired, onBrok
 
   const cited = doc && highlights.length > 0 ? clampPage(String(page), doc.numPages) : 0
   const onMarked = useCallback((n: number, found: boolean[], first: HTMLElement | null) => {
+    if (marked.current.for !== highlights) marked.current = { for: highlights, scrolled: false, missingReported: false }
     if (first && !marked.current.scrolled) {                     // bring the first mark into view, once
       marked.current.scrolled = true
       first.scrollIntoView?.({ block: 'center' })
@@ -130,7 +133,7 @@ export function PdfView({ url, page, highlights, onPageChange, onExpired, onBrok
       const rest = highlights.filter((_, i) => !found[i])
       if (rest.length === 0) return
       if (!doc || cited + 1 > doc.numPages) missing()
-      else setSpill((s) => (s && s.page === cited + 1 && s.sentences.length === rest.length ? s : { page: cited + 1, sentences: rest }))
+      else setSpill((s) => (s && s.for === highlights && s.page === cited + 1 ? s : { for: highlights, page: cited + 1, sentences: rest }))
     } else if (found.some((f) => !f)) {
       missing()
     }

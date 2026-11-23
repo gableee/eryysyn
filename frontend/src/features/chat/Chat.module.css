@@ -128,3 +128,11 @@
 }
 .recentLink:hover { background: var(--soft); }
 .recentActive { background: var(--surface); font-weight: 600; box-shadow: inset 0 0 0 1px var(--line); }
+
+/* ---- inside the Reader's side panel (Task 8) ---- */
+.readerSource { display: grid; gap: 12px; align-content: start; }
+.readerSource .excerpt { max-height: none; overflow: visible; }   /* the panel scrolls; no box-in-a-box scrolling */
+.claims { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: var(--t-14); }
+.readerChat { display: flex; flex-direction: column; gap: 16px; min-height: 100%; }
+.readerChat .bubble { max-width: 100%; }
+.readerComposer { position: sticky; bottom: 0; margin-top: auto; padding-top: 8px; background: var(--bg); }

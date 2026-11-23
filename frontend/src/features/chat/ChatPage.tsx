@@ -12,12 +12,7 @@ import { SourcesPanel } from './SourcesPanel'
 import { UserMessage } from './UserMessage'
 import { useSourcesLayout } from './useSourcesLayout'
 import { useWorkspaceId } from '../../shared/workspace'
-
-function sendError(error: unknown): string {
-  if (error instanceof ApiError && error.kind === 'unavailable') return 'Ery is offline right now. Try again in a minute.'
-  if (error instanceof ApiError && error.kind === 'network') return "Can't reach the server"
-  return 'Something went wrong. Try again.'
-}
+import { sendError } from './sendError'
 
 export function ChatPage() {
   const { id } = useParams()

@@ -7,14 +7,17 @@ import { ApiError } from '../../shared/http'
 
 const api = vi.hoisted(() => ({ getFileUrl: vi.fn() }))
 vi.mock('./api', () => api)
+const layout = vi.hoisted(() => ({ value: 'wide' as 'wide' | 'medium' | 'phone' }))
+vi.mock('./useReaderLayout', () => ({ useReaderLayout: () => layout.value }))
 // The PDF.js view comes in Task 6; here a stand-in that lets the test trigger its callbacks.
 vi.mock('./PdfView', () => ({
-  PdfView: (p: { url: string; page: number; onExpired(): void; onBroken(): void; onPageChange(page: number, total: number): void }) => (
+  PdfView: (p: { url: string; page: number; onExpired(): void; onBroken(): void; onPageChange(page: number, total: number): void; onHighlightMissing?(): void }) => (
     <div>
       <p>PDF {p.url} page {p.page}</p>
       <button onClick={p.onExpired}>expire</button>
       <button onClick={p.onBroken}>break</button>
       <button onClick={() => p.onPageChange(112, 340)}>turn</button>
+      <button onClick={() => p.onHighlightMissing?.()}>miss</button>
     </div>
   ),
 }))
@@ -23,18 +26,18 @@ import { ReaderPage, type ReaderBack } from './ReaderPage'
 
 const link = (url = 'https://x.supabase.co/signed/1') => ({ url, expires_in: 600 })
 
-function page(back: ReaderBack = { to: '/library', label: 'Back to Library' }) {
+function page(back: ReaderBack = { to: '/library', label: 'Back to Library' }, panels: Partial<Parameters<typeof ReaderPage>[0]> = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
-        <ReaderPage documentId="d1" filename="notes.pdf" page={112} highlights={[]} back={back} />
+        <ReaderPage documentId="d1" filename="notes.pdf" page={112} highlights={[]} back={back} {...panels} />
       </MemoryRouter>
     </QueryClientProvider>,
   )
 }
 
-beforeEach(() => { vi.resetAllMocks() })
+beforeEach(() => { vi.resetAllMocks(); layout.value = 'wide' })
 
 describe('ReaderPage', () => {
   it('shows the loading state with the file name', () => {
@@ -91,3 +94,58 @@ describe('ReaderPage', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Page 112 of 340')
   })
 })
+
+describe('Source and Chat panel by available space (Task 8)', () => {
+  const panels = {
+    source: ({ highlightMissing }: { highlightMissing: boolean }) => <p>{highlightMissing ? 'SOURCE (missing)' : 'SOURCE'}</p>,
+    chat: <p>CHAT</p>,
+    defaultTab: 'source' as const,
+  }
+
+  it('wide: docked panel with Source and Chat tabs; it can be collapsed and reopened', async () => {
+    api.getFileUrl.mockResolvedValue(link())
+    page(undefined, panels)
+    expect(await screen.findByRole('tab', { name: 'Source' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText('SOURCE')).toBeVisible()
+    await userEvent.click(screen.getByRole('tab', { name: 'Chat' }))
+    expect(screen.getByText('CHAT')).toBeVisible()
+    await userEvent.click(screen.getByRole('button', { name: 'Hide panel' }))
+    expect(screen.queryByRole('tab', { name: 'Source' })).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Source' }))
+    expect(screen.getByRole('tab', { name: 'Source' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('medium: closed at first; Source slides over the page, Esc closes it and focus goes back', async () => {
+    layout.value = 'medium'
+    api.getFileUrl.mockResolvedValue(link())
+    page(undefined, panels)
+    const open = await screen.findByRole('button', { name: 'Source' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    await userEvent.click(open)
+    const dialog = screen.getByRole('dialog', { name: 'Source and chat' })
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+    expect(dialog).toContainElement(document.activeElement as HTMLElement)
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(open).toHaveFocus()
+  })
+
+  it('phone: just the page, no panel, no Source/Chat buttons, no sidebar toggle', async () => {
+    layout.value = 'phone'
+    api.getFileUrl.mockResolvedValue(link())
+    page(undefined, panels)
+    await screen.findByText(/page 112/)
+    expect(screen.queryByRole('tab')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Source' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Chat' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /sidebar/ })).toBeNull()
+  })
+
+  it('a highlight missing on the page is passed to the Source panel', async () => {
+    api.getFileUrl.mockResolvedValue(link())
+    page(undefined, panels)
+    await userEvent.click(await screen.findByRole('button', { name: 'miss' }))
+    expect(screen.getByText('SOURCE (missing)')).toBeInTheDocument()
+  })
+})
+

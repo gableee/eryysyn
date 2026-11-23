@@ -1,9 +1,12 @@
 import { lazy, Suspense, useMemo } from 'react'
-import { useParams, useSearchParams } from 'react-router'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { useConversation } from '../features/chat/hooks'
+import { ReaderChat } from '../features/chat/ReaderChat'
+import { ReaderSource } from '../features/chat/ReaderSource'
 import { useDocuments } from '../features/library/hooks'
 import type { ReaderBack } from '../features/reader/ReaderPage'
 import { supportForCitation } from '../shared/evidence'
+import { readerPath } from '../shared/readerPath'
 
 // PDF.js is large: the Reader's code is downloaded only when a Reader opens (route code-splitting).
 const ReaderPage = lazy(() => import('../features/reader/ReaderPage').then((m) => ({ default: m.ReaderPage })))
@@ -14,7 +17,8 @@ const ReaderPage = lazy(() => import('../features/reader/ReaderPage').then((m) =
  */
 export function ReaderRoute() {
   const { id = '' } = useParams()
-  const [query] = useSearchParams()
+  const [query, setQuery] = useSearchParams()
+  const navigate = useNavigate()
   const chat = query.get('chat') ?? undefined
   const answerId = query.get('answer') ?? undefined
   const n = Number(query.get('n')) || undefined
@@ -35,7 +39,18 @@ export function ReaderRoute() {
 
   return (
     <Suspense fallback={<p role="status">Opening the Reader…</p>}>
-      <ReaderPage documentId={id} filename={filename} page={page} highlights={highlights} back={back} />
+      <ReaderPage documentId={id} filename={filename} page={page} highlights={highlights} back={back}
+        defaultTab={answerId ? 'source' : 'chat'}
+        source={({ highlightMissing }) => (
+          <ReaderSource conversationId={chat} answerId={answerId} n={n} highlightMissing={highlightMissing} />
+        )}
+        chat={
+          <ReaderChat conversationId={chat}
+            // a citation in the Chat tab moves the Reader to its document and page (same route, new address)
+            onOpenCitation={(c, answer, cn) => navigate(readerPath({ documentId: c.document_id!, page: c.page, chat, answer, n: cn }))}
+            // opened from the Library: the first question created a chat; remember it in the address
+            onStarted={(newChat) => setQuery((q) => { q.set('chat', newChat); return q }, { replace: true })} />
+        } />
     </Suspense>
   )
 }

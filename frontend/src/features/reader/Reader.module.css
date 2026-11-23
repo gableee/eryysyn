@@ -21,7 +21,7 @@
 .counter { flex: none; font-size: var(--t-14); color: var(--muted); font-variant-numeric: tabular-nums; }
 .srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .body { min-width: 0; display: grid; }
-.body > :not(div) { align-self: center; justify-self: center; padding: 24px 16px; }   /* states sit in the middle */
+.stateBox { align-self: center; justify-self: center; padding: 24px 16px; }   /* loading and error states, centred */
 .status { color: var(--muted); }
 
 /* ---- the PDF (Task 6) ---- */
@@ -65,3 +65,34 @@
   background: #FDE68A; color: transparent; border-radius: 2px; scroll-margin: 96px;
   box-shadow: 0 2px 0 #2F6F4F;   /* a green underline: ours, even on a PDF that already has its own highlights */
 }
+
+/* ---- Source | Chat panel (Task 8) ---- */
+.bodyWithPanel { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; }
+.docked {
+  position: sticky; top: calc(var(--bar-top, 0px) + 57px); height: calc(100dvh - var(--bar-top, 0px) - 57px);
+  border-left: 1px solid var(--line); background: var(--bg); min-width: 0;
+}
+.panel { display: grid; grid-template-rows: auto 1fr; height: 100%; min-height: 0; }
+.panelHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 8px 0 12px; border-bottom: 1px solid var(--line); }
+.tabs { display: flex; gap: 4px; }
+.tab {
+  min-height: 44px; padding: 0 12px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted);
+  font: inherit; font-weight: 600; cursor: pointer;
+}
+.tab[aria-selected='true'] { color: var(--ink); border-bottom-color: var(--accent); }
+.tab:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.panelBody { overflow-y: auto; overscroll-behavior: contain; padding: 16px; min-height: 0; }
+.panelButtons { display: flex; gap: 4px; flex: none; }
+.panelButton {
+  min-height: 40px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: var(--r-s); background: var(--surface);
+  color: var(--ink); font: inherit; font-size: var(--t-14); font-weight: 600; cursor: pointer;
+}
+.panelButton:hover { background: var(--soft); }
+.scrim { position: fixed; inset: 0; z-index: 30; background: rgb(0 0 0 / 0.3); }
+.slide {
+  position: absolute; inset: 0 0 0 auto; width: min(400px, 90vw); background: var(--bg); border-left: 1px solid var(--line);
+  box-shadow: -8px 0 24px rgb(0 0 0 / 0.12); padding-bottom: env(safe-area-inset-bottom);
+  animation: slideIn var(--dur, 200ms) var(--ease, ease-out);
+}
+@keyframes slideIn { from { transform: translateX(24px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .slide { animation: none; } }
