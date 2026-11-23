@@ -8,6 +8,8 @@ const sessionState = vi.hoisted(() => ({ value: { session: null as unknown, load
 vi.mock('../features/auth/useSession', () => ({ useSession: () => sessionState.value }))
 const signOut = vi.hoisted(() => vi.fn())
 vi.mock('../shared/supabase', () => ({ supabase: { auth: { signOut } } }))
+// the Reader's link request never answers here: these tests are about the shell around it
+vi.mock('../features/reader/api', () => ({ getFileUrl: () => new Promise(() => {}) }))
 
 import { applyMode, useTheme } from '../shared/theme'
 import { createRoutes } from './routes'
@@ -87,6 +89,60 @@ describe('after login', () => {
     await screen.findByRole('navigation', { name: 'Main' })
     expect(router.state.location.pathname.startsWith('//')).toBe(false)
     expect(router.state.location.pathname).not.toContain('evil')
+  })
+})
+
+describe('reader mode (evidence reader, Task 5)', () => {
+  it('the reader is loaded on demand: a short loading line first', async () => {
+    sessionState.value = signedIn
+    open('/documents/d1')
+    expect(await screen.findByText('Opening the Reader…')).toBeInTheDocument()
+  })
+
+  it('a reader route hides the sidebar, the top bar and the tabs until the toggle opens the sidebar', async () => {
+    sessionState.value = signedIn
+    open('/documents/d1')
+    const toggle = await screen.findByRole('button', { name: 'Show sidebar' })
+    expect(screen.queryByRole('navigation', { name: 'Main' })).toBeNull()
+    expect(screen.queryByRole('navigation', { name: 'Tabs' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Open menu' })).toBeNull()
+    await userEvent.click(toggle)
+    expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Hide sidebar' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('the sidebar choice is remembered on this device', async () => {
+    sessionState.value = signedIn
+    localStorage.setItem('eryysyn.readerSidebar', 'open')
+    open('/documents/d1')
+    expect(await screen.findByRole('button', { name: 'Hide sidebar' })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
+  })
+
+  it('still works when the browser blocks storage', async () => {
+    sessionState.value = signedIn
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked') })
+    open('/documents/d1')
+    expect(await screen.findByRole('button', { name: 'Show sidebar' })).toBeInTheDocument()
+  })
+
+  it('Back goes to the chat it came from, else to the Library', async () => {
+    sessionState.value = signedIn
+    open('/documents/d1?page=3&chat=c1&answer=a1&n=1')
+    expect(await screen.findByRole('link', { name: 'Back to chat' })).toHaveAttribute('href', '/chat/c1')
+  })
+
+  it('opened from the Library, Back returns to the Library', async () => {
+    sessionState.value = signedIn
+    open('/documents/d1')
+    expect(await screen.findByRole('link', { name: 'Back to Library' })).toHaveAttribute('href', '/library')
+  })
+
+  it('other pages keep the normal shell', async () => {
+    sessionState.value = signedIn
+    open('/library')
+    expect(await screen.findByRole('navigation', { name: 'Main' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Show sidebar' })).toBeNull()
   })
 })
 

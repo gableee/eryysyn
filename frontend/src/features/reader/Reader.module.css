@@ -1,0 +1,25 @@
+/* The Reader runs edge to edge like the chat: it cancels the shell's page padding. */
+.reader {
+  display: grid; grid-template-rows: auto 1fr;
+  margin: calc(-1 * var(--pad-y, 0px)) calc(-1 * var(--pad-end, 0px)) calc(-1 * var(--pad-y, 0px)) calc(-1 * var(--pad-start, 0px));
+  min-height: calc(100dvh - var(--bar-h, 0px));
+}
+.toolbar {
+  position: sticky; top: var(--bar-top, 0px); z-index: 5; display: flex; align-items: center; gap: 8px; min-height: 56px;
+  padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+  background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.sidebarToggle { flex: none; }
+/* the toggle opens the app sidebar, which phones don't have (they get a minimal Reader) */
+@media (max-width: 599px), (max-height: 499px) { .sidebarToggle { display: none; } }
+.back {
+  display: inline-flex; align-items: center; gap: 2px; min-height: 44px; padding: 0 8px; border-radius: var(--r-s);
+  color: var(--accent); font-weight: 600; font-size: var(--t-14); text-decoration: none; white-space: nowrap;
+}
+.back:hover { background: var(--soft); }
+.filename { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.counter { flex: none; font-size: var(--t-14); color: var(--muted); font-variant-numeric: tabular-nums; }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.body { min-width: 0; display: grid; }
+.body > :not(div) { align-self: center; justify-self: center; padding: 24px 16px; }   /* states sit in the middle */
+.status { color: var(--muted); }

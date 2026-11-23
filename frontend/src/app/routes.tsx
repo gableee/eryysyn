@@ -11,6 +11,7 @@ import { ChatPage } from '../features/chat/ChatPage'
 import { RootRedirect } from '../features/chat/RootRedirect'
 import { LibraryPage } from '../features/library/LibraryPage'
 import { SidebarExtraContext } from './ShellContext'
+import { ReaderRoute } from './ReaderRoute'
 
 /** `dev` decides whether /dev/states exists; production builds never route it. */
 export function createRoutes(dev: boolean = import.meta.env.DEV): RouteObject[] {
@@ -31,6 +32,8 @@ export function createRoutes(dev: boolean = import.meta.env.DEV): RouteObject[] 
         { path: '/library', element: <LibraryPage /> },
         // one route with an optional id: creating a chat changes the URL without rebuilding the page
         { path: '/chat/:id?', element: <ChatPage /> },
+        // the Reader: full window (the shell reads this handle), its code loaded on demand
+        { path: '/documents/:id', element: <ReaderRoute />, handle: { reader: true } },
         { path: '*', element: <Navigate to="/" replace /> },
       ],
     },
