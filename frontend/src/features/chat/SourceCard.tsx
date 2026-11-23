@@ -13,6 +13,8 @@ type Props = {
   conversationId?: string
   /** false inside the Reader: we are on that page already */
   showOpenPage?: boolean
+  /** the Reader's current document and page: a card for it says so instead of linking to it */
+  here?: { documentId: string; page: number }
 }
 
 /**
@@ -20,8 +22,9 @@ type Props = {
  * that support it are marked (`<mark data-claim="0 2">`: the claims of the answer they support) and the excerpt
  * starts at the first one. Text stays text: marks wrap plain text, never HTML.
  */
-export const SourceCard = forwardRef<HTMLElement, Props>(function SourceCard({ citation, active, answer, conversationId, showOpenPage = true }, ref) {
+export const SourceCard = forwardRef<HTMLElement, Props>(function SourceCard({ citation, active, answer, conversationId, showOpenPage = true, here }, ref) {
   const removed = citation.document_id === null
+  const isHere = !!here && here.documentId === citation.document_id && here.page === citation.page
   const support = useMemo(
     () => (answer ? supportForCitation(answer.content, citation.n, citation.excerpt) : null),
     [answer, citation.n, citation.excerpt],
@@ -57,7 +60,8 @@ export const SourceCard = forwardRef<HTMLElement, Props>(function SourceCard({ c
               {whole ? 'Show less' : 'Show whole passage'}
             </button>
           )}
-          {answer && !removed && showOpenPage && (
+          {answer && !removed && showOpenPage && isHere && <span className={styles.here}>You are on this page</span>}
+          {answer && !removed && showOpenPage && !isHere && (
             <Link className={styles.pageLink}
               to={readerPath({ documentId: citation.document_id!, page: citation.page, chat: conversationId, answer: answer.id, n: citation.n })}>
               Open page {citation.page}

@@ -45,7 +45,7 @@ export function ReaderRoute() {
           <ReaderSource conversationId={chat} answerId={answerId} n={n} highlightMissing={highlightMissing} />
         )}
         chat={
-          <ReaderChat conversationId={chat}
+          <ReaderChat conversationId={chat} here={{ documentId: id, page }}
             // a citation in the Chat tab moves the Reader to its document and page (same route, new address)
             onOpenCitation={(c, answer, cn) => navigate(readerPath({ documentId: c.document_id!, page: c.page, chat, answer, n: cn }))}
             // opened from the Library: the first question created a chat; remember it in the address

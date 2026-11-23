@@ -52,29 +52,36 @@ describe('PdfView', () => {
   it('opens the whole document at the requested page', async () => {
     pdf.openPdf.mockReturnValue(opened(fakeDoc(340)))
     const { props } = view(112)
-    await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340))
+    await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
     expect(pdf.openPdf).toHaveBeenCalledWith('https://x/signed')
+  })
+
+  it('takes keyboard focus when it opens, so PageDown works at once (found in the keyboard check)', async () => {
+    pdf.openPdf.mockReturnValue(opened(fakeDoc(340)))
+    const { props } = view(112)
+    await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+    expect(screen.getByRole('region', { name: 'PDF pages' })).toHaveFocus()
   })
 
   it('a page past the end opens the last page', async () => {
     pdf.openPdf.mockReturnValue(opened(fakeDoc(340)))
     const { props } = view(999)
-    await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(340, 340))
+    await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(340, 340, true))
   })
 
   it('PageDown and PageUp move one page; Home and End jump', async () => {
     pdf.openPdf.mockReturnValue(opened(fakeDoc(340)))
     const { props } = view(112)
     const pages = await screen.findByRole('region', { name: 'PDF pages' })
-    await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340))   // opened first
+    await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))   // opened first
     fireEvent.keyDown(pages, { key: 'PageDown' })
-    await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(113, 340))
+    await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(113, 340, true))
     fireEvent.keyDown(pages, { key: 'PageUp' })
-    await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340))
+    await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
     fireEvent.keyDown(pages, { key: 'End' })
-    await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(340, 340))
+    await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(340, 340, true))
     fireEvent.keyDown(pages, { key: 'Home' })
-    await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(1, 340))
+    await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(1, 340, true))
   })
 
   it('never draws more than 5 pages, however far you move', async () => {
@@ -96,7 +103,7 @@ describe('PdfView', () => {
     try {
       pdf.openPdf.mockReturnValue(opened(fakeDoc(340)))
       const { props } = view(112)
-      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340))
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
       scroll.mockClear()
       act(() => resize?.([{ contentRect: { width: 358 } }]))          // the real phone width arrives
       expect((scroll.mock.contexts.at(-1) as HTMLElement | undefined)?.dataset.page).toBe('112')

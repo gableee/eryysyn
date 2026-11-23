@@ -26,7 +26,12 @@ export function ReaderPanel({ tab, onTab, source, chat, closeLabel, onClose }: P
             <button key={t.key} type="button" role="tab" id={`${id}-${t.key}-tab`} aria-controls={`${id}-${t.key}`}
               aria-selected={tab === t.key} tabIndex={tab === t.key ? 0 : -1}
               className={styles.tab} onClick={() => onTab(t.key)}
-              onKeyDown={(e) => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') onTab(t.key === 'source' ? 'chat' : 'source') }}>
+              onKeyDown={(e) => {
+                if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
+                const other: PanelTab = t.key === 'source' ? 'chat' : 'source'
+                onTab(other)
+                document.getElementById(`${id}-${other}-tab`)?.focus()   // focus moves with the selection (tab pattern)
+              }}>
               {t.label}
             </button>
           ))}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ErrorState } from '../../shared/ui/ErrorState'
 import { useWorkspaceId } from '../../shared/workspace'
 import styles from './Chat.module.css'
@@ -16,13 +16,15 @@ type Props = {
   onOpenCitation(citation: Citation, answerId: string, n: number): void
   /** opened from the Library: the first question created this chat */
   onStarted(conversationId: string): void
+  /** the document and page the Reader shows: its cards say "You are on this page" */
+  here?: { documentId: string; page: number }
 }
 
 /**
  * The Reader's Chat tab: the conversation the student came from, next to the page, with the same question box
  * and send logic as the chat page. Opened from the Library, the first question starts a new chat.
  */
-export function ReaderChat({ conversationId, onOpenCitation, onStarted }: Props) {
+export function ReaderChat({ conversationId, onOpenCitation, onStarted, here }: Props) {
   const conversation = useConversation(conversationId)
   const send = useSend()
   const create = useCreateConversation()
@@ -35,6 +37,10 @@ export function ReaderChat({ conversationId, onOpenCitation, onStarted }: Props)
   const pending = creating ?? (latest?.status === 'pending' ? latest.variables.question : null)
   const failed = latest?.status === 'error' ? latest : undefined
   const busy = pending !== null || create.isPending || !workspaceId
+  const end = useRef<HTMLDivElement>(null)
+
+  // the newest message comes into view (the panel scrolls, not the page)
+  useEffect(() => { end.current?.scrollIntoView?.({ block: 'end' }) }, [messages.length, pending, failed])
 
   async function ask(question: string) {
     if (busy) return
@@ -58,7 +64,7 @@ export function ReaderChat({ conversationId, onOpenCitation, onStarted }: Props)
   return (
     <div className={styles.readerChat}>
       {messages.length === 0 && !pending && <p className={styles.hint}>Ask a question about your documents.</p>}
-      <MessageList messages={messages} layout="inline" selectedId={undefined} activeN={undefined} conversationId={conversationId}
+      <MessageList messages={messages} layout="inline" selectedId={undefined} activeN={undefined} conversationId={conversationId} here={here}
         onSelect={(answerId, n) => {
           const citation = messages.find((m) => m.id === answerId)?.citations.find((c) => c.n === n)
           if (citation?.document_id) onOpenCitation(citation, answerId, n)
@@ -66,6 +72,7 @@ export function ReaderChat({ conversationId, onOpenCitation, onStarted }: Props)
       {pending && (<><UserMessage text={pending} searchQuestion={null} /><PendingAnswer /></>)}
       {failed && !pending && <ErrorState message={sendError(failed.error)} onRetry={() => send.mutate(failed.variables)} />}
       {createFailed !== null && !pending && <ErrorState message={sendError(createFailed)} />}
+      <div ref={end} data-end="chat" />
       <div className={styles.readerComposer}><Composer onSend={ask} disabled={busy} /></div>
     </div>
   )

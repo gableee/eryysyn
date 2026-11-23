@@ -53,6 +53,18 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
     setSliding(true)
   }
 
+  // aria-modal promises the rest is out of reach: Tab and Shift+Tab cycle inside the slide-over
+  function trapTab(e: React.KeyboardEvent) {
+    if (e.key !== 'Tab' || !dialog.current) return
+    const items = [...dialog.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+      .filter((el) => !el.closest('[hidden]'))
+    if (items.length === 0) return
+    const first = items[0]
+    const last = items[items.length - 1]
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+  }
+
   function closeSlide() {
     setSliding(false)
     opener.current?.focus()                              // focus goes back to the button that opened it
@@ -69,6 +81,9 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
   const [expired, setExpired] = useState(false)
   const [broken, setBroken] = useState(false)
   const [position, setPosition] = useState<{ page: number; total: number }>()
+  // what screen readers hear: the page after a jump, and how many sentences are marked (never every page scrolled past)
+  const [jumpNote, setJumpNote] = useState('')
+  const [marksNote, setMarksNote] = useState('')
 
   const backLink = (
     <Link to={back.to} className={styles.back}><ChevronLeft size={18} aria-hidden="true" />{back.label}</Link>
@@ -102,8 +117,10 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
   } else {
     body = (
       <PdfView key={documentId} url={file.data.url} page={page} highlights={highlights}
-        onPageChange={(p, total) => setPosition({ page: p, total })} onExpired={onExpired} onBroken={() => setBroken(true)}
-        onHighlightMissing={() => setMissingFor(highlights)} />
+        onPageChange={(p, total, jumped) => { setPosition({ page: p, total }); if (jumped) setJumpNote(`Page ${p} of ${total}.`) }}
+        onExpired={onExpired} onBroken={() => setBroken(true)}
+        onHighlightMissing={() => setMissingFor(highlights)}
+        onMarksShown={(count) => setMarksNote(`${count} sentence${count === 1 ? '' : 's'} marked.`)} />
     )
   }
 
@@ -118,12 +135,8 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
         )}
         {backLink}
         <span className={styles.filename}>{filename}</span>
-        {position && (
-          <span role="status" className={styles.counter}>
-            <span aria-hidden="true">{position.page} / {position.total}</span>
-            <span className={styles.srOnly}>Page {position.page} of {position.total}</span>
-          </span>
-        )}
+        {position && <span className={styles.counter} aria-hidden="true">{position.page} / {position.total}</span>}
+        <span role="status" className={styles.srOnly}>{[jumpNote, marksNote].filter(Boolean).join(' ')}</span>
         {showButtons && (
           <span className={styles.panelButtons}>
             <button type="button" className={styles.panelButton} onClick={(e) => openPanel('source', e.currentTarget)}>Source</button>
@@ -139,7 +152,7 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
       {showSlide && (
         <div className={styles.scrim} onClick={closeSlide}>
           <div ref={dialog} role="dialog" aria-modal="true" aria-label="Source and chat" className={styles.slide}
-            onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === 'Escape') closeSlide() }}>
+            onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === 'Escape') closeSlide(); else trapTab(e) }}>
             <ReaderPanel tab={tab} onTab={setTab} closeLabel="Close" onClose={closeSlide} source={sourceContent} chat={chat} />
           </div>
         </div>

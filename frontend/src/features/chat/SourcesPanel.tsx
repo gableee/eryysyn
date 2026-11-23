@@ -10,12 +10,13 @@ type Props = {
   question?: string; earlier?: boolean
   /** the answer these sources belong to (marks + "Open page"), and which of its claims was clicked */
   answer?: ChatMessage; conversationId?: string; activeClaim?: number
+  here?: { documentId: string; page: number }
 }
 
 const NOTICE = 'Check the cited page before relying on an answer.'
 
 /** Sources of one answer. "panel" beside the chat on wide screens, "inline" under the answer otherwise. */
-export function SourcesPanel({ citations, activeN, layout, question, earlier = false, answer, conversationId, activeClaim }: Props) {
+export function SourcesPanel({ citations, activeN, layout, question, earlier = false, answer, conversationId, activeClaim, here }: Props) {
   const refs = useRef(new Map<number, HTMLElement>())
   // Scroll only when the reader PICKS a citation, never on first display: the login example shows a highlighted
   // card, and scrolling to it pulled the phone login page away from the form.
@@ -32,7 +33,7 @@ export function SourcesPanel({ citations, activeN, layout, question, earlier = f
   }, [activeN, activeClaim])
 
   const cards = citations.map((c) => (
-    <SourceCard key={c.n} citation={c} active={c.n === activeN} answer={answer} conversationId={conversationId}
+    <SourceCard key={c.n} citation={c} active={c.n === activeN} answer={answer} conversationId={conversationId} here={here}
       ref={(el) => { if (el) refs.current.set(c.n, el); else refs.current.delete(c.n) }} />
   ))
 

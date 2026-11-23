@@ -28,20 +28,21 @@ function show(ui: React.ReactNode) {
 beforeEach(() => { vi.resetAllMocks() })
 
 describe('ReaderSource (the Source tab)', () => {
-  it('lists every claim that cites the source, with the marked card and Back to chat', async () => {
+  it('names the question and lists every claim that cites the source, with the marked card', async () => {
     api.getConversation.mockResolvedValue(conv([msg('u1', 'user', 'Q'), msg('a1', 'assistant', 'A is true [1]. B holds [1]. A is really true [1].', [cite])]))
     show(<ReaderSource conversationId="c1" answerId="a1" n={1} highlightMissing={false} />)
     const claims = await screen.findAllByRole('listitem')
     expect(claims.map((c) => c.textContent)).toEqual(['A is true.', 'B holds.', 'A is really true.'])
     expect(document.querySelectorAll('mark')).toHaveLength(2)
-    expect(screen.getByRole('link', { name: 'Back to chat' })).toHaveAttribute('href', '/chat/c1')
+    expect(screen.getByText('For: Q')).toBeInTheDocument()                          // which question this evidence answers
+    expect(screen.queryByRole('link', { name: 'Back to chat' })).toBeNull()          // the toolbar has it already
     expect(screen.queryByRole('link', { name: /Open page/ })).toBeNull()          // we are on that page already
   })
 
   it('says when the page itself has no mark', async () => {
     api.getConversation.mockResolvedValue(conv([msg('a1', 'assistant', 'A is true [1].', [cite])]))
     show(<ReaderSource conversationId="c1" answerId="a1" n={1} highlightMissing />)
-    expect(await screen.findByText('Marked in the excerpt only')).toBeInTheDocument()
+    expect(await screen.findByText('Not found on this page: marked in the excerpt only.')).toBeInTheDocument()
   })
 
   it('a chat that is gone or not yours shows the fallback, no crash (Review Focus 5)', async () => {
@@ -64,6 +65,29 @@ describe('ReaderChat (the Chat tab)', () => {
     show(<ReaderChat conversationId="c1" onOpenCitation={vi.fn()} onStarted={vi.fn()} />)
     await user.type(await screen.findByRole('textbox', { name: 'Ask about your documents' }), 'And B?{Enter}')
     await waitFor(() => expect(api.sendMessage).toHaveBeenCalledWith('c1', 'And B?'))
+  })
+
+  it('a new message scrolls into view (found on the real stack: the answer stayed below the question box)', async () => {
+    api.getConversation.mockResolvedValue(conv([msg('u1', 'user', 'Q'), msg('a1', 'assistant', 'A is true [1].', [cite])]))
+    api.sendMessage.mockReturnValue(new Promise(() => {}))          // still waiting for the model
+    const scroll = vi.fn()
+    Element.prototype.scrollIntoView = scroll
+    try {
+      const user = userEvent.setup()
+      show(<ReaderChat conversationId="c1" onOpenCitation={vi.fn()} onStarted={vi.fn()} />)
+      await user.type(await screen.findByRole('textbox', { name: 'Ask about your documents' }), 'And B?{Enter}')
+      await waitFor(() => expect(scroll).toHaveBeenCalled())
+      expect((scroll.mock.contexts.at(-1) as HTMLElement).dataset.end).toBe('chat')
+    } finally {
+      delete (Element.prototype as Partial<Element>).scrollIntoView
+    }
+  })
+
+  it("a card for the page already open says so instead of offering to open it again", async () => {
+    api.getConversation.mockResolvedValue(conv([msg('u1', 'user', 'Q'), msg('a1', 'assistant', 'A is true [1].', [cite])]))
+    show(<ReaderChat conversationId="c1" onOpenCitation={vi.fn()} onStarted={vi.fn()} here={{ documentId: 'd1', page: 8 }} />)
+    expect(await screen.findByText('You are on this page')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Open page/ })).toBeNull()
   })
 
   it('clicking a citation opens its page in the Reader', async () => {

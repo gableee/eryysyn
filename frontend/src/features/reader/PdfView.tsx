@@ -10,11 +10,14 @@ export type PdfViewProps = {
   url: string
   page: number
   highlights: string[]
-  onPageChange(page: number, total: number): void
+  /** jumped: opened, a key, or a new ?page= (worth announcing); false while scrolling (not announced) */
+  onPageChange(page: number, total: number, jumped: boolean): void
   onExpired(): void
   onBroken(): void
   /** none of the cited page or the next one contains a highlight: the Source tab says "Marked in the excerpt only" */
   onHighlightMissing?(): void
+  /** the first marks came into view: how many sentences were found */
+  onMarksShown?(count: number): void
 }
 
 const MAX_FIT_WIDTH = 900                 // "fit to width" stops here on very wide screens
@@ -26,7 +29,7 @@ const NONE: string[] = []                 // one stable empty list, so idle page
  * The whole PDF in one scroll column, opened at `page`. Every page has a slot of the right size, but only the
  * visible page and its neighbours are drawn, so a 340-page file stays light. Keys: PageUp/PageDown, ←/→, Home/End.
  */
-export function PdfView({ url, page, highlights, onPageChange, onExpired, onBroken, onHighlightMissing }: PdfViewProps) {
+export function PdfView({ url, page, highlights, onPageChange, onExpired, onBroken, onHighlightMissing, onMarksShown }: PdfViewProps) {
   const [doc, setDoc] = useState<PdfDocument | null>(null)
   const [base, setBase] = useState({ width: 612, height: 792 })   // page 1 at scale 1 (US Letter until known)
   const [visible, setVisible] = useState(1)
@@ -36,8 +39,9 @@ export function PdfView({ url, page, highlights, onPageChange, onExpired, onBrok
   const slot = (n: number) => region.current?.querySelector<HTMLElement>(`[data-page="${n}"]`)
   const current = useRef(page)              // reopening after a renewed link keeps the student's place
   const jump = useRef<number | null>(null)
-  const callbacks = useRef({ onPageChange, onExpired, onBroken, onHighlightMissing })
-  useEffect(() => { callbacks.current = { onPageChange, onExpired, onBroken, onHighlightMissing } })
+  const focused = useRef(false)
+  const callbacks = useRef({ onPageChange, onExpired, onBroken, onHighlightMissing, onMarksShown })
+  useEffect(() => { callbacks.current = { onPageChange, onExpired, onBroken, onHighlightMissing, onMarksShown } })
   // highlights not found on the cited page are looked for on the next one (a passage can cross a page end)
   // both belong to one set of highlights: opening another citation in the same PDF starts afresh
   const [spillState, setSpill] = useState<{ for: string[]; page: number; sentences: string[] } | null>(null)
@@ -76,10 +80,16 @@ export function PdfView({ url, page, highlights, onPageChange, onExpired, onBrok
   useEffect(() => {
     if (!doc) return
     current.current = visible
-    callbacks.current.onPageChange(visible, doc.numPages)
+    callbacks.current.onPageChange(visible, doc.numPages, jump.current !== null)
     if (jump.current !== null) {
       slot(jump.current)?.scrollIntoView?.({ block: 'start' })
       jump.current = null
+    }
+    // the first time the document is shown, keyboard focus goes to the pages (without scrolling), so PageDown works
+    // at once and Shift+Tab reaches the toolbar; never again, so a renewed link can't steal focus from the Chat tab
+    if (!focused.current) {
+      focused.current = true
+      region.current?.focus({ preventScroll: true })
     }
   }, [visible, doc])
 
@@ -123,6 +133,7 @@ export function PdfView({ url, page, highlights, onPageChange, onExpired, onBrok
     if (first && !marked.current.scrolled) {                     // bring the first mark into view, once
       marked.current.scrolled = true
       first.scrollIntoView?.({ block: 'center' })
+      callbacks.current.onMarksShown?.(found.filter(Boolean).length)
     }
     const missing = () => {
       if (marked.current.missingReported) return

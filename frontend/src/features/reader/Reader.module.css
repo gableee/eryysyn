@@ -31,8 +31,8 @@
 .slot { scroll-margin-top: 72px; position: relative; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 0 0 1px var(--line); max-width: none; }
 .canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .marksLayer { position: absolute; inset: 0; pointer-events: none; }   /* reserved: future highlights, pen, notes */
-.zoom {
-  position: fixed; right: 24px; bottom: 24px; z-index: 6; display: flex; gap: 2px; padding: 4px;
+.zoom {   /* sticks to the bottom of the PAGE column, never over the side panel */
+  position: sticky; bottom: 24px; z-index: 6; width: max-content; margin: -64px 24px 24px auto; display: flex; gap: 2px; padding: 4px;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
 }
 

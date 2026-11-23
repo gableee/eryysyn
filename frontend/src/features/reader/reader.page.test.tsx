@@ -11,12 +11,15 @@ const layout = vi.hoisted(() => ({ value: 'wide' as 'wide' | 'medium' | 'phone' 
 vi.mock('./useReaderLayout', () => ({ useReaderLayout: () => layout.value }))
 // The PDF.js view comes in Task 6; here a stand-in that lets the test trigger its callbacks.
 vi.mock('./PdfView', () => ({
-  PdfView: (p: { url: string; page: number; onExpired(): void; onBroken(): void; onPageChange(page: number, total: number): void; onHighlightMissing?(): void }) => (
+  PdfView: (p: { url: string; page: number; onExpired(): void; onBroken(): void; onPageChange(page: number, total: number, jumped: boolean): void;
+    onHighlightMissing?(): void; onMarksShown?(count: number): void }) => (
     <div>
       <p>PDF {p.url} page {p.page}</p>
       <button onClick={p.onExpired}>expire</button>
       <button onClick={p.onBroken}>break</button>
-      <button onClick={() => p.onPageChange(112, 340)}>turn</button>
+      <button onClick={() => p.onPageChange(112, 340, true)}>turn</button>
+      <button onClick={() => p.onPageChange(113, 340, false)}>scroll</button>
+      <button onClick={() => p.onMarksShown?.(2)}>marked</button>
       <button onClick={() => p.onHighlightMissing?.()}>miss</button>
     </div>
   ),
@@ -146,6 +149,46 @@ describe('Source and Chat panel by available space (Task 8)', () => {
     page(undefined, panels)
     await userEvent.click(await screen.findByRole('button', { name: 'miss' }))
     expect(screen.getByText('SOURCE (missing)')).toBeInTheDocument()
+  })
+})
+
+describe('keyboard and screen readers (critique P2)', () => {
+  const panels = { source: () => <p>SOURCE <a href="#x">link in source</a></p>, chat: <p>CHAT</p>, defaultTab: 'source' as const }
+
+  it('announces jumps and how many sentences are marked, but not every page passed while scrolling', async () => {
+    api.getFileUrl.mockResolvedValue(link())
+    page()
+    await userEvent.click(await screen.findByRole('button', { name: 'turn' }))
+    await userEvent.click(screen.getByRole('button', { name: 'marked' }))
+    const live = screen.getByRole('status')
+    expect(live).toHaveTextContent('Page 112 of 340. 2 sentences marked.')
+    await userEvent.click(screen.getByRole('button', { name: 'scroll' }))
+    expect(live).toHaveTextContent('Page 112 of 340. 2 sentences marked.')       // scrolling is not announced
+    expect(screen.getByText('113 / 340')).toBeInTheDocument()                    // the visible counter still follows
+  })
+
+  it('arrow keys move focus to the other tab, not only the selection', async () => {
+    api.getFileUrl.mockResolvedValue(link())
+    page(undefined, panels)
+    const source = await screen.findByRole('tab', { name: 'Source' })
+    source.focus()
+    await userEvent.keyboard('{ArrowRight}')
+    expect(screen.getByRole('tab', { name: 'Chat' })).toHaveFocus()
+    expect(screen.getByRole('tab', { name: 'Chat' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('the slide-over keeps keyboard focus inside while it is open', async () => {
+    layout.value = 'medium'
+    api.getFileUrl.mockResolvedValue(link())
+    page(undefined, panels)
+    await userEvent.click(await screen.findByRole('button', { name: 'Source' }))
+    const dialog = screen.getByRole('dialog', { name: 'Source and chat' })
+    for (let i = 0; i < 6; i++) {
+      await userEvent.tab()
+      expect(dialog).toContainElement(document.activeElement as HTMLElement)
+    }
+    await userEvent.tab({ shift: true })
+    expect(dialog).toContainElement(document.activeElement as HTMLElement)
   })
 })
 
