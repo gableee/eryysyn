@@ -216,6 +216,19 @@ describe('review fixes: dragging a file', () => {
   })
 })
 
+describe('critique 29/40: delete is quiet and says what happens', () => {
+  it('the row shows a trash icon, named for screen readers, and the question warns about cited answers', async () => {
+    api.listDocuments.mockResolvedValue([doc('d1', 'notes.pdf', 'indexed')])
+    const user = userEvent.setup()
+    page()
+    const button = await screen.findByRole('button', { name: 'Delete notes.pdf' })
+    expect(button.textContent).toBe('')                              // no bold word on every row
+    expect(button.querySelector('svg')).not.toBeNull()
+    await user.click(button)
+    expect(screen.getByText(/Answers that cite it will show "Source removed"/)).toBeInTheDocument()
+  })
+})
+
 describe('upload size by state', () => {
   it('an empty library shows the big drop zone', async () => {
     api.listDocuments.mockResolvedValue([])

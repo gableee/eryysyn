@@ -14,7 +14,7 @@ import { useSourcesLayout } from './useSourcesLayout'
 import { useWorkspaceId } from '../../shared/workspace'
 
 function sendError(error: unknown): string {
-  if (error instanceof ApiError && error.kind === 'unavailable') return "Ery can't answer right now. The model isn't running."
+  if (error instanceof ApiError && error.kind === 'unavailable') return 'Ery is offline right now. Try again in a minute.'
   if (error instanceof ApiError && error.kind === 'network') return "Can't reach the server"
   return 'Something went wrong. Try again.'
 }
@@ -82,6 +82,10 @@ export function ChatPage() {
 
   const empty = !id && !pending && !createFailed && messages.length === 0
   const showPanel = layout === 'panel' && !!selected && selected.citations.length > 0
+  // the question the shown sources answer (the user message before that answer), and whether it is not the newest
+  const selectedAt = messages.findIndex((m) => m.id === selected?.id)
+  const sourcesQuestion = messages.slice(0, selectedAt).reverse().find((m) => m.role === 'user')?.content
+  const sourcesEarlier = !!selected && answers.at(-1)?.id !== selected.id
   return (
     // two columns only when there are sources to show; otherwise the chat is centred
     <section className={[styles.chat, showPanel && styles.withPanel].filter(Boolean).join(' ')} ref={area}>
@@ -93,7 +97,7 @@ export function ChatPage() {
         </header>
         {empty && (
           <EmptyState title="Ask a question about your documents."
-            body={hasDocuments === false ? 'Upload a PDF first' : 'Every answer shows the page it comes from.'}
+            body={hasDocuments === false ? 'Upload a PDF first.' : 'Every answer shows the page it comes from.'}
             action={hasDocuments === false ? <Link to="/library" className={styles.linkButton}>Go to Library</Link> : undefined} />
         )}
         {conversation.isError && !(conversation.error instanceof ApiError && conversation.error.kind === 'not_found') && (
@@ -122,7 +126,8 @@ export function ChatPage() {
       </div>
       {showPanel && (
         <div className={styles.panelColumn} data-testid="sources">
-          <SourcesPanel citations={selected.citations} activeN={selection?.answerId === selected.id ? selection.n : undefined} layout="panel" />
+          <SourcesPanel citations={selected.citations} activeN={selection?.answerId === selected.id ? selection.n : undefined} layout="panel"
+            question={sourcesQuestion} earlier={sourcesEarlier} />
         </div>
       )}
     </section>

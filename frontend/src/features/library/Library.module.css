@@ -49,7 +49,9 @@
 .statusWide { grid-column: 3 / -1; }               /* uploading: no actions yet, the message gets their space */
 .actions { display: inline-flex; gap: 4px; justify-content: flex-end; }
 .actions > * { white-space: nowrap; }               /* a button label never breaks ("Delet / e") */
-.actions:empty { display: none; }                   /* uploading row: no buttons, no empty cell on a second row */
+.actions:empty { display: none; }
+.iconButton { color: var(--muted); min-width: 40px; padding: 0 10px; }   /* quiet trash icon; ink on hover */
+.iconButton:hover:not(:disabled) { color: var(--ink); }                   /* uploading row: no buttons, no empty cell on a second row */
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 

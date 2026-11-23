@@ -9,7 +9,7 @@ Critiques: `.impeccable/critique/` (mockup 2026-11-21, real app 2026-11-23)
 - A student can sign up (email or Google), upload PDFs, ask questions and check every cited excerpt in the browser.
 - Design critique: **23/40 for the mockup → 28/40 for the real app** (Nielsen heuristics). All P1s from the mockup are fixed.
 - Checked on the real stack (FastAPI + Supabase + Ollama), at 14 screen sizes, keyboard only, light and dark.
-- 177 frontend tests (Vitest + React Testing Library), lint, type check and production build clean.
+- 180 frontend tests (Vitest + React Testing Library), lint, type check and production build clean.
 
 ## What was built
 
