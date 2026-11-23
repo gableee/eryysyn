@@ -161,3 +161,6 @@ scratch/
 # Eval documents: real PDFs are not ours to publish (generated trap PDFs live in code)
 backend/evals/docs/*
 !backend/evals/docs/.gitkeep
+
+# browser screenshots and logs from design reviews (scratch)
+.playwright-mcp/

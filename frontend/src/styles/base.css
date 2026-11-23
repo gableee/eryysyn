@@ -1,0 +1,46 @@
+@import '@fontsource/dm-sans/400.css';
+@import '@fontsource/dm-sans/500.css';
+@import '@fontsource/dm-sans/600.css';
+
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+
+html {
+  font-family: var(--font);
+  font-size: 100%;                 /* respect the user's browser font size */
+  -webkit-text-size-adjust: 100%;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+body {
+  min-height: 100dvh;              /* dvh: the mobile address bar does not hide content */
+  font-size: var(--t-16);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1 { font-size: var(--t-23); line-height: 1.25; font-weight: 600; text-wrap: balance; }
+h2 { font-size: var(--t-19); line-height: 1.3; font-weight: 600; text-wrap: balance; }
+h3 { font-size: var(--t-16); line-height: 1.4; font-weight: 600; }
+p { text-wrap: pretty; }
+
+/* Long file names, URLs and hashes wrap inside their box instead of pushing the page sideways. */
+p, li, h1, h2, h3, blockquote, td, dd, span, a, button, label { overflow-wrap: anywhere; }
+
+button, input, textarea, select { font: inherit; color: inherit; }
+img, svg { display: block; max-width: 100%; }
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,86 @@
+.zone {
+  position: relative; display: grid; justify-items: center; gap: 6px; text-align: center;
+  padding: clamp(20px, 4cqi, 40px) 16px; border: 1.5px dashed var(--line-strong); border-radius: var(--r-l);
+  background: var(--surface); transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.over { background: var(--soft); border-color: var(--accent); }
+.disabled { opacity: 0.6; }
+.zoneIcon { color: var(--accent); }
+.zoneTitle { font-weight: 600; }
+.choose {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: var(--r-s);
+  background: var(--accent); color: var(--on-accent); font-weight: 600; cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease);
+}
+.choose:active { transform: scale(0.97); }
+.disabled .choose { cursor: not-allowed; }
+/* the real input stays focusable for keyboards; the label is what you see */
+.fileInput { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.fileInput:focus-visible + .limits, .zone:focus-within .choose { outline: 2px solid var(--focus); outline-offset: 2px; }
+.limits { font-size: var(--t-14); color: var(--muted); }
+.zoneError { font-size: var(--t-14); color: var(--err); font-weight: 600; }
+
+.list { list-style: none; padding: 0; display: grid; border: 1px solid var(--line); border-radius: var(--r-l); background: var(--surface); }
+/* documents table (as in the mockup): the headings and every row share one column grid */
+.table {
+  --cols: minmax(0, 1fr) 5.5rem 10rem 11.5rem;   /* measured: "Mar 4, 2025" 78px, "Try again" + "Delete" 178px */
+  border: 1px solid var(--line); border-radius: var(--r-l); background: var(--surface);
+}
+.table > .list { border: 0; border-radius: 0; background: none; }
+.columns {
+  display: grid; grid-template-columns: var(--cols); gap: 16px; padding: 10px 16px;
+  border-bottom: 1px solid var(--line); font-size: var(--t-12); font-weight: 600; color: var(--muted);
+}
+.row {
+  display: grid; grid-template-columns: var(--cols, minmax(0, 1fr) auto); align-items: center; gap: 8px 16px;
+  padding: 12px 16px; border-top: 1px solid var(--line); min-height: 56px;
+}
+.row:first-child { border-top: 0; }
+.row > :only-child { grid-column: 1 / -1; }         /* the delete question uses the whole row */
+.added { font-size: var(--t-14); color: var(--muted); font-variant-numeric: tabular-nums; }
+.addedLabel { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.fileIcon { color: var(--muted); flex: none; }
+.title { display: flex; align-items: flex-start; gap: 10px; flex: 1 1 18ch; min-width: 0; } /* icon and name never split */
+.fileIcon { margin-top: 3px; }
+.name { font-weight: 500; min-width: 0; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-14); color: var(--muted); }
+.ok { color: var(--ok); }
+.bad { color: var(--err); }
+.statusWide { grid-column: 3 / -1; }               /* uploading: no actions yet, the message gets their space */
+.actions { display: inline-flex; gap: 4px; justify-content: flex-end; }
+.actions > * { white-space: nowrap; }               /* a button label never breaks ("Delet / e") */
+.actions:empty { display: none; }                   /* uploading row: no buttons, no empty cell on a second row */
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty { display: grid; gap: 16px; }
+.lead { font-size: var(--t-16); }
+.next { color: var(--muted); font-size: var(--t-14); }
+
+/* narrower than the table needs: no headings; the name on top, then date, status and actions */
+@container main (max-width: 719px) {
+  .columns { display: none; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px 12px; }
+  .title { flex: 1 1 100%; }
+  .addedLabel { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
+  .actions { margin-left: auto; }
+}
+
+.page {   /* one width in every state, centred like the chat column: nothing jumps when you switch pages */
+  display: grid; gap: 24px; width: 100%; max-width: 760px; margin-inline: auto; border-radius: var(--r-l);
+}
+/* first visit: title, text and a bigger upload zone sit together in the middle of the screen, like a new chat */
+.pageEmpty {
+  min-height: calc(100dvh - var(--bar-h, 0px) - 2 * var(--pad-y, 24px));
+  align-content: center; padding-bottom: 6dvh;     /* a little above centre looks centred */
+}
+.pageEmpty .zone { padding-block: clamp(32px, 8cqi, 80px); }
+.dropping { outline: 2px dashed var(--accent); outline-offset: 8px; }
+.headerRow { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.uploadButton { position: relative; }
+.header { display: grid; gap: 4px; }
+.sub { color: var(--muted); }
+.skeleton { background: linear-gradient(90deg, var(--surface), var(--soft), var(--surface)); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+.uploadButton .choose { gap: 8px; }
+.uploadButton:focus-within .choose { outline: 2px solid var(--focus); outline-offset: 2px; }

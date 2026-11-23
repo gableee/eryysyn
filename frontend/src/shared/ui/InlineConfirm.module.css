@@ -1,0 +1,2 @@
+.confirm { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space); }
+.question { font-size: var(--t-14); font-weight: 600; }

@@ -1,0 +1,9 @@
+.state { display: grid; gap: var(--space); justify-items: start; align-content: start; max-width: 65ch; }   /* never stretched by a tall parent */
+.title { font-size: var(--t-19); }
+.body { color: var(--muted); }
+.error {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space);
+  padding: 12px 16px; border: 1px solid var(--err); border-radius: var(--r-s); background: var(--surface);
+}
+.error .body { color: var(--ink); flex: 1 1 20ch; }
+.icon { color: var(--err); flex: none; }

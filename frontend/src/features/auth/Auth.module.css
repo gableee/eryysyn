@@ -1,0 +1,11 @@
+.card {
+  width: min(100%, 400px); display: grid; gap: 16px;
+  padding: 32px clamp(16px, 5vw, 32px);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l);
+}
+.password { position: relative; }
+.reveal { position: absolute; right: 2px; top: 26px; }   /* sits inside the input, after the label */
+.error { color: var(--err); font-size: var(--t-14); }
+.switch { font-size: var(--t-14); color: var(--muted); }
+.switch a { color: var(--accent); }
+.mailIcon { color: var(--accent); }

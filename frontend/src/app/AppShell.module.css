@@ -1,0 +1,101 @@
+/* Structure only changes where it must (Global Constraints, width zones).
+   >= 960: full sidebar · 600-959: icon sidebar · < 600: bottom tabs · height < 500: no tabs, menu button. */
+.shell {
+  --bar-h: 0px;          /* pages use these to fill the screen exactly */
+  --tabs-h: 0px;         /* height of the phone tab bar; the chat composer sits above it */
+  --bar-top: 0px;        /* height of the sticky top bar; the docked sources panel sticks below it */
+  --pad-y: 24px;         /* page padding; the chat page cancels it to run its panels edge to edge */
+  --pad-start: 24px;
+  --pad-end: max(24px, env(safe-area-inset-right));
+  min-height: 100dvh;
+  display: grid;
+  grid-template: 'side main' 1fr / 248px 1fr;
+}
+/* the slim top bar exists only below 960px (desktop has logo + account in the sidebar) */
+.bar {
+  grid-area: bar; position: sticky; top: 0; z-index: 20; display: none; align-items: center; gap: 8px;
+  padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+  background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.logo { font-weight: 600; font-size: var(--t-19); letter-spacing: -0.01em; }
+.sideLogo { padding: 4px 12px 8px; }
+.spacer { flex: 1; }
+.menu { display: none; }
+
+.sidebar {
+  grid-area: side; position: sticky; top: 0; align-self: start; height: 100dvh;
+  overflow-y: auto; padding: max(16px, env(safe-area-inset-top)) 12px 12px;
+  display: grid; grid-template-rows: auto auto 1fr auto; gap: 16px;
+  background: var(--side); border-right: 1px solid var(--line);
+}
+.nav { display: grid; gap: 4px; align-content: start; }
+.extra { min-height: 0; overflow-y: auto; }
+.account { border-top: 1px solid var(--line); padding-top: 8px; }
+.link, .newChat {
+  display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 12px;
+  border-radius: var(--r-s); color: var(--ink); text-decoration: none; font-size: var(--t-14);
+  transition: background-color var(--dur-fast) var(--ease);
+}
+.link:hover, .newChat:hover { background: var(--soft); }
+.active { background: var(--surface); font-weight: 600; box-shadow: inset 0 0 0 1px var(--line); }
+.newChat { border: 1px solid var(--line-strong); margin-bottom: 8px; font-weight: 600; }
+
+.main {
+  grid-area: main; min-width: 0; container-type: inline-size; container-name: main;
+  padding: var(--pad-y) var(--pad-end) var(--pad-y) var(--pad-start);
+}
+
+.tabs { display: none; }
+
+/* 600-959: icon sidebar, labels for screen readers and on focus/hover via title */
+@media (max-width: 959px) {
+  .shell { grid-template: 'bar bar' auto 'side main' 1fr / 72px 1fr; --bar-h: 57px; --bar-top: 57px; }
+  .bar { display: flex; }
+  .sidebar { padding: 16px 8px; top: 57px; height: calc(100dvh - 57px); grid-template-rows: auto; }
+  .sidebar .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .sidebar > :not(nav) { display: none; }          /* logo, recent chats and account live in the bar / drawer */
+  .link, .newChat { justify-content: center; padding: 0; }
+  .menu { display: inline-grid; }
+}
+
+/* < 600: one column, bottom tabs in thumb reach */
+@media (max-width: 599px) {
+  .shell { grid-template: 'bar' auto 'main' 1fr 'tabs' auto / 1fr; --bar-h: calc(57px + 64px);
+           --tabs-h: calc(57px + env(safe-area-inset-bottom));
+           --pad-y: 16px; --pad-start: max(16px, env(safe-area-inset-left)); --pad-end: max(16px, env(safe-area-inset-right)); }
+  .sidebar { display: none; }
+  .bar .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tabs {
+    grid-area: tabs; position: sticky; bottom: 0; z-index: 20; display: grid; grid-auto-flow: column;
+    background: var(--bg); border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tab {
+    display: grid; justify-items: center; gap: 2px; min-height: 56px; padding: 6px 0;
+    color: var(--muted); text-decoration: none; font-size: var(--t-12);
+  }
+  .tab.active { color: var(--accent); background: none; box-shadow: none; font-weight: 600; }
+}
+
+/* short screens (landscape phone): no bottom tabs, the menu button opens the drawer */
+@media (max-height: 499px) {
+  .shell { --tabs-h: 0px; }
+  .tabs { display: none; }
+  .menu { display: inline-grid; }
+  .bar { padding-top: max(4px, env(safe-area-inset-top)); padding-bottom: 4px; }
+}
+
+/* drawer */
+.drawerLayer { position: fixed; inset: 0; z-index: 40; }
+.backdrop { position: absolute; inset: 0; background: rgb(0 0 0 / 0.35); }
+.drawer {
+  position: absolute; inset: 0 auto 0 0; width: min(85vw, 300px); overflow-y: auto;
+  padding: max(16px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: var(--side); display: grid; align-content: start; gap: 16px;
+}
+.drawer .label { position: static; width: auto; height: auto; clip: auto; }
+.drawer .link, .drawer .newChat { justify-content: flex-start; padding: 0 12px; min-height: 44px; }
+.close { justify-self: end; }
+
+/* page cross-fade (View Transitions API), shell stays still */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 180ms; animation-timing-function: var(--ease); }

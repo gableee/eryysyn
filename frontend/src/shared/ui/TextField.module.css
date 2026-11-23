@@ -1,0 +1,9 @@
+.field { display: grid; gap: 4px; }
+.label { font-size: var(--t-14); font-weight: 600; }
+.input {
+  min-height: 44px; padding: 0 12px; border-radius: var(--r-s);
+  border: 1px solid var(--line-strong); background: var(--surface);
+}
+.input[aria-invalid='true'] { border-color: var(--err); }
+.hint { font-size: var(--t-14); color: var(--muted); }
+.error { font-size: var(--t-14); color: var(--err); }

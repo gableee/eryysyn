@@ -1,0 +1,28 @@
+/* Wide: form left, product preview right, each centred in its half (logo in the corner).
+   Narrow: form first, a smaller preview below it. */
+.layout {
+  min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  background: var(--bg);
+}
+.formSide {
+  display: grid; grid-template-rows: auto 1fr; justify-items: center; gap: 12px;
+  padding: max(28px, env(safe-area-inset-top)) clamp(20px, 4vw, 40px) 32px;
+}
+.formColumn { align-self: center; display: grid; gap: 12px; width: min(100%, 400px); padding-bottom: 6dvh; }
+.formColumn > form, .formColumn > section { width: 100%; }
+.brand { justify-self: start; font-size: var(--t-23); font-weight: 600; letter-spacing: -0.01em; }
+.tagline { color: var(--muted); max-width: 36ch; margin-bottom: 12px; }
+.preview {
+  margin: 0; display: grid; align-content: center; justify-items: center; gap: 12px;
+  padding: 32px clamp(20px, 4vw, 56px); background: var(--side); border-left: 1px solid var(--line);
+}
+.window { width: min(100%, 600px); display: grid; gap: 16px; }   /* no frame: no card inside a card */
+.caption { font-size: var(--t-12); color: var(--muted); }
+
+@media (max-width: 899px) {
+  .layout { grid-template-columns: 1fr; }
+  .formSide { grid-template-rows: auto auto; padding-bottom: 16px; }
+  .formColumn { width: min(100%, 440px); padding-bottom: 0; }
+  .brand, .tagline { justify-self: center; text-align: center; }
+  .preview { border-left: 0; border-top: 1px solid var(--line); padding-bottom: max(32px, env(safe-area-inset-bottom)); }
+}
