@@ -9,7 +9,7 @@ Critiques: `.impeccable/critique/` (mockup 2026-11-21, real app 2026-11-23)
 - A student can sign up (email or Google), upload PDFs, ask questions and check every cited excerpt in the browser.
 - Design critique: **23/40 for the mockup → 28/40 for the real app** (Nielsen heuristics). All P1s from the mockup are fixed.
 - Checked on the real stack (FastAPI + Supabase + Ollama), at 14 screen sizes, keyboard only, light and dark.
-- 161 frontend tests (Vitest + React Testing Library), lint, type check and production build clean.
+- 177 frontend tests (Vitest + React Testing Library), lint, type check and production build clean.
 
 ## What was built
 
@@ -55,8 +55,17 @@ Critiques: `.impeccable/critique/` (mockup 2026-11-21, real app 2026-11-23)
 | answer lines ~89 characters | detector | 60ch |
 | upload could be sent as `/workspaces/undefined/...` by a script | backend log | guard in the data layer too (+ test) |
 | "Untitled chat" shown while a chat was still loading | screenshot | empty heading until the data arrives (+ test) |
+| **wide screens: Library left of centre (211 px empty left, 651 right at 1870), jumping 112-220 px sideways vs New chat** | owner's screenshot, measured | one alignment rule: each page centres its own 760 px column; the >= 1600 px shell rule removed (+ test) |
+| login form hugged the left edge (410 px empty beside it at 1870) | owner's screenshot | form centred in its half, logo in the corner, example 600 px (+ test) |
+| chat sources floated; the mockup had them docked | mockup vs app | docked panel: full height, own background and scroll, divider (+ test) |
+| Library list had no column headings or dates (the mockup had a table) | mockup vs app | Name / Added / Status table; stacked with labels when narrow (+ test) |
+| "Delet / e" broke in the first table try | screenshot | column widths measured in the browser; button labels never wrap |
 
 Lesson: **"visible" is not "usable"**. The first responsive check asked whether the question box was visible; a box under the tab bar is still visible. The right check is whether it is the top element at that spot.
+
+Lesson 2: **placement, not width**. A wide screen should show more (a docked panel, table columns), not the same content stretched; and everything that stays narrow must sit in one place on every page. The mockup could not show this: it is a fixed 1280x700 frame.
+
+Wide-screen check after the fix (fake API, 14 sizes, light + dark): New chat vs Library jump 0 px at every size; Library space left = right; sources panel from the top bar to the bottom of the screen; title in line with the messages; question box the top element; no sideways scroll.
 
 ## Design critique
 
