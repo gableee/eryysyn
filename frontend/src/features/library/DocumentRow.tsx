@@ -1,4 +1,4 @@
-import { CircleAlert, CircleCheck, FileText, LoaderCircle } from 'lucide-react'
+import { CircleAlert, CircleCheck, FileText, LoaderCircle, Trash2 } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { Button } from '../../shared/ui/Button'
@@ -23,7 +23,7 @@ export function DocumentRow({ doc, onRetry, onDelete, busy = false }: Props) {
   if (confirming && onDelete) {
     return (
       <motion.li className={styles.row} {...motionProps}>
-        <InlineConfirm question={`Delete ${doc.filename}?`} confirmLabel="Delete"
+        <InlineConfirm question={`Delete ${doc.filename}? Answers that cite it will show "Source removed".`} confirmLabel="Delete"
           onConfirm={() => { setConfirming(false); onDelete() }} onCancel={() => setConfirming(false)} />
       </motion.li>
     )
@@ -44,7 +44,9 @@ export function DocumentRow({ doc, onRetry, onDelete, busy = false }: Props) {
           <Button variant="secondary" onClick={onRetry} busy={busy}>Try again</Button>
         )}
         {doc.status !== 'uploading' && onDelete && (
-          <Button variant="quiet" aria-label={`Delete ${doc.filename}`} onClick={() => setConfirming(true)}>Delete</Button>
+          // a quiet icon, not a bold word on every row; the name says what it deletes
+          <Button variant="quiet" className={styles.iconButton} aria-label={`Delete ${doc.filename}`} title="Delete"
+            onClick={() => setConfirming(true)}><Trash2 size={18} aria-hidden="true" /></Button>
         )}
       </span>
     </motion.li>

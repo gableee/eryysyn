@@ -71,7 +71,7 @@ describe('PendingAnswer', () => {
     expect(screen.getByText('Ery is reading your documents…')).toBeInTheDocument()
     expect(screen.queryByText(/Still working/)).not.toBeInTheDocument()
     act(() => { vi.advanceTimersByTime(5000) })
-    expect(screen.getByText('Still working. Local models can take up to ~15 s.')).toBeInTheDocument()
+    expect(screen.getByText('Still working. This can take up to 15 seconds.')).toBeInTheDocument()
   })
 })
 

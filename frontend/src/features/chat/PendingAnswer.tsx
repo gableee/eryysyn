@@ -12,7 +12,7 @@ export function PendingAnswer({ slowAfterMs = 5000 }: { slowAfterMs?: number }) 
   return (
     <div className={styles.pending} aria-live="polite">
       <p><BreathingDot /> Ery is reading your documents…</p>
-      {slow && <p className={styles.hint}>Still working. Local models can take up to ~15 s.</p>}
+      {slow && <p className={styles.hint}>Still working. This can take up to 15 seconds.</p>}
     </div>
   )
 }

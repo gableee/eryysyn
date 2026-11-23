@@ -42,7 +42,7 @@ registerStates('Chat · refusal', () => <AnswerMessage message={msg('Not found i
 registerStates('Chat · waiting for Ery', () => <PendingAnswer />)
 registerStates('Chat · waiting more than 5 s', () => <PendingAnswer slowAfterMs={0} />)
 registerStates('Chat · model unavailable (502)', () => (
-  <ErrorState message="Ery can't answer right now. The model isn't running." onRetry={noop} />
+  <ErrorState message="Ery is offline right now. Try again in a minute." onRetry={noop} />
 ))
 registerStates('Chat · source removed, long excerpt', () => (
   <SourcesPanel layout="panel" activeN={undefined} citations={[{ ...c1, document_id: null, chunk_id: null, excerpt: c1.excerpt.repeat(4) }]} />

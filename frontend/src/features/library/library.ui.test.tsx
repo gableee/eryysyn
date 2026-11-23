@@ -50,7 +50,7 @@ describe('DocumentRow', () => {
     render(<DocumentRow doc={doc('indexed')} onDelete={onDelete} />)
     await user.click(screen.getByRole('button', { name: 'Delete Vital Signs, ch. 12.pdf' }))
     expect(onDelete).not.toHaveBeenCalled()
-    expect(screen.getByText('Delete Vital Signs, ch. 12.pdf?')).toBeInTheDocument()
+    expect(screen.getByText('Delete Vital Signs, ch. 12.pdf? Answers that cite it will show "Source removed".')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Delete' }))
     expect(onDelete).toHaveBeenCalledTimes(1)
   })

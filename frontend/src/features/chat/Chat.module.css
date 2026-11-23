@@ -27,6 +27,9 @@
 /* ---- sources ---- */
 .panel { display: grid; align-content: start; gap: 12px; }
 .panelTitle { font-size: var(--t-16); }
+.panelFor {   /* which question these sources answer: two lines at most */
+  font-size: var(--t-14); font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
 .notice { font-size: var(--t-14); color: var(--muted); }
 .cards { display: grid; gap: 10px; }
 .card {
@@ -87,7 +90,7 @@
   display: grid; gap: 2px; width: 100%; border-bottom: 1px solid var(--line);
   padding: var(--pad-y, 24px) max(var(--pad-end, 24px), calc((100% - 760px) / 2)) 12px max(var(--pad-start, 24px), calc((100% - 760px) / 2));
 }
-.columnEmpty .chatHeader { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.columnEmpty .chatHeader { position: absolute; width: 1px; height: 1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); }
 .chatTitle { font-size: var(--t-19); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chatSub { font-size: var(--t-14); color: var(--muted); }
 .messages { display: grid; gap: 20px; }

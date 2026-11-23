@@ -73,7 +73,7 @@ describe('ChatPage', () => {
   it('a new chat with an empty library says to upload a PDF first', async () => {
     api.listDocuments.mockResolvedValue([])
     open('/chat')
-    expect(await screen.findByText('Upload a PDF first')).toBeInTheDocument()
+    expect(await screen.findByText('Upload a PDF first.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Library/ })).toHaveAttribute('href', '/library')
   })
 
@@ -132,6 +132,24 @@ describe('ChatPage', () => {
     expect(within(screen.getByTestId('sources')).getByText('old.pdf')).toBeInTheDocument()
   })
 
+  // Critique 29/40, P1: the docked panel must say which question its sources belong to.
+  it('the sources panel names the question it belongs to', async () => {
+    store.c1 = [userMsg('u1', 'What is a normal blood pressure?'), answerMsg('a1', 'Below 120/80 [1].', [cite])]
+    open('/chat/c1')
+    const panel = await screen.findByTestId('sources')
+    expect(within(panel).getByText(/For:/)).toHaveTextContent('For: What is a normal blood pressure?')
+  })
+
+  it('after a refusal, the panel says its sources are from the earlier question', async () => {
+    store.c1 = [
+      userMsg('u1', 'What is a normal blood pressure?'), answerMsg('a1', 'Below 120/80 [1].', [cite]),
+      userMsg('u2', 'Who won the game?'), { ...answerMsg('a2', 'Not found in your documents.', []), refused: true },
+    ]
+    open('/chat/c1')
+    const panel = await screen.findByTestId('sources')
+    expect(within(panel).getByText(/From your earlier question/)).toHaveTextContent('From your earlier question: What is a normal blood pressure?')
+  })
+
   it('a 502 shows the model-unavailable error and Try again resends the same text', async () => {
     api.sendMessage
       .mockRejectedValueOnce(new ApiError('unavailable', 502, 'x'))
@@ -139,7 +157,7 @@ describe('ChatPage', () => {
     const user = userEvent.setup()
     open('/chat/c1')
     await ask(user, 'What is strict liability?')
-    expect(await screen.findByRole('alert')).toHaveTextContent("Ery can't answer right now. The model isn't running.")
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ery is offline right now. Try again in a minute.')
     await user.click(screen.getByRole('button', { name: 'Try again' }))
     await waitFor(() => expect(api.sendMessage).toHaveBeenLastCalledWith('c1', 'What is strict liability?'))
     expect(api.sendMessage).toHaveBeenCalledTimes(2)
