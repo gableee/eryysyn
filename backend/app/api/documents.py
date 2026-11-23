@@ -73,6 +73,30 @@ def reindex_document(
     return {"id": str(document_id), "status": status}
 
 
+LINK_SECONDS = 600  # PDF.js keeps fetching parts while you read; the whole file arrives well within 10 minutes
+
+
+@router.get("/documents/{document_id}/file")
+def get_document_file(
+    document_id: uuid.UUID,
+    user_id: str = Depends(get_current_user_id),
+):
+    """A short-lived signed link to the stored PDF, for the Reader. Only the owner gets one;
+    missing and not-yours are the same 404 (no way to probe other people's ids). Never stored."""
+    with pool.connection() as conn:
+        row = conn.execute(
+            "select d.storage_path from documents d "
+            "join workspaces w on w.id = d.workspace_id "
+            "where d.id = %s and w.owner_id = %s",
+            (document_id, user_id),
+        ).fetchone()
+    if not row:
+        raise HTTPException(404, "Document not found")
+    signed = supabase.storage.from_(BUCKET).create_signed_url(row[0], LINK_SECONDS)
+    url = signed.get("signedURL") or signed.get("signedUrl")
+    return {"url": url, "expires_in": LINK_SECONDS}
+
+
 @router.get("/workspaces/{workspace_id}/documents")
 def list_documents(
     workspace_id: uuid.UUID,

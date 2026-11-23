@@ -49,8 +49,17 @@
 .excerpt {
   margin: 0; padding: 10px 12px; border-radius: var(--r-s); background: var(--soft);
   font-size: var(--t-14); line-height: 1.6; max-height: 14em; overflow-y: auto;
+  overflow-x: hidden;   /* the marks' 2px padding must not add a sideways scrollbar (text wraps) */
 }
 .inlineSources { display: grid; gap: 8px; max-width: 65ch; }
+/* the sentence that supports the answer (Task 3): Sage highlight, ink text (contrast tested) */
+.evidence { background: var(--hl); color: var(--ink); border-radius: 3px; padding: 0 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.cardActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; }
+.textButton {
+  min-height: 32px; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-size: var(--t-14);
+  font-weight: 600; cursor: pointer;
+}
+.pageLink { margin-left: auto; min-height: 32px; display: inline-flex; align-items: center; color: var(--accent); font-size: var(--t-14); font-weight: 600; }
 .inlineSources summary { cursor: pointer; font-size: var(--t-14); font-weight: 600; color: var(--accent); min-height: 32px; display: flex; align-items: center; }
 
 /* ---- composer ---- */
@@ -120,3 +129,19 @@
 }
 .recentLink:hover { background: var(--soft); }
 .recentActive { background: var(--surface); font-weight: 600; box-shadow: inset 0 0 0 1px var(--line); }
+
+/* ---- inside the Reader's side panel (Task 8) ---- */
+.readerSource { display: grid; gap: 12px; align-content: start; }
+.readerSource .excerpt { max-height: none; overflow: visible; }   /* the panel scrolls; no box-in-a-box scrolling */
+.claims { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: var(--t-14); }
+.readerChat { display: flex; flex-direction: column; gap: 16px; min-height: 100%; }
+.readerChat .bubble { max-width: 100%; }
+.readerComposer { position: sticky; bottom: 0; margin-top: auto; padding-top: 8px; background: var(--bg); }
+.readerChat .excerpt { max-height: none; overflow: visible; }   /* the panel scrolls: no box-in-a-box scrolling */
+.here { margin-left: auto; font-size: var(--t-14); color: var(--muted); }
+
+/* phones: the card's actions are real touch targets (44px, PRODUCT.md) */
+@media (max-width: 599px) {
+  .textButton, .pageLink { min-height: 44px; }
+}
+

@@ -1,8 +1,10 @@
 import { CircleAlert, CircleCheck, FileText, LoaderCircle, Trash2 } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { Button } from '../../shared/ui/Button'
 import { InlineConfirm } from '../../shared/ui/InlineConfirm'
+import { readerPath } from '../../shared/readerPath'
 import { formatAdded } from './formatAdded'
 import styles from './Library.module.css'
 import type { LibraryDocument, UploadingDocument } from './types'
@@ -33,7 +35,10 @@ export function DocumentRow({ doc, onRetry, onDelete, busy = false }: Props) {
     <motion.li className={styles.row} {...motionProps}>
       <span className={styles.title}>
         <FileText size={20} aria-hidden="true" className={styles.fileIcon} />
-        <span className={styles.name}>{doc.filename}</span>
+        {/* a stored file opens in the Reader (even a failed one: its pages can still be looked at) */}
+        {'id' in doc
+          ? <Link to={readerPath({ documentId: doc.id })} className={`${styles.name} ${styles.nameLink}`}>{doc.filename}</Link>
+          : <span className={styles.name}>{doc.filename}</span>}
       </span>
       <span className={styles.added}>
         {'created_at' in doc && <><span className={styles.addedLabel}>Added </span>{formatAdded(doc.created_at)}</>}

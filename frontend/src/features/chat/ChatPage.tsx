@@ -12,12 +12,7 @@ import { SourcesPanel } from './SourcesPanel'
 import { UserMessage } from './UserMessage'
 import { useSourcesLayout } from './useSourcesLayout'
 import { useWorkspaceId } from '../../shared/workspace'
-
-function sendError(error: unknown): string {
-  if (error instanceof ApiError && error.kind === 'unavailable') return 'Ery is offline right now. Try again in a minute.'
-  if (error instanceof ApiError && error.kind === 'network') return "Can't reach the server"
-  return 'Something went wrong. Try again.'
-}
+import { sendError } from './sendError'
 
 export function ChatPage() {
   const { id } = useParams()
@@ -32,7 +27,7 @@ export function ChatPage() {
   const [createFailed, setCreateFailed] = useState<{ question: string; error: unknown } | null>(null)
   // A clicked citation belongs to ONE chat: the page stays mounted when you switch chats (one route),
   // so the selection remembers its chat and is ignored everywhere else.
-  const [picked, setPicked] = useState<{ chatId: string | undefined; answerId: string; n?: number }>()
+  const [picked, setPicked] = useState<{ chatId: string | undefined; answerId: string; n?: number; k?: number }>()
   const selection = picked && picked.chatId === id ? picked : undefined
   const area = useRef<HTMLDivElement>(null)
   const end = useRef<HTMLDivElement>(null)
@@ -105,7 +100,8 @@ export function ChatPage() {
         )}
         <MessageList messages={messages} layout={layout} selectedId={selected?.id}
           activeN={selection?.answerId === selected?.id ? selection?.n : undefined}
-          onSelect={(answerId, n) => setPicked({ chatId: id, answerId, n })} />
+          activeClaim={selection?.answerId === selected?.id ? selection?.k : undefined} conversationId={id}
+          onSelect={(answerId, n, k) => setPicked({ chatId: id, answerId, n, k })} />
         {pending && (<><UserMessage text={pending} searchQuestion={null} /><PendingAnswer /></>)}
         {failed && !pending && (
           <>
@@ -127,6 +123,7 @@ export function ChatPage() {
       {showPanel && (
         <div className={styles.panelColumn} data-testid="sources">
           <SourcesPanel citations={selected.citations} activeN={selection?.answerId === selected.id ? selection.n : undefined} layout="panel"
+            answer={selected} conversationId={id} activeClaim={selection?.answerId === selected.id ? selection.k : undefined}
             question={sourcesQuestion} earlier={sourcesEarlier} />
         </div>
       )}

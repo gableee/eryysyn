@@ -85,6 +85,14 @@
   .bar { padding-top: max(4px, env(safe-area-inset-top)); padding-bottom: 4px; }
 }
 
+/* Reader routes: full window (no top bar, no tabs); the sidebar only when the Reader's toolbar opens it */
+.shell[data-reader] { --bar-h: 0px; --bar-top: 0px; --tabs-h: 0px; }
+.shell[data-reader='full'] { grid-template: 'main' 1fr / 1fr; }
+.shell[data-reader='sidebar'] { grid-template: 'side main' 1fr / 248px 1fr; }
+.shell[data-reader] .sidebar { top: 0; height: 100dvh; }
+@media (max-width: 959px) { .shell[data-reader='sidebar'] { grid-template: 'side main' 1fr / 72px 1fr; } }
+@media (max-width: 599px) { .shell[data-reader] { grid-template: 'main' 1fr / 1fr; } }
+
 /* drawer */
 .drawerLayer { position: fixed; inset: 0; z-index: 40; }
 .backdrop { position: absolute; inset: 0; background: rgb(0 0 0 / 0.35); }

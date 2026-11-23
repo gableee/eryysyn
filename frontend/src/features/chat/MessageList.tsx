@@ -10,11 +10,15 @@ type Props = {
   layout: 'panel' | 'inline'
   selectedId: string | undefined
   activeN: number | undefined
-  onSelect(answerId: string, n: number): void
+  activeClaim?: number
+  conversationId?: string
+  /** inside the Reader: the open document and page */
+  here?: { documentId: string; page: number }
+  onSelect(answerId: string, n: number, k: number): void
 }
 
 /** role="log": screen readers announce new messages politely, in order. */
-export function MessageList({ messages, layout, selectedId, activeN, onSelect }: Props) {
+export function MessageList({ messages, layout, selectedId, activeN, activeClaim, conversationId, here, onSelect }: Props) {
   return (
     <div className={styles.messages} role="log" aria-label="Conversation">
       {messages.map((m) => (
@@ -24,9 +28,10 @@ export function MessageList({ messages, layout, selectedId, activeN, onSelect }:
             : (
               <div className={styles.answerBlock}>
                 <AnswerMessage message={m} activeN={m.id === selectedId ? activeN : undefined}
-                  onSelectCitation={(n) => onSelect(m.id, n)} />
+                  onSelectCitation={(n, k) => onSelect(m.id, n, k)} />
                 {layout === 'inline' && m.citations.length > 0 && (
-                  <SourcesPanel citations={m.citations} activeN={m.id === selectedId ? activeN : undefined} layout="inline" />
+                  <SourcesPanel citations={m.citations} activeN={m.id === selectedId ? activeN : undefined} layout="inline"
+                    answer={m} conversationId={conversationId} activeClaim={m.id === selectedId ? activeClaim : undefined} here={here} />
                 )}
               </div>
             )}

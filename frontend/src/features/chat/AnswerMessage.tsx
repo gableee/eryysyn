@@ -4,7 +4,8 @@ import { CitationMarker } from './CitationMarker'
 import { parseCitations } from './parseCitations'
 import type { ChatMessage } from './types'
 
-type Props = { message: ChatMessage; onSelectCitation(n: number): void; activeN?: number }
+/** k: which [n] of this answer was clicked (0 = the first [n]); the k-th [n] belongs to the k-th claim. */
+type Props = { message: ChatMessage; onSelectCitation(n: number, k: number): void; activeN?: number }
 
 /** Ery's answer. Text and citation buttons only (never HTML). */
 export function AnswerMessage({ message, onSelectCitation, activeN }: Props) {
@@ -18,6 +19,8 @@ export function AnswerMessage({ message, onSelectCitation, activeN }: Props) {
   }
   const byN = new Map(message.citations.map((c) => [c.n, c]))
   const paragraphs = parseCitations(message.content, [...byN.keys()])
+  const seen = new Map<number, number>()          // how many [n] markers came before, per n
+  const nextK = (n: number) => { const k = seen.get(n) ?? 0; seen.set(n, k + 1); return k }
   return (
     <div className={styles.answer}>
       {paragraphs.map((segments, i) => <p key={i}>{renderParagraph(segments)}</p>)}
@@ -44,8 +47,9 @@ export function AnswerMessage({ message, onSelectCitation, activeN }: Props) {
         if (cut < 0) {                    // only whitespace before this marker (e.g. "[1] [2]"): keep it as it is
           if (prev !== undefined) nodes.push(prev)
           glue = []
+          const k = nextK(s.n)
           glue.push(<CitationMarker key={`c${i}`} citation={byN.get(s.n)!} active={activeN === s.n}
-            onSelect={() => onSelectCitation(s.n)} />)
+            onSelect={() => onSelectCitation(s.n, k)} />)
           return
         }
         const head = cut > 0 ? text.slice(0, cut) : ''
@@ -53,8 +57,9 @@ export function AnswerMessage({ message, onSelectCitation, activeN }: Props) {
         if (head) nodes.push(<Fragment key={`h${i}`}>{head}</Fragment>)
         glue = word ? [<Fragment key={`w${i}`}>{word}{' '}</Fragment>] : []
       }
+      const k = nextK(s.n)
       glue.push(<CitationMarker key={`c${i}`} citation={byN.get(s.n)!} active={activeN === s.n}
-        onSelect={() => onSelectCitation(s.n)} />)
+        onSelect={() => onSelectCitation(s.n, k)} />)
     })
     if (glue) nodes.push(<span key="g-end" className={styles.glue}>{glue}</span>)
     return nodes

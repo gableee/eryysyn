@@ -1,0 +1,98 @@
+/* The Reader runs edge to edge like the chat: it cancels the shell's page padding. */
+.reader {
+  display: grid; grid-template-rows: auto 1fr;
+  margin: calc(-1 * var(--pad-y, 0px)) calc(-1 * var(--pad-end, 0px)) calc(-1 * var(--pad-y, 0px)) calc(-1 * var(--pad-start, 0px));
+  min-height: calc(100dvh - var(--bar-h, 0px));
+}
+.toolbar {
+  position: sticky; top: var(--bar-top, 0px); z-index: 5; display: flex; align-items: center; gap: 8px; min-height: 56px;
+  padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+  background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.sidebarToggle { flex: none; }
+/* the toggle opens the app sidebar, which phones don't have (they get a minimal Reader) */
+@media (max-width: 599px), (max-height: 499px) { .sidebarToggle { display: none; } }
+.back {
+  display: inline-flex; align-items: center; gap: 2px; min-height: 44px; padding: 0 8px; border-radius: var(--r-s);
+  color: var(--accent); font-weight: 600; font-size: var(--t-14); text-decoration: none; white-space: nowrap;
+}
+.back:hover { background: var(--soft); }
+.filename { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.counter { flex: none; font-size: var(--t-14); color: var(--muted); font-variant-numeric: tabular-nums; }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.body { min-width: 0; display: grid; }
+.stateBox { align-self: center; justify-self: center; padding: 24px 16px; }   /* loading and error states, centred */
+.status { color: var(--muted); }
+
+/* ---- the PDF (Task 6) ---- */
+.view { position: relative; min-width: 0; }
+.pages { display: grid; justify-items: center; gap: 16px; padding: 16px 16px 48px; outline: none; background: var(--side); min-height: 100%; }
+.pages:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.slot { scroll-margin-top: 72px; position: relative; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 0 0 1px var(--line); max-width: none; }
+.canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.marksLayer { position: absolute; inset: 0; pointer-events: none; }   /* reserved: future highlights, pen, notes */
+.zoom {   /* sticks to the bottom of the PAGE column, never over the side panel */
+  position: sticky; bottom: 24px; z-index: 6; width: max-content; margin: -64px 24px 24px auto; display: flex; gap: 2px; padding: 4px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+}
+
+/* PDF.js text layer: only the rules it needs, copied from pdfjs-dist/web/pdf_viewer.css (6.5.438),
+   instead of importing that 169 KB file. Invisible text placed exactly over the drawn words. */
+:global(.textLayer) {
+  position: absolute; inset: 0; overflow: clip; opacity: 1; line-height: 1; text-align: initial;
+  letter-spacing: normal; word-spacing: normal; text-size-adjust: none; forced-color-adjust: none;
+  transform-origin: 0 0; caret-color: CanvasText; z-index: 0;
+  mix-blend-mode: multiply;   /* our marks tint the paper like a highlighter pen: black words stay black */
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+:global(.textLayer) :is(span, br) {
+  color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%; user-select: text;
+}
+:global(.textLayer) > :not(:global(.markedContent)),
+:global(.textLayer) :global(.markedContent) span:not(:global(.markedContent)) {
+  z-index: 1; --font-height: 0; font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1; --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+:global(.textLayer) :global(.markedContent) { display: contents; }
+:global(.textLayer) ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+
+/* our mark on the real page (Task 7). PDF pages are white in both themes, so the colours are fixed, not theme
+   tokens; the text layer multiplies with the drawn page, so the yellow never covers the words. */
+.pageMark {
+  background: #FDE68A; color: transparent; border-radius: 2px; scroll-margin: 96px;
+  box-shadow: 0 2px 0 #2F6F4F;   /* a green underline: ours, even on a PDF that already has its own highlights */
+}
+
+/* ---- Source | Chat panel (Task 8) ---- */
+.bodyWithPanel { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; }
+.docked {
+  position: sticky; top: calc(var(--bar-top, 0px) + 57px); height: calc(100dvh - var(--bar-top, 0px) - 57px);
+  border-left: 1px solid var(--line); background: var(--bg); min-width: 0;
+}
+.panel { display: grid; grid-template-rows: auto 1fr; height: 100%; min-height: 0; }
+.panelHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 8px 0 12px; border-bottom: 1px solid var(--line); }
+.tabs { display: flex; gap: 4px; }
+.tab {
+  min-height: 44px; padding: 0 12px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted);
+  font: inherit; font-weight: 600; cursor: pointer;
+}
+.tab[aria-selected='true'] { color: var(--ink); border-bottom-color: var(--accent); }
+.tab:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.panelBody { overflow-y: auto; overscroll-behavior: contain; padding: 16px; min-height: 0; }
+.panelButtons { display: flex; gap: 4px; flex: none; }
+.panelButton {
+  min-height: 40px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: var(--r-s); background: var(--surface);
+  color: var(--ink); font: inherit; font-size: var(--t-14); font-weight: 600; cursor: pointer;
+}
+.panelButton:hover { background: var(--soft); }
+.scrim { position: fixed; inset: 0; z-index: 30; background: rgb(0 0 0 / 0.3); }
+.slide {
+  position: absolute; inset: 0 0 0 auto; width: min(400px, 90vw); background: var(--bg); border-left: 1px solid var(--line);
+  box-shadow: -8px 0 24px rgb(0 0 0 / 0.12); padding-bottom: env(safe-area-inset-bottom);
+  animation: slideIn var(--dur, 200ms) var(--ease, ease-out);
+}
+@keyframes slideIn { from { transform: translateX(24px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .slide { animation: none; } }

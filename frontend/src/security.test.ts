@@ -16,6 +16,10 @@ describe('Content Security Policy', () => {
     expect(connect).toBe("connect-src 'self' http://localhost:8000 https://abc.supabase.co")
   })
 
+  it("lets the Reader's PDF.js worker run, from our own origin only", () => {
+    expect(csp).toContain("worker-src 'self'")
+  })
+
   it('blocks plugins, foreign forms and <base> tricks', () => {
     expect(csp).toContain("object-src 'none'")
     expect(csp).toContain("form-action 'self'")

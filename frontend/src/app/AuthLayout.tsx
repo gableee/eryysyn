@@ -33,7 +33,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         <div className={styles.window}>
           <UserMessage text="What is a normal blood pressure for an adult?" searchQuestion={null} />
           <AnswerMessage message={ANSWER} onSelectCitation={() => {}} activeN={1} />
-          <SourcesPanel citations={[SOURCE]} activeN={1} layout="inline" />
+          <SourcesPanel citations={[SOURCE]} activeN={1} layout="inline" answer={ANSWER} />
         </div>
         <figcaption className={styles.caption}>Example. Your answers come from the PDFs you upload.</figcaption>
       </figure>

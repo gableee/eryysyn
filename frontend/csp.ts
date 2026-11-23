@@ -17,6 +17,7 @@ export function buildCsp(apiUrl: string, supabaseUrl: string): string {
     "img-src 'self' data:",
     "font-src 'self'",                     // DM Sans is bundled: no font CDN
     `connect-src 'self' ${origin(apiUrl)} ${origin(supabaseUrl)}`,
+    "worker-src 'self'",                   // the Reader's PDF.js worker, a file from our own build
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

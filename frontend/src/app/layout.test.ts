@@ -47,6 +47,13 @@ describe('library table rows', () => {
   })
 })
 
+describe('touch targets on phones (critique P2)', () => {
+  it('the card actions are at least 44px high under 600px', () => {
+    const phone = chat.match(/@media \(max-width: 599px\) \{([^@]*?)\n\}/g)?.join('\n') ?? ''
+    expect(phone).toMatch(/\.textButton,\s*\.pageLink\s*\{\s*min-height:\s*44px/)
+  })
+})
+
 describe('login: nothing hugs one edge on a wide screen', () => {
   it('the form is centred in its half', () => {
     expect(rule(auth, '.formSide')).toMatch(/justify-items:\s*center/)
