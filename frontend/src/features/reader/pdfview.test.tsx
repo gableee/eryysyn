@@ -5,23 +5,39 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const pdf = vi.hoisted(() => ({
   openPdf: vi.fn(),
   loadErrorKind: vi.fn(),
-  TextLayer: class { render() { return Promise.resolve() } cancel() {} },
+  TextLayer: class {
+    textDivs: HTMLElement[] = []
+    textContentItemsStr: string[] = []
+    constructor({ textContentSource, container }: { textContentSource: { items: { str: string }[] }; container: HTMLElement }) {
+      for (const item of textContentSource.items) {
+        const span = document.createElement('span')
+        span.textContent = item.str
+        container.append(span)
+        this.textDivs.push(span)
+        this.textContentItemsStr.push(item.str)
+      }
+    }
+    render() { return Promise.resolve() }
+    cancel() {}
+  },
 }))
 vi.mock('./pdf', () => pdf)
 
 import { PdfView } from './PdfView'
 
-const fakePage = () => ({
+const fakePage = (text: string[] = []) => ({
   getViewport: ({ scale }: { scale: number }) => ({ width: 600 * scale, height: 800 * scale, rawDims: { pageWidth: 600, pageHeight: 800 } }),
   render: () => ({ promise: Promise.resolve(), cancel: vi.fn() }),
-  getTextContent: () => Promise.resolve({ items: [], styles: {} }),
+  getTextContent: () => Promise.resolve({ items: text.map((str) => ({ str })), styles: {} }),
   cleanup: vi.fn(),
 })
-const fakeDoc = (numPages: number) => ({ numPages, getPage: vi.fn(() => Promise.resolve(fakePage())), destroy: vi.fn() })
+const fakeDoc = (numPages: number, text: Record<number, string[]> = {}) =>
+  ({ numPages, getPage: vi.fn((n: number) => Promise.resolve(fakePage(text[n]))), destroy: vi.fn() })
 const opened = (doc: unknown) => ({ promise: Promise.resolve(doc), destroy: vi.fn() })
 
 function view(page: number, extra: Partial<Parameters<typeof PdfView>[0]> = {}) {
-  const props = { url: 'https://x/signed', page, highlights: [], onPageChange: vi.fn(), onExpired: vi.fn(), onBroken: vi.fn(), ...extra }
+  const props = { url: 'https://x/signed', page, highlights: [] as string[], onPageChange: vi.fn(), onExpired: vi.fn(), onBroken: vi.fn(),
+    onHighlightMissing: vi.fn(), ...extra }
   const utils = render(<PdfView {...props} />)
   return { ...utils, props }
 }
@@ -88,6 +104,29 @@ describe('PdfView', () => {
       delete (Element.prototype as Partial<Element>).scrollIntoView
       vi.unstubAllGlobals()
     }
+  })
+
+  it('marks the supporting sentence on the cited page, as page text (never HTML)', async () => {
+    const sentence = 'Normal adult blood pressure is below 120 mmHg.'
+    pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: ['Readings vary. Normal adult blood pres', 'sure is below 120 mmHg. Next.'] })))
+    const { container, props } = view(112, { highlights: [sentence] })
+    await waitFor(() => expect(container.querySelectorAll('[data-page="112"] mark')).toHaveLength(2))
+    const marks = [...container.querySelectorAll('[data-page="112"] mark')].map((m) => m.textContent)
+    expect(marks).toEqual(['Normal adult blood pres', 'sure is below 120 mmHg.'])
+    expect(props.onHighlightMissing).not.toHaveBeenCalled()
+  })
+
+  it('a sentence that starts on the cited page and is found on the next page is marked there', async () => {
+    pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: ['Something else.'], 113: ['Normal adult blood pressure is below 120 mmHg.'] })))
+    const { container, props } = view(112, { highlights: ['Normal adult blood pressure is below 120 mmHg.'] })
+    await waitFor(() => expect(container.querySelectorAll('[data-page="113"] mark')).toHaveLength(1))
+    expect(props.onHighlightMissing).not.toHaveBeenCalled()
+  })
+
+  it('not found on the cited page or the next: onHighlightMissing, once', async () => {
+    pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: ['Something else.'], 113: ['Other text.'] })))
+    const { props } = view(112, { highlights: ['Normal adult blood pressure is below 120 mmHg.'] })
+    await waitFor(() => expect(props.onHighlightMissing).toHaveBeenCalledTimes(1))
   })
 
   it('an expired link calls onExpired', async () => {

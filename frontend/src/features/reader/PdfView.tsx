@@ -1,5 +1,5 @@
 import { Maximize, Minus, Plus } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { IconButton } from '../../shared/ui/IconButton'
 import { clampPage, pagesToDraw } from './pageWindow'
 import { PageSlot } from './PageSlot'
@@ -13,17 +13,20 @@ export type PdfViewProps = {
   onPageChange(page: number, total: number): void
   onExpired(): void
   onBroken(): void
+  /** none of the cited page or the next one contains a highlight: the Source tab says "Marked in the excerpt only" */
+  onHighlightMissing?(): void
 }
 
 const MAX_FIT_WIDTH = 900                 // "fit to width" stops here on very wide screens
 const ZOOMS = [0.5, 0.75, 1, 1.25, 1.5, 2]
 const WIDE = 1000                         // zoom buttons only where there is room (touch screens pinch instead)
+const NONE: string[] = []                 // one stable empty list, so idle pages never redraw
 
 /**
  * The whole PDF in one scroll column, opened at `page`. Every page has a slot of the right size, but only the
  * visible page and its neighbours are drawn, so a 340-page file stays light. Keys: PageUp/PageDown, ←/→, Home/End.
  */
-export function PdfView({ url, page, onPageChange, onExpired, onBroken }: PdfViewProps) {
+export function PdfView({ url, page, highlights, onPageChange, onExpired, onBroken, onHighlightMissing }: PdfViewProps) {
   const [doc, setDoc] = useState<PdfDocument | null>(null)
   const [base, setBase] = useState({ width: 612, height: 792 })   // page 1 at scale 1 (US Letter until known)
   const [visible, setVisible] = useState(1)
@@ -33,8 +36,11 @@ export function PdfView({ url, page, onPageChange, onExpired, onBroken }: PdfVie
   const slot = (n: number) => region.current?.querySelector<HTMLElement>(`[data-page="${n}"]`)
   const current = useRef(page)              // reopening after a renewed link keeps the student's place
   const jump = useRef<number | null>(null)
-  const callbacks = useRef({ onPageChange, onExpired, onBroken })
-  useEffect(() => { callbacks.current = { onPageChange, onExpired, onBroken } })
+  const callbacks = useRef({ onPageChange, onExpired, onBroken, onHighlightMissing })
+  useEffect(() => { callbacks.current = { onPageChange, onExpired, onBroken, onHighlightMissing } })
+  // highlights not found on the cited page are looked for on the next one (a passage can cross a page end)
+  const [spill, setSpill] = useState<{ page: number; sentences: string[] } | null>(null)
+  const marked = useRef({ scrolled: false, missingReported: false })
 
   // open (and reopen when the link is renewed)
   useEffect(() => {
@@ -109,6 +115,27 @@ export function PdfView({ url, page, onPageChange, onExpired, onBroken }: PdfVie
     region.current?.querySelector<HTMLElement>(`[data-page="${current.current}"]`)?.scrollIntoView?.({ block: 'start' })
   }, [scale, doc])
 
+  const cited = doc && highlights.length > 0 ? clampPage(String(page), doc.numPages) : 0
+  const onMarked = useCallback((n: number, found: boolean[], first: HTMLElement | null) => {
+    if (first && !marked.current.scrolled) {                     // bring the first mark into view, once
+      marked.current.scrolled = true
+      first.scrollIntoView?.({ block: 'center' })
+    }
+    const missing = () => {
+      if (marked.current.missingReported) return
+      marked.current.missingReported = true
+      callbacks.current.onHighlightMissing?.()
+    }
+    if (n === cited) {
+      const rest = highlights.filter((_, i) => !found[i])
+      if (rest.length === 0) return
+      if (!doc || cited + 1 > doc.numPages) missing()
+      else setSpill((s) => (s && s.page === cited + 1 && s.sentences.length === rest.length ? s : { page: cited + 1, sentences: rest }))
+    } else if (found.some((f) => !f)) {
+      missing()
+    }
+  }, [cited, highlights, doc])
+
   function goTo(p: number) {
     if (!doc) return
     const target = clampPage(String(p), doc.numPages)
@@ -135,7 +162,8 @@ export function PdfView({ url, page, onPageChange, onExpired, onBroken }: PdfVie
       {/* tabIndex: the keyboard can focus the pages and move through them */}
       <div ref={region} className={styles.pages} role="region" aria-label="PDF pages" tabIndex={0} onKeyDown={onKeyDown}>
         {doc && Array.from({ length: doc.numPages }, (_, i) => i + 1).map((n) => (
-          <PageSlot key={n} doc={doc} n={n} scale={scale} draw={draw.has(n)}
+          <PageSlot key={n} doc={doc} n={n} scale={scale} draw={draw.has(n)} onMarked={onMarked}
+            highlights={n === cited ? highlights : spill && n === spill.page ? spill.sentences : NONE}
             width={Math.floor(base.width * scale)} height={Math.floor(base.height * scale)} />
         ))}
       </div>

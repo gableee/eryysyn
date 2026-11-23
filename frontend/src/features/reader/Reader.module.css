@@ -42,6 +42,7 @@
   position: absolute; inset: 0; overflow: clip; opacity: 1; line-height: 1; text-align: initial;
   letter-spacing: normal; word-spacing: normal; text-size-adjust: none; forced-color-adjust: none;
   transform-origin: 0 0; caret-color: CanvasText; z-index: 0;
+  mix-blend-mode: multiply;   /* our marks tint the paper like a highlighter pen: black words stay black */
   --min-font-size: 1;
   --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
   --min-font-size-inv: calc(1 / var(--min-font-size));
@@ -57,3 +58,10 @@
 }
 :global(.textLayer) :global(.markedContent) { display: contents; }
 :global(.textLayer) ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+
+/* our mark on the real page (Task 7). PDF pages are white in both themes, so the colours are fixed, not theme
+   tokens; the text layer multiplies with the drawn page, so the yellow never covers the words. */
+.pageMark {
+  background: #FDE68A; color: transparent; border-radius: 2px; scroll-margin: 96px;
+  box-shadow: 0 2px 0 #2F6F4F;   /* a green underline: ours, even on a PDF that already has its own highlights */
+}
