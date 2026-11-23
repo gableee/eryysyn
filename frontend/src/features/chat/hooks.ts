@@ -30,7 +30,9 @@ export function useCreateConversation() {
   const { workspaceId } = useWorkspaceId()
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: () => createConversation(workspaceId!),
+    mutationFn: () => (workspaceId
+      ? createConversation(workspaceId)
+      : Promise.reject(new Error('Your workspace is still loading. Try again in a moment.'))),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: conversationsKey(workspaceId) }),
   })
 }
@@ -52,7 +54,8 @@ export function useSend() {
         { id: r.message_id, role: 'assistant', content: r.answer, refused: r.refused, created_at: now, search_question: null, citations: r.citations },
       ]
       queryClient.setQueryData<ConversationDetail>(conversationKey(conversationId),
-        (old) => (old ? { ...old, messages: [...old.messages, ...added] } : old))
+        // the backend names the chat after its first question in the same save: show it at once
+        (old) => (old ? { ...old, title: old.title ?? question.slice(0, 60), messages: [...old.messages, ...added] } : old))
       void queryClient.invalidateQueries({ queryKey: conversationKey(conversationId) })   // then the server's truth
       void queryClient.invalidateQueries({ queryKey: conversationsKey(workspaceId) })      // a new title
     },

@@ -14,11 +14,7 @@
   margin: 0; display: grid; align-content: center; justify-items: center; gap: 12px;
   padding: 32px clamp(20px, 4vw, 56px); background: var(--side); border-left: 1px solid var(--line);
 }
-.window {
-  width: min(100%, 520px); display: grid; gap: 16px; padding: 24px;
-  background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-l);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 12px 32px -12px rgb(0 0 0 / 0.12);
-}
+.window { width: min(100%, 520px); display: grid; gap: 16px; }   /* no frame: no card inside a card */
 .caption { font-size: var(--t-12); color: var(--muted); }
 
 @media (max-width: 899px) {

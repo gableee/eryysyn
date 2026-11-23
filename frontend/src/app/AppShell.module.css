@@ -2,6 +2,7 @@
    >= 960: full sidebar · 600-959: icon sidebar · < 600: bottom tabs · height < 500: no tabs, menu button. */
 .shell {
   --bar-h: 0px;          /* pages use these to fill the screen exactly */
+  --tabs-h: 0px;         /* height of the phone tab bar; the chat composer sits above it */
   --main-pad-y: 48px;
   min-height: 100dvh;
   display: grid;
@@ -56,7 +57,8 @@
 
 /* < 600: one column, bottom tabs in thumb reach */
 @media (max-width: 599px) {
-  .shell { grid-template: 'bar' auto 'main' 1fr 'tabs' auto / 1fr; --bar-h: calc(57px + 64px); --main-pad-y: 32px; }
+  .shell { grid-template: 'bar' auto 'main' 1fr 'tabs' auto / 1fr; --bar-h: calc(57px + 64px); --main-pad-y: 32px;
+           --tabs-h: calc(57px + env(safe-area-inset-bottom)); }
   .sidebar { display: none; }
   .main { padding: 16px max(16px, env(safe-area-inset-right)) 16px max(16px, env(safe-area-inset-left)); }
   .bar .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
@@ -74,6 +76,7 @@
 
 /* short screens (landscape phone): no bottom tabs, the menu button opens the drawer */
 @media (max-height: 499px) {
+  .shell { --tabs-h: 0px; }
   .tabs { display: none; }
   .menu { display: inline-grid; }
   .bar { padding-top: max(4px, env(safe-area-inset-top)); padding-bottom: 4px; }

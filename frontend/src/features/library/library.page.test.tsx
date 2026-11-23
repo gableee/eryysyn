@@ -178,3 +178,15 @@ describe('upload size by state', () => {
     await waitFor(() => expect(api.uploadDocument).toHaveBeenCalledWith('w1', dropped))
   })
 })
+
+describe('critique fixes (library)', () => {
+  it('nothing is sent while the workspace is unknown, even if a file reaches the input', async () => {
+    ws.id = undefined
+    api.listDocuments.mockResolvedValue([])
+    page()
+    const input = await screen.findByLabelText('Choose a file')
+    fireEvent.change(input, { target: { files: [pdf('early.pdf')] } })      // bypasses "disabled", like a script
+    await new Promise((r) => setTimeout(r, 50))
+    expect(api.uploadDocument).not.toHaveBeenCalled()
+  })
+})

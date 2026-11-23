@@ -19,7 +19,11 @@ function useDocumentMutation<V, R>(fn: (ws: string, v: V) => Promise<R>) {
   const { workspaceId } = useWorkspaceId()
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (v: V) => fn(workspaceId!, v),
+    mutationFn: (v: V) => {
+      // A disabled control is not enough: never send "/workspaces/undefined/…"
+      if (!workspaceId) return Promise.reject(new Error('Your workspace is still loading. Try again in a moment.'))
+      return fn(workspaceId, v)
+    },
     onSettled: () => queryClient.invalidateQueries({ queryKey: documentsKey(workspaceId) }),
   })
 }

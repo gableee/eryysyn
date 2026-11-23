@@ -44,7 +44,9 @@ export function ChatPage() {
   const busy = pending !== null || create.isPending || !workspaceId   // no workspace yet: nowhere to send
 
   const answers = messages.filter((m) => m.role === 'assistant')
-  const selected = answers.find((m) => m.id === selection?.answerId) ?? answers.at(-1)
+  // default: the newest answer that HAS sources (a refusal after it must not hide them)
+  const selected = answers.find((m) => m.id === selection?.answerId)
+    ?? [...answers].reverse().find((m) => m.citations.length > 0) ?? answers.at(-1)
 
   useEffect(() => { end.current?.scrollIntoView?.({ block: 'end' }) }, [messages.length, pending, failed])
 
@@ -82,7 +84,8 @@ export function ChatPage() {
     <section className={[styles.chat, showPanel && styles.withPanel].filter(Boolean).join(' ')} ref={area}>
       <div className={[styles.column, empty && styles.columnEmpty].filter(Boolean).join(' ')}>
         <header className={styles.chatHeader}>
-          <h1 className={styles.chatTitle}>{id ? (conversation.data?.title ?? 'Untitled chat') : 'New chat'}</h1>
+          {/* while loading: an empty heading, never a wrong "Untitled chat" */}
+          <h1 className={styles.chatTitle}>{!id ? 'New chat' : conversation.data ? (conversation.data.title ?? 'Untitled chat') : ''}</h1>
           <p className={styles.chatSub}>Answers come only from your documents.</p>
         </header>
         {empty && (

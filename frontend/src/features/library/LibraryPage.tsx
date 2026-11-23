@@ -29,6 +29,7 @@ export function LibraryPage() {
   const { workspaceId } = useWorkspaceId()
 
   function choose(file: File) {
+    if (!workspaceId) return                                     // still loading: nowhere to upload yet
     const problem = validateFile(file)
     setFileError(problem ?? undefined)
     if (problem) return

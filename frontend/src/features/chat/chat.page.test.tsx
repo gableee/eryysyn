@@ -279,3 +279,34 @@ describe('chat header', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'New chat' })).toBeInTheDocument()
   })
 })
+
+describe('critique fixes', () => {
+  it('the chat title appears right after the first answer, without waiting for a refresh', async () => {
+    // first load: an untitled chat; every refresh after that is slow (never returns in this test)
+    api.getConversation.mockResolvedValueOnce({ ...conversation([], 'c1'), title: null })
+      .mockImplementation(() => new Promise(() => {}))
+    const user = userEvent.setup()
+    open('/chat/c1')
+    await ask(user, 'What is strict liability?')
+    expect(await screen.findByRole('heading', { level: 1, name: 'What is strict liability?' })).toBeInTheDocument()
+  })
+
+  it('when the newest answer is a refusal, the sources of the last cited answer stay visible', async () => {
+    store.c1 = [
+      userMsg('u1', 'Q1'), answerMsg('a1', 'Cited answer [1].', [{ ...cite, filename: 'kept.pdf' }]),
+      userMsg('u2', 'Q2'), { ...answerMsg('a2', 'Not found in your documents.', []), refused: true },
+    ]
+    open('/chat/c1')
+    const panel = await screen.findByTestId('sources')
+    expect(within(panel).getByText('kept.pdf')).toBeInTheDocument()
+  })
+})
+
+describe('loading a chat', () => {
+  it('does not call it "Untitled chat" before its data has arrived', async () => {
+    api.getConversation.mockImplementation(() => new Promise(() => {}))   // still loading
+    open('/chat/c1')
+    await screen.findByRole('textbox', { name: 'Ask about your documents' })
+    expect(screen.queryByRole('heading', { level: 1, name: 'Untitled chat' })).not.toBeInTheDocument()
+  })
+})

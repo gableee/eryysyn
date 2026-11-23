@@ -70,3 +70,13 @@ describe('focus on the question box', () => {
     expect(rule).toMatch(/outline:\s*2px solid var\(--focus\)/)
   })
 })
+
+describe('phone: the question box is never under the tab bar', () => {
+  // Found in the critique on the real app: composer and tab bar were both sticky at bottom: 0.
+  it('the composer dock sits above the tabs (their height comes from the shell)', () => {
+    const chat = readFileSync(resolve(process.cwd(), 'src/features/chat/Chat.module.css'), 'utf8')
+    const shell = readFileSync(resolve(process.cwd(), 'src/app/AppShell.module.css'), 'utf8')
+    expect(chat.match(/^\.composerDock\s*\{([^}]*)\}/m)?.[1]).toMatch(/bottom:\s*var\(--tabs-h,\s*0px\)/)
+    expect(shell).toMatch(/--tabs-h:\s*calc\(57px \+ env\(safe-area-inset-bottom\)\)/)
+  })
+})

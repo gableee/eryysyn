@@ -5,7 +5,7 @@
   background: var(--soft); white-space: pre-wrap;
 }
 .searched { max-width: min(65ch, 85%); font-size: var(--t-14); color: var(--muted); text-align: right; }
-.answer { display: grid; gap: 10px; max-width: 65ch; font-size: var(--t-16); line-height: 1.65; white-space: pre-wrap; }
+.answer { display: grid; gap: 10px; max-width: 60ch; font-size: var(--t-16); line-height: 1.65; white-space: pre-wrap; }
 .refusal { font-weight: 600; }
 .hint { color: var(--muted); font-size: var(--t-14); }
 .glue { white-space: nowrap; }   /* the last word + its citation marker never split */
@@ -88,7 +88,8 @@
 .answerBlock { display: grid; gap: 10px; }
 .panelColumn { position: sticky; top: 80px; max-height: calc(100dvh - 104px); overflow-y: auto; }
 .composerDock {
-  position: sticky; bottom: 0; margin-top: auto; padding: 12px 0 max(4px, env(safe-area-inset-bottom));
+  position: sticky; bottom: var(--tabs-h, 0px);   /* above the phone tab bar, which is also sticky at the bottom */
+  margin-top: auto; padding: 12px 0 max(4px, env(safe-area-inset-bottom));
   background: linear-gradient(to top, var(--bg) 70%, transparent);
 }
 .linkButton {
