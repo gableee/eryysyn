@@ -23,3 +23,37 @@
 .body { min-width: 0; display: grid; }
 .body > :not(div) { align-self: center; justify-self: center; padding: 24px 16px; }   /* states sit in the middle */
 .status { color: var(--muted); }
+
+/* ---- the PDF (Task 6) ---- */
+.view { position: relative; min-width: 0; }
+.pages { display: grid; justify-items: center; gap: 16px; padding: 16px 16px 48px; outline: none; background: var(--side); min-height: 100%; }
+.pages:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.slot { scroll-margin-top: 72px; position: relative; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 0 0 1px var(--line); max-width: none; }
+.canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.marksLayer { position: absolute; inset: 0; pointer-events: none; }   /* reserved: future highlights, pen, notes */
+.zoom {
+  position: fixed; right: 24px; bottom: 24px; z-index: 6; display: flex; gap: 2px; padding: 4px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+}
+
+/* PDF.js text layer: only the rules it needs, copied from pdfjs-dist/web/pdf_viewer.css (6.5.438),
+   instead of importing that 169 KB file. Invisible text placed exactly over the drawn words. */
+:global(.textLayer) {
+  position: absolute; inset: 0; overflow: clip; opacity: 1; line-height: 1; text-align: initial;
+  letter-spacing: normal; word-spacing: normal; text-size-adjust: none; forced-color-adjust: none;
+  transform-origin: 0 0; caret-color: CanvasText; z-index: 0;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+:global(.textLayer) :is(span, br) {
+  color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%; user-select: text;
+}
+:global(.textLayer) > :not(:global(.markedContent)),
+:global(.textLayer) :global(.markedContent) span:not(:global(.markedContent)) {
+  z-index: 1; --font-height: 0; font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1; --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+:global(.textLayer) :global(.markedContent) { display: contents; }
+:global(.textLayer) ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
