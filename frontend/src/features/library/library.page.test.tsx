@@ -27,10 +27,10 @@ function later<T>() {
   return { promise, resolve, reject }
 }
 
-function page() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  render(<QueryClientProvider client={client}><MemoryRouter><LibraryPage /></MemoryRouter></QueryClientProvider>)
+function page(client = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
+  return render(<QueryClientProvider client={client}><MemoryRouter><LibraryPage /></MemoryRouter></QueryClientProvider>)
 }
+const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString()
 
 beforeEach(() => { vi.resetAllMocks(); ws.id = 'w1' })
 
@@ -124,7 +124,7 @@ describe('LibraryPage', () => {
 
 describe('code review fixes', () => {
   it('a document stuck as "uploaded" (not uploading in this tab) can be tried again', async () => {
-    api.listDocuments.mockResolvedValue([doc('d1', 'stuck.pdf', 'uploaded')])
+    api.listDocuments.mockResolvedValue([{ ...doc('d1', 'stuck.pdf', 'uploaded'), created_at: minutesAgo(30) }])
     api.retryDocument.mockResolvedValue({ id: 'd1', status: 'indexed' })
     const user = userEvent.setup()
     page()
@@ -154,6 +154,68 @@ describe('code review fixes', () => {
   })
 })
 
+describe('review fixes: a document still being read is never offered "Try again"', () => {
+  it('leaving the Library during an upload and coming back still shows it uploading', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    api.listDocuments.mockResolvedValue([doc('d0', 'old.pdf', 'indexed')])
+    api.uploadDocument.mockReturnValue(later().promise)             // the upload keeps running
+    const user = userEvent.setup()
+    const first = page(client)
+    await user.upload(await screen.findByLabelText('Upload PDF'), pdf('notes.pdf'))
+    first.unmount()                                                 // went to Chat
+    api.listDocuments.mockResolvedValue([doc('d0', 'old.pdf', 'indexed'), { ...doc('d1', 'notes.pdf', 'uploaded'), created_at: minutesAgo(0) }])
+    page(client)                                                    // came back
+    expect(await screen.findByText(/Uploading and reading/)).toBeInTheDocument()
+    expect(screen.getAllByText('notes.pdf')).toHaveLength(1)
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Upload PDF')).toBeDisabled()      // one upload at a time, as before
+  })
+
+  it('a document added minutes ago elsewhere (reload, other tab) is shown as still reading', async () => {
+    api.listDocuments.mockResolvedValue([{ ...doc('d1', 'notes.pdf', 'uploaded'), created_at: minutesAgo(2) }])
+    page()
+    expect(await screen.findByText(/Uploading and reading/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+  })
+
+  it('a document still being read is checked again until it is ready', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      api.listDocuments.mockResolvedValueOnce([{ ...doc('d1', 'notes.pdf', 'uploaded'), created_at: minutesAgo(1) }])
+        .mockResolvedValue([doc('d1', 'notes.pdf', 'indexed')])
+      page()
+      await screen.findByText(/Uploading and reading/)
+      await vi.advanceTimersByTimeAsync(6000)
+      expect(await screen.findByText('Ready')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe('review fixes: dragging a file', () => {
+  const files = { files: [pdf()], types: ['Files'] }
+
+  it('the drop outline goes away when the drag leaves the page (or Esc), even from a row inside it', async () => {
+    api.listDocuments.mockResolvedValue([doc('d1', 'notes.pdf', 'indexed')])
+    page()
+    const row = await screen.findByText('notes.pdf')
+    const section = row.closest('section')!
+    fireEvent.dragOver(row, { dataTransfer: files })
+    expect(section.className).toMatch(/dropping/)
+    fireEvent.dragLeave(row, { dataTransfer: files, relatedTarget: null })   // left the window from a row
+    expect(section.className).not.toMatch(/dropping/)
+  })
+
+  it('a PDF dropped outside the drop area is not opened by the browser (the app stays)', async () => {
+    api.listDocuments.mockResolvedValue([doc('d1', 'notes.pdf', 'indexed')])
+    page()
+    await screen.findByText('notes.pdf')
+    const notPrevented = fireEvent.drop(document.body, { dataTransfer: files })
+    expect(notPrevented).toBe(false)
+  })
+})
+
 describe('upload size by state', () => {
   it('an empty library shows the big drop zone', async () => {
     api.listDocuments.mockResolvedValue([])
@@ -176,6 +238,18 @@ describe('upload size by state', () => {
     const dropped = pdf('dropped.pdf')
     fireEvent.drop(list, { dataTransfer: { files: [dropped], types: ['Files'] } })
     await waitFor(() => expect(api.uploadDocument).toHaveBeenCalledWith('w1', dropped))
+  })
+})
+
+describe('wide-screen layout (library)', () => {
+  it('documents show as a table: column headings, and the date each one was added', async () => {
+    api.listDocuments.mockResolvedValue([doc('d1', 'notes.pdf', 'indexed')])
+    page()
+    const list = await screen.findByRole('list', { name: 'Your documents' })
+    expect(screen.getByText('Name')).toBeInTheDocument()
+    expect(screen.getByText('Status')).toBeInTheDocument()
+    // the date has a label for screen readers, who don't see the column headings
+    expect(list).toHaveTextContent(/notes\.pdf.*Added\s*Nov 22.*Ready/)
   })
 })
 

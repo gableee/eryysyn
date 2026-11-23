@@ -24,8 +24,10 @@ export function AuthLayout({ children }: { children: ReactNode }) {
     <main className={styles.layout}>
       <section className={styles.formSide}>
         <p className={styles.brand}>Eryysyn</p>
-        <p className={styles.tagline}>Answers from your own study files, with the page to check.</p>
-        {children}
+        <div className={styles.formColumn}>
+          <p className={styles.tagline}>Answers from your own study files, with the page to check.</p>
+          {children}
+        </div>
       </section>
       <figure className={styles.preview} aria-label="Example of an Eryysyn answer" inert>
         <div className={styles.window}>

@@ -69,27 +69,39 @@
 
 /* ---- page ---- */
 .chat {
-  display: grid; gap: 24px; align-items: stretch;
-  /* fill the screen below the top bar (if any) and inside the page padding, so the composer can sit at the bottom */
-  min-height: calc(100dvh - var(--bar-h, 0px) - var(--main-pad-y, 48px));
+  display: grid; align-items: stretch;
+  /* edge to edge: the chat cancels the shell's page padding, so the header line and the sources panel
+     reach the edges (as in the mockup), and fills the screen so the composer can sit at the bottom */
+  margin: calc(-1 * var(--pad-y, 0px)) calc(-1 * var(--pad-end, 0px)) calc(-1 * var(--pad-y, 0px)) calc(-1 * var(--pad-start, 0px));
+  min-height: calc(100dvh - var(--bar-h, 0px));
 }
-.withPanel { grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); align-items: start; }
+.withPanel { grid-template-columns: minmax(0, 1fr) minmax(280px, 360px); align-items: start; }
 .column {
-  display: flex; flex-direction: column; gap: 20px; min-width: 0; max-width: 760px; width: 100%; margin-inline: auto;
-  min-height: inherit;
+  display: flex; flex-direction: column; gap: 20px; min-width: 0; min-height: inherit;
 }
+/* everything in the chat sits in one centred 760px column (the same column as the Library) */
+.column > * { width: min(calc(100% - var(--pad-start, 24px) - var(--pad-end, 24px)), 760px); margin-inline: auto; }
 .columnEmpty { justify-content: center; }          /* a new chat: the question box sits in the middle */
 .columnEmpty .composerDock { margin-top: 0; }
-.chatHeader { display: grid; gap: 2px; }
+.chatHeader {   /* the line runs edge to edge; the title lines up with the messages under it */
+  display: grid; gap: 2px; width: 100%; border-bottom: 1px solid var(--line);
+  padding: var(--pad-y, 24px) max(var(--pad-end, 24px), calc((100% - 760px) / 2)) 12px max(var(--pad-start, 24px), calc((100% - 760px) / 2));
+}
 .columnEmpty .chatHeader { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .chatTitle { font-size: var(--t-19); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chatSub { font-size: var(--t-14); color: var(--muted); }
 .messages { display: grid; gap: 20px; }
 .answerBlock { display: grid; gap: 10px; }
-.panelColumn { position: sticky; top: 80px; max-height: calc(100dvh - 104px); overflow-y: auto; }
+/* docked sources panel: full height below the top bar, its own background, a divider and its own scroll */
+.panelColumn {
+  position: sticky; top: var(--bar-top, 0px); align-self: start;
+  height: calc(100dvh - var(--bar-top, 0px)); overflow-y: auto; overscroll-behavior: contain;
+  padding: var(--pad-y, 24px) var(--pad-end, 24px) var(--pad-y, 24px) 20px;
+  background: var(--side); border-left: 1px solid var(--line);
+}
 .composerDock {
   position: sticky; bottom: var(--tabs-h, 0px);   /* above the phone tab bar, which is also sticky at the bottom */
-  margin-top: auto; padding: 12px 0 max(4px, env(safe-area-inset-bottom));
+  margin-top: auto; padding: 12px 0 max(16px, env(safe-area-inset-bottom));
   background: linear-gradient(to top, var(--bg) 70%, transparent);
 }
 .linkButton {

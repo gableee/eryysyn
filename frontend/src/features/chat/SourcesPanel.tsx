@@ -11,8 +11,14 @@ const NOTICE = 'Check the cited page before relying on an answer.'
 /** Sources of one answer. "panel" beside the chat on wide screens, "inline" under the answer otherwise. */
 export function SourcesPanel({ citations, activeN, layout }: Props) {
   const refs = useRef(new Map<number, HTMLElement>())
+  // Scroll only when the reader PICKS a citation, never on first display: the login example shows a highlighted
+  // card, and scrolling to it pulled the phone login page away from the form.
+  const shown = useRef(activeN)
   useEffect(() => {
-    if (activeN !== undefined) refs.current.get(activeN)?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
+    if (activeN !== undefined && activeN !== shown.current) {
+      refs.current.get(activeN)?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
+    }
+    shown.current = activeN
   }, [activeN])
 
   const cards = citations.map((c) => (

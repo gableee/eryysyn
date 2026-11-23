@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import { useState } from 'react'
 import { Button } from '../../shared/ui/Button'
 import { InlineConfirm } from '../../shared/ui/InlineConfirm'
+import { formatAdded } from './formatAdded'
 import styles from './Library.module.css'
 import type { LibraryDocument, UploadingDocument } from './types'
 
@@ -34,6 +35,9 @@ export function DocumentRow({ doc, onRetry, onDelete, busy = false }: Props) {
         <FileText size={20} aria-hidden="true" className={styles.fileIcon} />
         <span className={styles.name}>{doc.filename}</span>
       </span>
+      <span className={styles.added}>
+        {'created_at' in doc && <><span className={styles.addedLabel}>Added </span>{formatAdded(doc.created_at)}</>}
+      </span>
       <Status status={doc.status} stuck={doc.status === 'uploaded' && !!onRetry} />
       <span className={styles.actions}>
         {(doc.status === 'failed' || doc.status === 'uploaded') && onRetry && (
@@ -53,7 +57,7 @@ function Status({ status, stuck }: { status: LibraryDocument['status'] | 'upload
   if (status === 'failed') return <span className={`${styles.status} ${styles.bad}`}><CircleAlert size={16} aria-hidden="true" />Couldn't read it</span>
   // 'uploading' (in the browser) and 'uploaded' (stored, not indexed yet): both mean "still working"
   return (
-    <span className={styles.status} aria-live="polite">
+    <span className={`${styles.status} ${styles.statusWide}`} aria-live="polite">
       <LoaderCircle size={16} aria-hidden="true" className={styles.spin} />Uploading and reading… this can take a minute
     </span>
   )

@@ -98,6 +98,21 @@ describe('sources', () => {
     expect(screen.getByText('Sources (2)')).toBeInTheDocument()
     expect(screen.getAllByText(/found liable/)[0]).toBeVisible()   // open by default: excerpts visible
   })
+
+  // Review fix: the login example shows a highlighted card; scrolling to it on first display pulled the phone
+  // login page away from the form. Scroll only when the reader picks a citation.
+  it('scrolls to a card only when a citation is picked, never on first display', () => {
+    const scroll = vi.fn()
+    Element.prototype.scrollIntoView = scroll
+    try {
+      const { rerender } = render(<SourcesPanel citations={[cite(1), cite(2)]} activeN={1} layout="inline" />)
+      expect(scroll).not.toHaveBeenCalled()
+      rerender(<SourcesPanel citations={[cite(1), cite(2)]} activeN={2} layout="inline" />)
+      expect(scroll).toHaveBeenCalledTimes(1)
+    } finally {
+      delete (Element.prototype as Partial<Element>).scrollIntoView
+    }
+  })
 })
 
 describe('Composer', () => {

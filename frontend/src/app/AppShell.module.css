@@ -3,7 +3,10 @@
 .shell {
   --bar-h: 0px;          /* pages use these to fill the screen exactly */
   --tabs-h: 0px;         /* height of the phone tab bar; the chat composer sits above it */
-  --main-pad-y: 48px;
+  --bar-top: 0px;        /* height of the sticky top bar; the docked sources panel sticks below it */
+  --pad-y: 24px;         /* page padding; the chat page cancels it to run its panels edge to edge */
+  --pad-start: 24px;
+  --pad-end: max(24px, env(safe-area-inset-right));
   min-height: 100dvh;
   display: grid;
   grid-template: 'side main' 1fr / 248px 1fr;
@@ -39,14 +42,14 @@
 
 .main {
   grid-area: main; min-width: 0; container-type: inline-size; container-name: main;
-  padding: 24px max(24px, env(safe-area-inset-right)) 24px 24px;
+  padding: var(--pad-y) var(--pad-end) var(--pad-y) var(--pad-start);
 }
 
 .tabs { display: none; }
 
 /* 600-959: icon sidebar, labels for screen readers and on focus/hover via title */
 @media (max-width: 959px) {
-  .shell { grid-template: 'bar bar' auto 'side main' 1fr / 72px 1fr; --bar-h: 57px; }
+  .shell { grid-template: 'bar bar' auto 'side main' 1fr / 72px 1fr; --bar-h: 57px; --bar-top: 57px; }
   .bar { display: flex; }
   .sidebar { padding: 16px 8px; top: 57px; height: calc(100dvh - 57px); grid-template-rows: auto; }
   .sidebar .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
@@ -57,10 +60,10 @@
 
 /* < 600: one column, bottom tabs in thumb reach */
 @media (max-width: 599px) {
-  .shell { grid-template: 'bar' auto 'main' 1fr 'tabs' auto / 1fr; --bar-h: calc(57px + 64px); --main-pad-y: 32px;
-           --tabs-h: calc(57px + env(safe-area-inset-bottom)); }
+  .shell { grid-template: 'bar' auto 'main' 1fr 'tabs' auto / 1fr; --bar-h: calc(57px + 64px);
+           --tabs-h: calc(57px + env(safe-area-inset-bottom));
+           --pad-y: 16px; --pad-start: max(16px, env(safe-area-inset-left)); --pad-end: max(16px, env(safe-area-inset-right)); }
   .sidebar { display: none; }
-  .main { padding: 16px max(16px, env(safe-area-inset-right)) 16px max(16px, env(safe-area-inset-left)); }
   .bar .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .tabs {
     grid-area: tabs; position: sticky; bottom: 0; z-index: 20; display: grid; grid-auto-flow: column;
@@ -80,10 +83,6 @@
   .tabs { display: none; }
   .menu { display: inline-grid; }
   .bar { padding-top: max(4px, env(safe-area-inset-top)); padding-bottom: 4px; }
-}
-
-@media (min-width: 1600px) {
-  .main { padding-inline: max(24px, calc((100vw - 248px - 1200px) / 2)); }
 }
 
 /* drawer */

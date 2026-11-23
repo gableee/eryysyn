@@ -72,7 +72,10 @@ export function ChatPage() {
   if (conversation.error instanceof ApiError && conversation.error.kind === 'not_found') {
     return (
       <section className={styles.chat}>
-        <EmptyState title="This chat no longer exists" action={<Link to="/chat" className={styles.linkButton}>New chat</Link>} />
+        {/* inside the padded column like every chat state (the page itself runs edge to edge) */}
+        <div className={`${styles.column} ${styles.columnEmpty}`}>
+          <EmptyState title="This chat no longer exists" action={<Link to="/chat" className={styles.linkButton}>New chat</Link>} />
+        </div>
       </section>
     )
   }

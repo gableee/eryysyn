@@ -1,4 +1,4 @@
-.state { display: grid; gap: var(--space); justify-items: start; max-width: 65ch; }
+.state { display: grid; gap: var(--space); justify-items: start; align-content: start; max-width: 65ch; }   /* never stretched by a tall parent */
 .title { font-size: var(--t-19); }
 .body { color: var(--muted); }
 .error {
