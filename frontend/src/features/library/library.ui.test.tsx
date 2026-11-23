@@ -1,4 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
+import type { ReactNode } from 'react'
+import { MemoryRouter } from 'react-router'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { DocumentRow } from './DocumentRow'
@@ -6,6 +8,9 @@ import { EmptyLibrary } from './EmptyLibrary'
 import { UploadZone } from './UploadZone'
 import { MAX_UPLOAD_BYTES, validateFile } from './validateFile'
 import type { LibraryDocument } from './types'
+
+// rows link to the Reader (Task 4), so every render needs a router
+const render = (ui: ReactNode) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>)
 
 const file = (name: string, type: string, bytes = 10) => {
   const f = new File(['x'], name, { type })
@@ -103,5 +108,23 @@ describe('EmptyLibrary', () => {
     render(<EmptyLibrary upload={<p>zone</p>} />)
     expect(screen.getByText('After uploading, ask questions in Chat.')).toBeInTheDocument()
     expect(screen.getByText('zone')).toBeInTheDocument()
+  })
+})
+
+describe('opening a document (Task 4)', () => {
+  it("a stored document's name links to the Reader at page 1", () => {
+    render(<DocumentRow doc={doc('indexed', 'notes.pdf')} onDelete={vi.fn()} />)
+    expect(screen.getByRole('link', { name: 'notes.pdf' })).toHaveAttribute('href', '/documents/d1')
+  })
+
+  it('a failed document can still be opened (a scanned PDF is still readable as pages)', () => {
+    render(<DocumentRow doc={doc('failed', 'scan.pdf')} onRetry={vi.fn()} onDelete={vi.fn()} />)
+    expect(screen.getByRole('link', { name: 'scan.pdf' })).toBeInTheDocument()
+  })
+
+  it('a file still uploading has no link (nothing stored yet)', () => {
+    render(<DocumentRow doc={{ filename: 'new.pdf', status: 'uploading' }} />)
+    expect(screen.queryByRole('link')).toBeNull()
+    expect(screen.getByText('new.pdf')).toBeInTheDocument()
   })
 })
