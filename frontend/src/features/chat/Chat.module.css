@@ -68,14 +68,27 @@
 .inlineSources[open] .chevron { transform: rotate(180deg); }   /* the arrow shows it can open and close */
 
 /* ---- page ---- */
-.chat { display: grid; gap: 24px; align-items: start; min-height: 100%; }
-.withPanel { grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); }
-.column { display: grid; gap: 20px; align-content: start; min-width: 0; max-width: 760px; width: 100%; margin-inline: auto; }
+.chat {
+  display: grid; gap: 24px; align-items: stretch;
+  /* fill the screen below the top bar (if any) and inside the page padding, so the composer can sit at the bottom */
+  min-height: calc(100dvh - var(--bar-h, 0px) - var(--main-pad-y, 48px));
+}
+.withPanel { grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); align-items: start; }
+.column {
+  display: flex; flex-direction: column; gap: 20px; min-width: 0; max-width: 760px; width: 100%; margin-inline: auto;
+  min-height: inherit;
+}
+.columnEmpty { justify-content: center; }          /* a new chat: the question box sits in the middle */
+.columnEmpty .composerDock { margin-top: 0; }
+.chatHeader { display: grid; gap: 2px; }
+.columnEmpty .chatHeader { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.chatTitle { font-size: var(--t-19); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chatSub { font-size: var(--t-14); color: var(--muted); }
 .messages { display: grid; gap: 20px; }
 .answerBlock { display: grid; gap: 10px; }
 .panelColumn { position: sticky; top: 80px; max-height: calc(100dvh - 104px); overflow-y: auto; }
 .composerDock {
-  position: sticky; bottom: 0; padding: 12px 0 max(4px, env(safe-area-inset-bottom));
+  position: sticky; bottom: 0; margin-top: auto; padding: 12px 0 max(4px, env(safe-area-inset-bottom));
   background: linear-gradient(to top, var(--bg) 70%, transparent);
 }
 .linkButton {

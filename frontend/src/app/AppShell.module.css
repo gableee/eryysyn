@@ -1,26 +1,32 @@
 /* Structure only changes where it must (Global Constraints, width zones).
    >= 960: full sidebar · 600-959: icon sidebar · < 600: bottom tabs · height < 500: no tabs, menu button. */
 .shell {
+  --bar-h: 0px;          /* pages use these to fill the screen exactly */
+  --main-pad-y: 48px;
   min-height: 100dvh;
   display: grid;
-  grid-template: 'bar bar' auto 'side main' 1fr / 232px 1fr;
+  grid-template: 'side main' 1fr / 248px 1fr;
 }
+/* the slim top bar exists only below 960px (desktop has logo + account in the sidebar) */
 .bar {
-  grid-area: bar; position: sticky; top: 0; z-index: 20;
-  display: flex; align-items: center; gap: 8px;
-  padding: max(8px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 8px max(16px, env(safe-area-inset-left));
+  grid-area: bar; position: sticky; top: 0; z-index: 20; display: none; align-items: center; gap: 8px;
+  padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
   background: var(--bg); border-bottom: 1px solid var(--line);
 }
-.logo { font-weight: 600; font-size: var(--t-19); }
+.logo { font-weight: 600; font-size: var(--t-19); letter-spacing: -0.01em; }
+.sideLogo { padding: 4px 12px 8px; }
 .spacer { flex: 1; }
 .menu { display: none; }
 
 .sidebar {
-  grid-area: side; position: sticky; top: 57px; align-self: start; height: calc(100dvh - 57px);
-  overflow-y: auto; padding: 16px 12px; display: grid; align-content: start; gap: 16px;
+  grid-area: side; position: sticky; top: 0; align-self: start; height: 100dvh;
+  overflow-y: auto; padding: max(16px, env(safe-area-inset-top)) 12px 12px;
+  display: grid; grid-template-rows: auto auto 1fr auto; gap: 16px;
   background: var(--side); border-right: 1px solid var(--line);
 }
-.nav { display: grid; gap: 4px; }
+.nav { display: grid; gap: 4px; align-content: start; }
+.extra { min-height: 0; overflow-y: auto; }
+.account { border-top: 1px solid var(--line); padding-top: 8px; }
 .link, .newChat {
   display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 12px;
   border-radius: var(--r-s); color: var(--ink); text-decoration: none; font-size: var(--t-14);
@@ -39,17 +45,18 @@
 
 /* 600-959: icon sidebar, labels for screen readers and on focus/hover via title */
 @media (max-width: 959px) {
-  .shell { grid-template-columns: 72px 1fr; }
-  .sidebar { padding: 16px 8px; }
+  .shell { grid-template: 'bar bar' auto 'side main' 1fr / 72px 1fr; --bar-h: 57px; }
+  .bar { display: flex; }
+  .sidebar { padding: 16px 8px; top: 57px; height: calc(100dvh - 57px); grid-template-rows: auto; }
   .sidebar .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  .sidebar > :not(nav) { display: none; }          /* recent chats live in the drawer here */
+  .sidebar > :not(nav) { display: none; }          /* logo, recent chats and account live in the bar / drawer */
   .link, .newChat { justify-content: center; padding: 0; }
   .menu { display: inline-grid; }
 }
 
 /* < 600: one column, bottom tabs in thumb reach */
 @media (max-width: 599px) {
-  .shell { grid-template: 'bar' auto 'main' 1fr 'tabs' auto / 1fr; }
+  .shell { grid-template: 'bar' auto 'main' 1fr 'tabs' auto / 1fr; --bar-h: calc(57px + 64px); --main-pad-y: 32px; }
   .sidebar { display: none; }
   .main { padding: 16px max(16px, env(safe-area-inset-right)) 16px max(16px, env(safe-area-inset-left)); }
   .bar .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
@@ -73,7 +80,7 @@
 }
 
 @media (min-width: 1600px) {
-  .main { padding-inline: max(24px, calc((100vw - 232px - 1200px) / 2)); }
+  .main { padding-inline: max(24px, calc((100vw - 248px - 1200px) / 2)); }
 }
 
 /* drawer */

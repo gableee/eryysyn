@@ -76,10 +76,15 @@ export function ChatPage() {
   }
 
   const empty = !id && !pending && !createFailed && messages.length === 0
+  const showPanel = layout === 'panel' && !!selected && selected.citations.length > 0
   return (
-    <section className={[styles.chat, layout === 'panel' && styles.withPanel].filter(Boolean).join(' ')} ref={area}>
-      <h1 className={styles.srOnly}>{conversation.data?.title ?? 'New chat'}</h1>
-      <div className={styles.column}>
+    // two columns only when there are sources to show; otherwise the chat is centred
+    <section className={[styles.chat, showPanel && styles.withPanel].filter(Boolean).join(' ')} ref={area}>
+      <div className={[styles.column, empty && styles.columnEmpty].filter(Boolean).join(' ')}>
+        <header className={styles.chatHeader}>
+          <h1 className={styles.chatTitle}>{id ? (conversation.data?.title ?? 'Untitled chat') : 'New chat'}</h1>
+          <p className={styles.chatSub}>Answers come only from your documents.</p>
+        </header>
         {empty && (
           <EmptyState title="Ask a question about your documents."
             body={hasDocuments === false ? 'Upload a PDF first' : 'Every answer shows the page it comes from.'}
@@ -109,7 +114,7 @@ export function ChatPage() {
           <Composer onSend={ask} disabled={busy} />
         </div>
       </div>
-      {layout === 'panel' && selected && selected.citations.length > 0 && (
+      {showPanel && (
         <div className={styles.panelColumn} data-testid="sources">
           <SourcesPanel citations={selected.citations} activeN={selection?.answerId === selected.id ? selection.n : undefined} layout="panel" />
         </div>

@@ -30,8 +30,7 @@ export function LoginPage() {
   }
 
   return (
-    <main className={styles.page}>
-      <form className={styles.card} onSubmit={submit} noValidate>
+          <form className={styles.card} onSubmit={submit} noValidate>
         <h1>Log in to Eryysyn</h1>
         <GoogleButton />
         <TextField label="Email" type="email" autoComplete="email" required value={email}
@@ -41,6 +40,5 @@ export function LoginPage() {
         <Button variant="primary" type="submit" busy={busy}>Log in</Button>
         <p className={styles.switch}>New here? <Link to="/register">Create an account</Link></p>
       </form>
-    </main>
   )
 }

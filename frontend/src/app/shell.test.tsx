@@ -6,7 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const sessionState = vi.hoisted(() => ({ value: { session: null as unknown, loading: false } }))
 vi.mock('../features/auth/useSession', () => ({ useSession: () => sessionState.value }))
-vi.mock('../shared/supabase', () => ({ supabase: { auth: { signOut: vi.fn() } } }))
+const signOut = vi.hoisted(() => vi.fn())
+vi.mock('../shared/supabase', () => ({ supabase: { auth: { signOut } } }))
 
 import { applyMode, useTheme } from '../shared/theme'
 import { createRoutes } from './routes'
@@ -56,6 +57,17 @@ describe('routes', () => {
   })
 })
 
+describe('login page', () => {
+  it.each(['/login', '/register'])('%s shows a real example answer beside the form, which keyboards skip', async (path) => {
+    sessionState.value = signedOut
+    open(path)
+    const example = await screen.findByRole('figure', { name: 'Example of an Eryysyn answer' })
+    expect(example).toHaveAttribute('inert')                       // visible, not focusable, not a form part
+    expect(within(example).getAllByText(/systolic reading below 120 mmHg/)).toHaveLength(2)   // the answer and its excerpt
+    expect(within(example).getByText('Check the cited page before relying on an answer.')).toBeInTheDocument()
+  })
+})
+
 describe('after login', () => {
   function openWithFrom(from: string) {
     const router = createMemoryRouter(createRoutes(false), { initialEntries: [{ pathname: '/login', state: { from } }] })
@@ -79,15 +91,43 @@ describe('after login', () => {
 })
 
 describe('shell', () => {
-  it('navigation shows only the features that work', async () => {
+  it('navigation shows only the features that work, once each', async () => {
     sessionState.value = signedIn
     open('/library')
     const nav = await screen.findByRole('navigation', { name: 'Main' })
-    expect(within(nav).getByRole('link', { name: /Chat/ })).toBeInTheDocument()
-    expect(within(nav).getByRole('link', { name: /Library/ })).toBeInTheDocument()
+    expect(within(nav).getAllByRole('link').map((l) => l.textContent?.trim())).toEqual(['New chat', 'Library'])
     for (const hidden of ['Notes', 'Bookmarks', 'Study', 'Voice', 'Paper', 'Slate', 'later']) {
       expect(screen.queryByText(new RegExp(hidden, 'i'))).not.toBeInTheDocument()
     }
+  })
+
+  it('phone tabs keep Chat and Library', async () => {
+    sessionState.value = signedIn
+    open('/library')
+    const tabs = await screen.findByRole('navigation', { name: 'Tabs' })
+    expect(within(tabs).getAllByRole('link').map((l) => l.textContent?.trim())).toEqual(['Chat', 'Library'])
+  })
+
+  it('log out lives in the account menu, not one tap away', async () => {
+    sessionState.value = signedIn
+    const user = userEvent.setup()
+    open('/library')
+    await screen.findByRole('navigation', { name: 'Main' })
+    expect(screen.queryByRole('menuitem', { name: 'Log out' })).not.toBeInTheDocument()
+    await user.click(screen.getAllByRole('button', { name: 'Account' })[0])
+    expect(within(screen.getByRole('menu')).getByText('a@b.co')).toBeInTheDocument()
+    await user.click(screen.getByRole('menuitem', { name: 'Log out' }))
+    expect(signOut).toHaveBeenCalledTimes(1)
+  })
+
+  it('the account menu closes with Escape', async () => {
+    sessionState.value = signedIn
+    const user = userEvent.setup()
+    open('/library')
+    await user.click((await screen.findAllByRole('button', { name: 'Account' }))[0])
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
 
   it('the current page is marked for screen readers', async () => {

@@ -7,6 +7,7 @@ import { DocumentRow } from './DocumentRow'
 import { EmptyLibrary } from './EmptyLibrary'
 import { useDelete, useDocuments, useRetry, useUpload } from './hooks'
 import styles from './Library.module.css'
+import { UploadButton } from './UploadButton'
 import { UploadZone } from './UploadZone'
 import { validateFile } from './validateFile'
 
@@ -41,12 +42,24 @@ export function LibraryPage() {
   // show it once, as our uploading row.
   const docs = (documents.data ?? []).filter((d) => !(uploading && d.status === 'uploaded' && d.filename === uploading))
 
+  const hasList = !documents.isLoading && !documents.isError && (docs.length > 0 || !!uploading)
+  const [dragging, setDragging] = useState(false)
+
   return (
-    <section className={styles.page} aria-busy={documents.isLoading || undefined}>
-      <header className={styles.header}>
-        <h1>Library</h1>
-        <p className={styles.sub}>Your documents. Only you can see them.</p>
+    <section className={[styles.page, dragging && styles.dropping].filter(Boolean).join(' ')}
+      aria-busy={documents.isLoading || undefined}
+      // with documents there is no big zone: a PDF dropped anywhere on the page is uploaded
+      onDragOver={hasList ? (e) => { e.preventDefault(); setDragging(true) } : undefined}
+      onDragLeave={hasList ? (e) => { if (e.currentTarget === e.target) setDragging(false) } : undefined}
+      onDrop={hasList ? (e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f && !upload.isPending && workspaceId) choose(f) } : undefined}>
+      <header className={styles.headerRow}>
+        <div className={styles.header}>
+          <h1>Library</h1>
+          <p className={styles.sub}>Your documents. Only you can see them.</p>
+        </div>
+        {hasList && <UploadButton onFile={choose} disabled={upload.isPending || !workspaceId} />}
       </header>
+      {hasList && fileError && <p className={styles.zoneError} role="alert">{fileError}</p>}
 
       {documents.isError ? (
         <ErrorState
@@ -61,7 +74,6 @@ export function LibraryPage() {
         <EmptyLibrary upload={zone} />
       ) : (
         <>
-          {zone}
           {remove.isError && <ErrorState message="That document couldn't be deleted. Try again." />}
           <ul className={styles.list} aria-label="Your documents">
             <AnimatePresence initial={false}>

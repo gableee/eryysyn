@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -62,9 +62,9 @@ describe('LibraryPage', () => {
     api.uploadDocument.mockReturnValue(later().promise)            // never finishes in this test
     const user = userEvent.setup()
     page()
-    const input = await screen.findByLabelText('Choose a file')
+    const input = await screen.findByLabelText('Upload PDF')
     await user.upload(input, pdf())
-    await waitFor(() => expect(screen.getByLabelText('Choose a file')).toBeDisabled())
+    await waitFor(() => expect(screen.getByLabelText('Upload PDF')).toBeDisabled())
   })
 
   it('a file that is not a pdf is refused before anything is sent', async () => {
@@ -139,7 +139,7 @@ describe('code review fixes', () => {
     api.deleteDocument.mockResolvedValue(null)
     const user = userEvent.setup()
     page()
-    await user.upload(await screen.findByLabelText('Choose a file'), pdf('notes.pdf'))
+    await user.upload(await screen.findByLabelText('Upload PDF'), pdf('notes.pdf'))
     await user.click(screen.getByRole('button', { name: 'Delete old.pdf' }))     // triggers a refetch
     await user.click(screen.getByRole('button', { name: 'Delete' }))
     await waitFor(() => expect(api.listDocuments).toHaveBeenCalledTimes(2))
@@ -151,5 +151,30 @@ describe('code review fixes', () => {
     api.listDocuments.mockResolvedValue([])
     page()
     expect(await screen.findByLabelText('Choose a file')).toBeDisabled()
+  })
+})
+
+describe('upload size by state', () => {
+  it('an empty library shows the big drop zone', async () => {
+    api.listDocuments.mockResolvedValue([])
+    page()
+    expect(await screen.findByText('Drop a PDF here, or')).toBeInTheDocument()
+  })
+
+  it('with documents, uploading is a compact button and the list comes first', async () => {
+    api.listDocuments.mockResolvedValue([doc('d1', 'notes.pdf', 'indexed')])
+    page()
+    expect(await screen.findByLabelText('Upload PDF')).toBeInTheDocument()
+    expect(screen.queryByText('Drop a PDF here, or')).not.toBeInTheDocument()
+  })
+
+  it('with documents, a file dropped anywhere on the page is uploaded', async () => {
+    api.listDocuments.mockResolvedValue([doc('d1', 'notes.pdf', 'indexed')])
+    api.uploadDocument.mockReturnValue(later().promise)
+    page()
+    const list = await screen.findByRole('list', { name: 'Your documents' })
+    const dropped = pdf('dropped.pdf')
+    fireEvent.drop(list, { dataTransfer: { files: [dropped], types: ['Files'] } })
+    await waitFor(() => expect(api.uploadDocument).toHaveBeenCalledWith('w1', dropped))
   })
 })

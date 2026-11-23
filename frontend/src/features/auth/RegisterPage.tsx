@@ -58,8 +58,7 @@ export function RegisterPage() {
   }
 
   return (
-    <main className={styles.page}>
-      <form className={styles.card} onSubmit={submit} noValidate>
+          <form className={styles.card} onSubmit={submit} noValidate>
         <h1>Create your account</h1>
         <GoogleButton />
         <TextField label="Email" type="email" autoComplete="email" required value={email}
@@ -75,6 +74,5 @@ export function RegisterPage() {
         <Button variant="primary" type="submit" busy={busy}>Create account</Button>
         <p className={styles.switch}>Already have an account? <Link to="/login">Log in</Link></p>
       </form>
-    </main>
   )
 }

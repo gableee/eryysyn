@@ -265,3 +265,17 @@ describe('code review fixes', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/chat'))
   })
 })
+
+describe('chat header', () => {
+  it('shows the chat title and that answers come only from your documents', async () => {
+    store.c1 = [userMsg('u1', 'Q'), answerMsg('a1', 'A [1].')]
+    open('/chat/c1')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Test chat' })).toBeVisible()
+    expect(screen.getByText('Answers come only from your documents.')).toBeInTheDocument()
+  })
+
+  it('a new chat is called "New chat"', async () => {
+    open('/chat')
+    expect(await screen.findByRole('heading', { level: 1, name: 'New chat' })).toBeInTheDocument()
+  })
+})

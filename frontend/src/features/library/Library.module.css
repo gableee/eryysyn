@@ -37,7 +37,7 @@
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.empty { display: grid; gap: 16px; max-width: 65ch; }
+.empty { display: grid; gap: 16px; }
 .lead { font-size: var(--t-16); }
 .next { color: var(--muted); font-size: var(--t-14); }
 
@@ -46,8 +46,13 @@
   .actions { margin-left: 0; width: 100%; }
 }
 
-.page { display: grid; gap: 24px; max-width: 900px; }
+.page { display: grid; gap: 24px; max-width: 760px; border-radius: var(--r-l); }   /* one width in every state */
+.dropping { outline: 2px dashed var(--accent); outline-offset: 8px; }
+.headerRow { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.uploadButton { position: relative; }
 .header { display: grid; gap: 4px; }
 .sub { color: var(--muted); }
 .skeleton { background: linear-gradient(90deg, var(--surface), var(--soft), var(--surface)); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
 @keyframes shimmer { to { background-position: -200% 0; } }
+.uploadButton .choose { gap: 8px; }
+.uploadButton:focus-within .choose { outline: 2px solid var(--focus); outline-offset: 2px; }
