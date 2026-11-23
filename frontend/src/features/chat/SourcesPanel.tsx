@@ -2,31 +2,37 @@ import { ChevronDown } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import styles from './Chat.module.css'
 import { SourceCard } from './SourceCard'
-import type { Citation } from './types'
+import type { ChatMessage, Citation } from './types'
 
 type Props = {
   citations: Citation[]; activeN: number | undefined; layout: 'panel' | 'inline'
   /** panel only: the question these sources answer, and whether it is an earlier one (e.g. after a refusal) */
   question?: string; earlier?: boolean
+  /** the answer these sources belong to (marks + "Open page"), and which of its claims was clicked */
+  answer?: ChatMessage; conversationId?: string; activeClaim?: number
 }
 
 const NOTICE = 'Check the cited page before relying on an answer.'
 
 /** Sources of one answer. "panel" beside the chat on wide screens, "inline" under the answer otherwise. */
-export function SourcesPanel({ citations, activeN, layout, question, earlier = false }: Props) {
+export function SourcesPanel({ citations, activeN, layout, question, earlier = false, answer, conversationId, activeClaim }: Props) {
   const refs = useRef(new Map<number, HTMLElement>())
   // Scroll only when the reader PICKS a citation, never on first display: the login example shows a highlighted
   // card, and scrolling to it pulled the phone login page away from the form.
-  const shown = useRef(activeN)
+  const shown = useRef(`${activeN}:${activeClaim}`)
   useEffect(() => {
-    if (activeN !== undefined && activeN !== shown.current) {
-      refs.current.get(activeN)?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
+    const now = `${activeN}:${activeClaim}`
+    if (activeN !== undefined && now !== shown.current) {
+      // the clicked claim's own mark if it has one, else the card
+      const card = refs.current.get(activeN)
+      const mark = activeClaim === undefined ? null : card?.querySelector(`mark[data-claim~="${activeClaim}"]`)
+      ;(mark ?? card)?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
     }
-    shown.current = activeN
-  }, [activeN])
+    shown.current = now
+  }, [activeN, activeClaim])
 
   const cards = citations.map((c) => (
-    <SourceCard key={c.n} citation={c} active={c.n === activeN}
+    <SourceCard key={c.n} citation={c} active={c.n === activeN} answer={answer} conversationId={conversationId}
       ref={(el) => { if (el) refs.current.set(c.n, el); else refs.current.delete(c.n) }} />
   ))
 

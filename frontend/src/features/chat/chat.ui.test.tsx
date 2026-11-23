@@ -1,5 +1,6 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AnswerMessage } from './AnswerMessage'
 import { Composer } from './Composer'
@@ -45,7 +46,7 @@ describe('AnswerMessage', () => {
     const onSelect = vi.fn()
     render(<AnswerMessage message={answer('Liable [1].')} onSelectCitation={onSelect} />)
     await userEvent.click(screen.getByRole('button', { name: /Source 1/ }))
-    expect(onSelect).toHaveBeenCalledWith(1)
+    expect(onSelect).toHaveBeenCalledWith(1, 0)   // source 1, its first claim (Task 3)
   })
 
   it('a refusal shows the next step', () => {
@@ -112,6 +113,43 @@ describe('sources', () => {
     } finally {
       delete (Element.prototype as Partial<Element>).scrollIntoView
     }
+  })
+})
+
+describe('SourceCard: evidence (Task 3)', () => {
+  const BP = 'Blood pressure is measured in millimetres of mercury. Normal adult blood pressure is defined as a systolic ' +
+    'pressure below 120 mmHg and a diastolic pressure below 80 mmHg. Readings vary with posture and time of day.'
+  const bpCite = cite(1, { document_id: 'd1', page: 112, excerpt: BP })
+  const bpAnswer = answer('Normal adult blood pressure is a systolic reading below 120 mmHg and a diastolic reading below 80 mmHg [1].', [bpCite], { id: 'a1' })
+  const card = (c: Citation, a: ChatMessage = bpAnswer) =>
+    render(<MemoryRouter><SourceCard citation={c} active={false} answer={a} conversationId="c1" /></MemoryRouter>)
+
+  it('marks every supporting sentence and starts the excerpt at the first', async () => {
+    const { container } = card(bpCite)
+    const marks = container.querySelectorAll('mark')
+    expect(marks).toHaveLength(1)
+    expect(marks[0]).toHaveTextContent(/^Normal adult blood pressure is defined/)
+    expect(screen.queryByText(/measured in millimetres/)).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Show whole passage' }))
+    expect(screen.getByText(/measured in millimetres/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Show less' })).toBeInTheDocument()
+  })
+
+  it('a card with no clear match shows the excerpt as today', () => {
+    const { container } = card(bpCite, answer('Volcanoes erupt [1].', [bpCite]))
+    expect(container.querySelector('mark')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Show whole passage' })).toBeNull()
+    expect(screen.getByText(/measured in millimetres/)).toBeInTheDocument()
+  })
+
+  it('Open page links to the Reader with the chat context', () => {
+    card(bpCite)
+    expect(screen.getByRole('link', { name: 'Open page 112' })).toHaveAttribute('href', '/documents/d1?page=112&chat=c1&answer=a1&n=1')
+  })
+
+  it('a removed source has no Open page link', () => {
+    card({ ...bpCite, document_id: null })
+    expect(screen.queryByRole('link', { name: /Open page/ })).toBeNull()
   })
 })
 

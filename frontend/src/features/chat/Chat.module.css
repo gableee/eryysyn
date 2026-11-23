@@ -51,6 +51,14 @@
   font-size: var(--t-14); line-height: 1.6; max-height: 14em; overflow-y: auto;
 }
 .inlineSources { display: grid; gap: 8px; max-width: 65ch; }
+/* the sentence that supports the answer (Task 3): Sage highlight, ink text (contrast tested) */
+.evidence { background: var(--hl); color: var(--ink); border-radius: 3px; padding: 0 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.cardActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; }
+.textButton {
+  min-height: 32px; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-size: var(--t-14);
+  font-weight: 600; cursor: pointer;
+}
+.pageLink { margin-left: auto; min-height: 32px; display: inline-flex; align-items: center; color: var(--accent); font-size: var(--t-14); font-weight: 600; }
 .inlineSources summary { cursor: pointer; font-size: var(--t-14); font-weight: 600; color: var(--accent); min-height: 32px; display: flex; align-items: center; }
 
 /* ---- composer ---- */

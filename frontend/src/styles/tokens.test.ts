@@ -35,6 +35,7 @@ describe.each([
   it.each([
     ['--ink', '--surface', 4.5],
     ['--ink', '--bg', 4.5],
+    ['--ink', '--hl', 4.5],              // the evidence mark (Task 3)
     ['--muted', '--surface', 4.5],
     ['--muted', '--bg', 4.5],
     ['--muted', '--side', 4.5],

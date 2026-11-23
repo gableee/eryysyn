@@ -140,6 +140,24 @@ describe('ChatPage', () => {
     expect(within(panel).getByText(/For:/)).toHaveTextContent('For: What is a normal blood pressure?')
   })
 
+  it("clicking the second [1] scrolls to that claim's own mark", async () => {
+    const scroll = vi.fn()
+    Element.prototype.scrollIntoView = scroll
+    try {
+      store.c1 = [userMsg('u1', 'Q'), answerMsg('a1', 'A is true [1]. B holds [1].', [{ ...cite, excerpt: 'A is true here. B holds too.' }])]
+      const user = userEvent.setup()
+      open('/chat/c1')
+      await screen.findByTestId('sources')
+      scroll.mockClear()
+      await user.click(screen.getAllByRole('button', { name: /Source 1/ })[1])
+      const target = scroll.mock.contexts.at(-1) as Element
+      expect(target.tagName).toBe('MARK')
+      expect(target.getAttribute('data-claim')?.split(' ')).toContain('1')
+    } finally {
+      delete (Element.prototype as Partial<Element>).scrollIntoView
+    }
+  })
+
   it('after a refusal, the panel says its sources are from the earlier question', async () => {
     store.c1 = [
       userMsg('u1', 'What is a normal blood pressure?'), answerMsg('a1', 'Below 120/80 [1].', [cite]),
