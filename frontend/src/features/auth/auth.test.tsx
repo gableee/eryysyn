@@ -150,6 +150,15 @@ describe('Google', () => {
       provider: 'google', options: { redirectTo: window.location.origin },
     })
   })
+
+  it('shows the Google "G" before the label, hidden from screen readers (the name stays "Continue with Google")', () => {
+    vi.stubEnv('VITE_AUTH_GOOGLE', 'true')
+    render(<GoogleButton />)
+    const button = screen.getByRole('button', { name: 'Continue with Google' })
+    const logo = button.firstElementChild
+    expect(logo?.tagName.toLowerCase()).toBe('svg')
+    expect(logo).toHaveAttribute('aria-hidden', 'true')
+  })
 })
 
 describe('Session', () => {
