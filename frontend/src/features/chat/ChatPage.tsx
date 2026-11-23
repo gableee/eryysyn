@@ -5,12 +5,13 @@ import { EmptyState } from '../../shared/ui/EmptyState'
 import { ErrorState } from '../../shared/ui/ErrorState'
 import styles from './Chat.module.css'
 import { Composer } from './Composer'
-import { useConversation, useCreateConversation, useHasDocuments, useLatestSend, useSend } from './hooks'
+import { useConversation, useCreateConversation, useDocumentsCheck, useLatestSend, useSend } from './hooks'
 import { MessageList } from './MessageList'
 import { PendingAnswer } from './PendingAnswer'
 import { SourcesPanel } from './SourcesPanel'
 import { UserMessage } from './UserMessage'
 import { useSourcesLayout } from './useSourcesLayout'
+import { useWorkspaceId } from '../../shared/workspace'
 
 function sendError(error: unknown): string {
   if (error instanceof ApiError && error.kind === 'unavailable') return "Ery can't answer right now. The model isn't running."
@@ -22,12 +23,17 @@ export function ChatPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const conversation = useConversation(id)
-  const hasDocuments = useHasDocuments()
+  const hasDocuments = useDocumentsCheck().has
+  const { workspaceId } = useWorkspaceId()
   const create = useCreateConversation()
   const send = useSend()
   const latest = useLatestSend(id)
   const [creating, setCreating] = useState<string | null>(null)   // the first question, while the chat is created
-  const [selection, setSelection] = useState<{ answerId: string; n?: number }>()
+  const [createFailed, setCreateFailed] = useState<{ question: string; error: unknown } | null>(null)
+  // A clicked citation belongs to ONE chat: the page stays mounted when you switch chats (one route),
+  // so the selection remembers its chat and is ignored everywhere else.
+  const [picked, setPicked] = useState<{ chatId: string | undefined; answerId: string; n?: number }>()
+  const selection = picked && picked.chatId === id ? picked : undefined
   const area = useRef<HTMLDivElement>(null)
   const end = useRef<HTMLDivElement>(null)
   const layout = useSourcesLayout(area)
@@ -35,7 +41,7 @@ export function ChatPage() {
   const messages = conversation.data?.messages ?? []
   const pending = creating ?? (latest?.status === 'pending' ? latest.variables.question : null)
   const failed = latest?.status === 'error' ? latest : undefined
-  const busy = pending !== null || create.isPending
+  const busy = pending !== null || create.isPending || !workspaceId   // no workspace yet: nowhere to send
 
   const answers = messages.filter((m) => m.role === 'assistant')
   const selected = answers.find((m) => m.id === selection?.answerId) ?? answers.at(-1)
@@ -47,10 +53,12 @@ export function ChatPage() {
     let conversationId = id
     if (!conversationId) {
       setCreating(question)
+      setCreateFailed(null)
       try {
         conversationId = (await create.mutateAsync()).id
-      } catch {
+      } catch (error) {
         setCreating(null)
+        setCreateFailed({ question, error })      // keep the question: Try again resends it
         return
       }
       navigate(`/chat/${conversationId}`, { replace: true })
@@ -67,7 +75,7 @@ export function ChatPage() {
     )
   }
 
-  const empty = !id && !pending && messages.length === 0
+  const empty = !id && !pending && !createFailed && messages.length === 0
   return (
     <section className={[styles.chat, layout === 'panel' && styles.withPanel].filter(Boolean).join(' ')} ref={area}>
       <h1 className={styles.srOnly}>{conversation.data?.title ?? 'New chat'}</h1>
@@ -80,8 +88,9 @@ export function ChatPage() {
         {conversation.isError && !(conversation.error instanceof ApiError && conversation.error.kind === 'not_found') && (
           <ErrorState message="This chat couldn't be loaded." onRetry={() => conversation.refetch()} />
         )}
-        <MessageList messages={messages} layout={layout} selectedId={selected?.id} activeN={selection?.n}
-          onSelect={(answerId, n) => setSelection({ answerId, n })} />
+        <MessageList messages={messages} layout={layout} selectedId={selected?.id}
+          activeN={selection?.answerId === selected?.id ? selection?.n : undefined}
+          onSelect={(answerId, n) => setPicked({ chatId: id, answerId, n })} />
         {pending && (<><UserMessage text={pending} searchQuestion={null} /><PendingAnswer /></>)}
         {failed && !pending && (
           <>
@@ -89,7 +98,12 @@ export function ChatPage() {
             <ErrorState message={sendError(failed.error)} onRetry={() => send.mutate(failed.variables)} />
           </>
         )}
-        {create.isError && <ErrorState message={sendError(create.error)} />}
+        {!id && createFailed && !pending && (
+          <>
+            <UserMessage text={createFailed.question} searchQuestion={null} />
+            <ErrorState message={sendError(createFailed.error)} onRetry={() => ask(createFailed.question)} />
+          </>
+        )}
         <div ref={end} />
         <div className={styles.composerDock}>
           <Composer onSend={ask} disabled={busy} />

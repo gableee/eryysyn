@@ -36,6 +36,11 @@ describe('AnswerMessage', () => {
     expect(glue).toHaveTextContent('liable')
   })
 
+  it('two markers in a row keep the space between them', () => {
+    const { container } = render(<AnswerMessage message={answer('Liable [1] [2].', [cite(1), cite(2)])} onSelectCitation={vi.fn()} />)
+    expect(container.textContent).toBe('Liable\u00A01 2.')
+  })
+
   it('clicking a marker reports its number', async () => {
     const onSelect = vi.fn()
     render(<AnswerMessage message={answer('Liable [1].')} onSelectCitation={onSelect} />)

@@ -201,7 +201,7 @@ What I learned:
 | Phase | Subject | Status |
 |-------|---------|--------|
 | 0 | Product and architecture | Done |
-| 1 | Full-stack foundation | Done enough for MVP (missing register screen, RLS postponed) |
+| 1 | Full-stack foundation | Done enough for MVP (RLS postponed) |
 | 2 | LLM integration | Skipped on purpose, learned inside RAG flow |
 | 3 | RAG from scratch | In progress |
 | 4 | Evaluation, reliability, trust | Not started |
@@ -210,7 +210,7 @@ What I learned:
 | 7 | LangGraph and agents | Not started |
 | 8 | Production and MLOps | Not started |
 
-Phase 3 progress: Users can upload PDFs and ask questions through the backend API, and Eryysyn answers from their documents with page citations or says the answer is not in them; a 34-question evaluation now measures how often it is right. Retrieval found the right page for every answerable question; answers were correct 21-23 of 25 depending on the model, and every out-of-scope question was refused (179 automated tests). It flags documents that contradict each other, confirmed on 27 new questions it was never tuned on (6 of 6 conflicts found, no false alarms). Follow-up questions now work like a chat: a question such as "who does it apply to?" is rewritten using the earlier questions (correct follow-ups 3 -> 6-8 of 10). Left in Phase 3: the frontend screens.
+Phase 3 progress: Students can now sign up, upload PDFs and ask questions in the browser, and Eryysyn answers from their documents with page citations and the exact excerpt, or says the answer is not in them. Behind it: a 34-question evaluation (retrieval found the right page for every answerable question; answers correct 21-23 of 25 depending on the model; every out-of-scope question refused), a conflict rule confirmed on 27 held-out questions (6 of 6 conflicts found, no false alarms), and follow-up questions rewritten from earlier questions (correct follow-ups 3 -> 6-8 of 10). 179 backend and 145 frontend automated tests. Left in Phase 3: frontend design polish (chat layout, account menu, library), the end-to-end checklist, and the Reader decision.
 
 Principle: Understand -> Implement -> Evaluate -> Improve. Every technology must solve a real Eryysyn problem.
 
@@ -297,3 +297,10 @@ Principle: Understand -> Implement -> Evaluate -> Improve. Every technology must
   - [ ] ME: Supabase dashboard > Authentication > Providers > Email > Minimum password length = 8.
   - [ ] Before real users (Phase 8): Confirm email ON; CAPTCHA (Turnstile/hCaptcha) on sign-up; allowed redirect URLs = localhost + the Vercel domain only.
   - [ ] Later: leaked-password protection (paid plan?), two-factor login (TOTP), httpOnly-cookie sessions (needs a server layer). Logout stays global (all devices).
+- [x] Frontend MVP built (2026-11-22, branch `feat/frontend-chat`, plan `docs/superpowers/plans/2026-11-21-frontend-mvp.md`, design `docs/superpowers/specs/2026-11-21-frontend-mvp-design.md`). React 19 + TS + Vite, React Router, TanStack Query, CSS Modules + tokens, lucide, Motion, Vitest + RTL. Folders by feature (`src/features/auth|library|chat`, `src/shared`, `src/app`); only each feature's `api.ts` knows backend URLs.
+  - [x] T1 tokens with tested contrast (`styles/tokens.test.ts`) · T2 `shared/http` typed errors, token never leaves our API · T3 accessible UI kit · T4 auth (login, register both confirm modes, Google button, cache cleared on logout) · T5 shell, guarded routes, light/dark, responsive zones, `/dev/states` · T6-T7 Library (upload, retry, delete) · T8-T9 Chat (safe citation rendering, sources with excerpt, follow-ups, recent chats, 502 retry, answers survive navigating away) · T10 build-time CSP, `vercel.json` rewrite + security headers, README.
+  - [x] Checked for real (backend + Supabase + Ollama): upload ethics.pdf -> Ready -> new chat -> cited answer with excerpt; phone 390 dark OK. Test account cleaned afterwards.
+  - [x] Code review (10 findings) fixed test-first: citation highlight leaked between chats, lost first question when chat creation failed, stuck "uploaded" rows got Try again, duplicate row during upload, blank "/" on errors, sending before the workspace was known, deep link lost after login (safe in-app paths only), production build now FAILS without the CSP URLs, space kept between adjacent markers, this CONTEXT entry.
+  - Learned: tests check behaviour, the browser checks layout (icon wrapping, lost disclosure arrow, composer position were only visible in screenshots). One route `/chat/:id?` + pending sends in the data layer, so a new chat's id never resets the page.
+  - [ ] Next (design critique vs mockup, chosen): composer pinned at the bottom + centred empty state + remove duplicate "Chat" link; account menu (Log out out of the top bar, logo/account into the sidebar on desktop); compact upload once documents exist + visible chat title with "Answers come only from your documents".
+  - [ ] Backlog: highlight the evidence sentence in the excerpt (not chosen now; goes with the Reader). Bundle 213 KB gzip: route code-splitting later.

@@ -6,7 +6,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../shared/http'
 import type { ChatMessage, Citation, ConversationDetail, SendResult } from './types'
 
-vi.mock('../../shared/workspace', () => ({ useWorkspaceId: () => ({ workspaceId: 'w1', isLoading: false, error: null }) }))
+const ws = vi.hoisted(() => ({ id: 'w1' as string | undefined }))
+vi.mock('../../shared/workspace', () => ({ useWorkspaceId: () => ({ workspaceId: ws.id, isLoading: !ws.id, error: null }) }))
 const api = vi.hoisted(() => ({
   listConversations: vi.fn(), getConversation: vi.fn(), createConversation: vi.fn(), sendMessage: vi.fn(), listDocuments: vi.fn(),
 }))
@@ -60,6 +61,7 @@ function save(id: string, question: string, r: SendResult): SendResult {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  ws.id = 'w1'
   store = {}
   api.listDocuments.mockResolvedValue([{ id: 'd1' }])
   api.listConversations.mockResolvedValue([])
@@ -206,6 +208,60 @@ describe('RootRedirect', () => {
 
   it('goes to /chat otherwise', async () => {
     const router = open('/')
+    await waitFor(() => expect(router.state.location.pathname).toBe('/chat'))
+  })
+})
+
+describe('code review fixes', () => {
+  it('a citation clicked in one chat is not shown as active in another chat', async () => {
+    store.a = [userMsg('u1', 'Q'), answerMsg('a1', 'Chat A says [1].')]
+    store.b = [userMsg('u2', 'Q'), answerMsg('b1', 'Chat B says [1].')]
+    const user = userEvent.setup()
+    const router = open('/chat/a')
+    await user.click(await screen.findByRole('button', { name: /Source 1/ }))
+    await router.navigate('/chat/b')
+    await waitFor(() => expect(screen.getByRole('log')).toHaveTextContent('Chat B says'))
+    expect(screen.getByRole('button', { name: /Source 1/ })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('if creating the chat fails, the question is kept and Try again creates and sends it', async () => {
+    api.createConversation.mockRejectedValueOnce(new ApiError('network', null, 'x'))
+      .mockResolvedValue({ id: 'c9', title: null, created_at: '' })
+    const user = userEvent.setup()
+    open('/chat')
+    await ask(user, 'My first question')
+    expect(await screen.findByRole('alert')).toHaveTextContent("Can't reach the server")
+    expect(screen.getByText('My first question')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+    await waitFor(() => expect(api.sendMessage).toHaveBeenCalledWith('c9', 'My first question'))
+  })
+
+  it('a failed chat creation does not follow you into another chat', async () => {
+    api.createConversation.mockRejectedValue(new ApiError('network', null, 'x'))
+    store.b = [userMsg('u2', 'Q'), answerMsg('b1', 'Chat B says [1].')]
+    const user = userEvent.setup()
+    const router = open('/chat')
+    await ask(user, 'Lost?')
+    await screen.findByRole('alert')
+    await router.navigate('/chat/b')
+    await waitFor(() => expect(screen.getByRole('log')).toHaveTextContent('Chat B says'))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('Ask stays disabled until the workspace is known', async () => {
+    ws.id = undefined
+    open('/chat')
+    const box = await screen.findByRole('textbox', { name: 'Ask about your documents' })
+    await userEvent.type(box, 'Too early')
+    expect(screen.getByRole('button', { name: 'Ask' })).toBeDisabled()
+    expect(api.createConversation).not.toHaveBeenCalled()
+  })
+
+  it('"/" shows an error with Try again when the documents cannot be checked', async () => {
+    api.listDocuments.mockRejectedValueOnce(new ApiError('network', null, 'x')).mockResolvedValue([{ id: 'd1' }])
+    const router = open('/')
+    expect(await screen.findByRole('alert')).toHaveTextContent("Can't reach the server")
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
     await waitFor(() => expect(router.state.location.pathname).toBe('/chat'))
   })
 })

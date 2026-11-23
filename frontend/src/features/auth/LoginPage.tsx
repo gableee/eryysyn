@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import { supabase } from '../../shared/supabase'
 import { Button } from '../../shared/ui/Button'
 import { TextField } from '../../shared/ui/TextField'
@@ -9,7 +9,6 @@ import { GoogleButton } from './GoogleButton'
 import { PasswordField } from './PasswordField'
 
 export function LoginPage() {
-  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -21,8 +20,8 @@ export function LoginPage() {
     setBusy(true)
     try {
       const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+      // on success the session changes and RequireGuest sends the user on (to the page they wanted)
       if (authError) setError(authMessage(authError))
-      else navigate('/')
     } catch (err) {
       setError(authMessage(err))
     } finally {

@@ -23,6 +23,16 @@ export function buildCsp(apiUrl: string, supabaseUrl: string): string {
   ].join('; ')
 }
 
+/** The plugins a Vite command gets. A production build without both URLs FAILS: shipping without a CSP must
+ *  never happen silently. The dev server and tests ("serve") need neither. */
+export function cspPluginsFor(command: 'build' | 'serve', env: Record<string, string | undefined>): Plugin[] {
+  if (command !== 'build') return []
+  if (!env.VITE_API_URL || !env.VITE_SUPABASE_URL) {
+    throw new Error('Production build needs VITE_API_URL and VITE_SUPABASE_URL (for the Content Security Policy).')
+  }
+  return [cspPlugin(env.VITE_API_URL, env.VITE_SUPABASE_URL)]
+}
+
 export function cspPlugin(apiUrl: string, supabaseUrl: string): Plugin {
   const policy = buildCsp(apiUrl, supabaseUrl)
   return {

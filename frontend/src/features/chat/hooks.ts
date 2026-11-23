@@ -19,11 +19,11 @@ export function useConversation(id: string | undefined) {
   return useQuery({ queryKey: conversationKey(id), queryFn: () => getConversation(id!), enabled: !!id })
 }
 
-/** true / false once known; undefined while loading. Shares the Library's cache entry (same key, same endpoint). */
-export function useHasDocuments(): boolean | undefined {
+/** Is there any document? `has` is undefined until known. Shares the Library's cache entry (same key and endpoint). */
+export function useDocumentsCheck() {
   const { workspaceId } = useWorkspaceId()
   const q = useQuery({ queryKey: ['documents', workspaceId], queryFn: () => listDocuments(workspaceId!), enabled: !!workspaceId })
-  return q.data ? q.data.length > 0 : undefined
+  return { has: q.data ? q.data.length > 0 : undefined, error: q.error as ApiError | null, retry: () => q.refetch() }
 }
 
 export function useCreateConversation() {

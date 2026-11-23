@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { buildCsp, cspPlugin } from '../csp'
+import { buildCsp, cspPlugin, cspPluginsFor } from '../csp'
 
 describe('Content Security Policy', () => {
   const csp = buildCsp('http://localhost:8000/api', 'https://abc.supabase.co')
@@ -46,5 +46,17 @@ describe('vercel.json', () => {
     expect(headers['X-Content-Type-Options']).toBe('nosniff')
     expect(headers['Referrer-Policy']).toBe('strict-origin-when-cross-origin')
     expect(headers['Permissions-Policy']).toBe('camera=(), microphone=(), geolocation=()')
+  })
+})
+
+describe('production builds without the URLs', () => {
+  it('fail instead of silently shipping without a CSP', () => {
+    expect(() => cspPluginsFor('build', {})).toThrow(/VITE_API_URL and VITE_SUPABASE_URL/)
+  })
+  it('the dev server and tests do not need them', () => {
+    expect(cspPluginsFor('serve', {})).toEqual([])
+  })
+  it('a build with both URLs gets the CSP plugin', () => {
+    expect(cspPluginsFor('build', { VITE_API_URL: 'http://a.test', VITE_SUPABASE_URL: 'https://b.test' })).toHaveLength(1)
   })
 })

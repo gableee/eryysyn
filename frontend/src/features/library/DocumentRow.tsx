@@ -34,9 +34,9 @@ export function DocumentRow({ doc, onRetry, onDelete, busy = false }: Props) {
         <FileText size={20} aria-hidden="true" className={styles.fileIcon} />
         <span className={styles.name}>{doc.filename}</span>
       </span>
-      <Status status={doc.status} />
+      <Status status={doc.status} stuck={doc.status === 'uploaded' && !!onRetry} />
       <span className={styles.actions}>
-        {doc.status === 'failed' && onRetry && (
+        {(doc.status === 'failed' || doc.status === 'uploaded') && onRetry && (
           <Button variant="secondary" onClick={onRetry} busy={busy}>Try again</Button>
         )}
         {doc.status !== 'uploading' && onDelete && (
@@ -47,7 +47,8 @@ export function DocumentRow({ doc, onRetry, onDelete, busy = false }: Props) {
   )
 }
 
-function Status({ status }: { status: LibraryDocument['status'] | 'uploading' }) {
+function Status({ status, stuck }: { status: LibraryDocument['status'] | 'uploading'; stuck?: boolean }) {
+  if (stuck) return <span className={`${styles.status} ${styles.bad}`}><CircleAlert size={16} aria-hidden="true" />Didn't finish reading</span>
   if (status === 'indexed') return <span className={`${styles.status} ${styles.ok}`}><CircleCheck size={16} aria-hidden="true" />Ready</span>
   if (status === 'failed') return <span className={`${styles.status} ${styles.bad}`}><CircleAlert size={16} aria-hidden="true" />Couldn't read it</span>
   // 'uploading' (in the browser) and 'uploaded' (stored, not indexed yet): both mean "still working"

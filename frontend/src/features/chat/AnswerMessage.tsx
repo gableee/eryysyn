@@ -41,6 +41,13 @@ export function AnswerMessage({ message, onSelectCitation, activeN }: Props) {
         const prev = nodes.pop()
         const text = typeof prev === 'object' && prev && 'props' in prev ? String((prev as { props: { children: string } }).props.children) : ''
         const cut = text.replace(/\s+$/, '').search(/\S+$/)
+        if (cut < 0) {                    // only whitespace before this marker (e.g. "[1] [2]"): keep it as it is
+          if (prev !== undefined) nodes.push(prev)
+          glue = []
+          glue.push(<CitationMarker key={`c${i}`} citation={byN.get(s.n)!} active={activeN === s.n}
+            onSelect={() => onSelectCitation(s.n)} />)
+          return
+        }
         const head = cut > 0 ? text.slice(0, cut) : ''
         const word = cut >= 0 ? text.slice(cut).replace(/\s+$/, '') : ''
         if (head) nodes.push(<Fragment key={`h${i}`}>{head}</Fragment>)

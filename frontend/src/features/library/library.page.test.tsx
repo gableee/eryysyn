@@ -6,7 +6,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../shared/http'
 import type { LibraryDocument } from './types'
 
-vi.mock('../../shared/workspace', () => ({ useWorkspaceId: () => ({ workspaceId: 'w1', isLoading: false, error: null }) }))
+const ws = vi.hoisted(() => ({ id: 'w1' as string | undefined }))
+vi.mock('../../shared/workspace', () => ({ useWorkspaceId: () => ({ workspaceId: ws.id, isLoading: !ws.id, error: null }) }))
 const api = vi.hoisted(() => ({
   listDocuments: vi.fn(), uploadDocument: vi.fn(), retryDocument: vi.fn(), deleteDocument: vi.fn(),
 }))
@@ -31,7 +32,7 @@ function page() {
   render(<QueryClientProvider client={client}><MemoryRouter><LibraryPage /></MemoryRouter></QueryClientProvider>)
 }
 
-beforeEach(() => { vi.resetAllMocks() })
+beforeEach(() => { vi.resetAllMocks(); ws.id = 'w1' })
 
 describe('LibraryPage', () => {
   it('an empty list shows the first-visit state', async () => {
@@ -118,5 +119,37 @@ describe('LibraryPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent("Can't reach the server")
     await user.click(screen.getByRole('button', { name: 'Try again' }))
     expect(await screen.findByText('notes.pdf')).toBeInTheDocument()
+  })
+})
+
+describe('code review fixes', () => {
+  it('a document stuck as "uploaded" (not uploading in this tab) can be tried again', async () => {
+    api.listDocuments.mockResolvedValue([doc('d1', 'stuck.pdf', 'uploaded')])
+    api.retryDocument.mockResolvedValue({ id: 'd1', status: 'indexed' })
+    const user = userEvent.setup()
+    page()
+    await user.click(await screen.findByRole('button', { name: 'Try again' }))
+    expect(api.retryDocument).toHaveBeenCalledWith('d1')
+  })
+
+  it('a file being uploaded is listed once, even when the server already lists it', async () => {
+    api.listDocuments.mockResolvedValueOnce([doc('d0', 'old.pdf', 'indexed')])
+      .mockResolvedValue([doc('d1', 'notes.pdf', 'uploaded')])        // a refetch during the upload
+    api.uploadDocument.mockReturnValue(later().promise)
+    api.deleteDocument.mockResolvedValue(null)
+    const user = userEvent.setup()
+    page()
+    await user.upload(await screen.findByLabelText('Choose a file'), pdf('notes.pdf'))
+    await user.click(screen.getByRole('button', { name: 'Delete old.pdf' }))     // triggers a refetch
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+    await waitFor(() => expect(api.listDocuments).toHaveBeenCalledTimes(2))
+    expect(screen.getAllByText('notes.pdf')).toHaveLength(1)
+  })
+
+  it('uploading is not possible until the workspace is known', async () => {
+    ws.id = undefined
+    api.listDocuments.mockResolvedValue([])
+    page()
+    expect(await screen.findByLabelText('Choose a file')).toBeDisabled()
   })
 })

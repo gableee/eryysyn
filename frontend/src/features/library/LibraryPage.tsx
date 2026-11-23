@@ -1,6 +1,7 @@
 import { AnimatePresence } from 'motion/react'
 import { useState } from 'react'
 import { ApiError } from '../../shared/http'
+import { useWorkspaceId } from '../../shared/workspace'
 import { ErrorState } from '../../shared/ui/ErrorState'
 import { DocumentRow } from './DocumentRow'
 import { EmptyLibrary } from './EmptyLibrary'
@@ -24,6 +25,7 @@ export function LibraryPage() {
   const retry = useRetry()
   const remove = useDelete()
   const [fileError, setFileError] = useState<string>()
+  const { workspaceId } = useWorkspaceId()
 
   function choose(file: File) {
     const problem = validateFile(file)
@@ -32,9 +34,12 @@ export function LibraryPage() {
     upload.mutate(file, { onError: (e) => setFileError(uploadMessage(e)) })
   }
 
-  const zone = <UploadZone onFile={choose} disabled={upload.isPending} error={fileError} />
-  const docs = documents.data ?? []
+  // no workspace yet: nowhere to upload to
+  const zone = <UploadZone onFile={choose} disabled={upload.isPending || !workspaceId} error={fileError} />
   const uploading = upload.isPending && upload.variables ? upload.variables.name : null
+  // The backend saves the row before reading the PDF, so a refresh during OUR upload can list it already:
+  // show it once, as our uploading row.
+  const docs = (documents.data ?? []).filter((d) => !(uploading && d.status === 'uploaded' && d.filename === uploading))
 
   return (
     <section className={styles.page} aria-busy={documents.isLoading || undefined}>
@@ -62,6 +67,8 @@ export function LibraryPage() {
             <AnimatePresence initial={false}>
               {uploading && <DocumentRow key="uploading" doc={{ filename: uploading, status: 'uploading' }} />}
               {docs.map((d) => (
+                // "uploaded" here means stuck: no upload in this tab owns it (tab closed or server restarted
+                // mid-reading). It gets Try again, like a failed one.
                 <DocumentRow key={d.id} doc={d}
                   busy={retry.isPending && retry.variables === d.id}
                   onRetry={() => retry.mutate(d.id)}

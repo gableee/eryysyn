@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -53,6 +53,28 @@ describe('routes', () => {
     sessionState.value = signedOut
     open('/dev/states', true)
     expect(await screen.findByRole('heading', { name: 'Component states' })).toBeInTheDocument()
+  })
+})
+
+describe('after login', () => {
+  function openWithFrom(from: string) {
+    const router = createMemoryRouter(createRoutes(false), { initialEntries: [{ pathname: '/login', state: { from } }] })
+    render(<QueryClientProvider client={new QueryClient()}><RouterProvider router={router} /></QueryClientProvider>)
+    return router
+  }
+
+  it('returns to the page the user wanted before logging in', async () => {
+    sessionState.value = signedIn
+    const router = openWithFrom('/library')
+    await waitFor(() => expect(router.state.location.pathname).toBe('/library'))
+  })
+
+  it.each(['//evil.example/x', 'https://evil.example', 'javascript:alert(1)'])('ignores an unsafe return address %s', async (from) => {
+    sessionState.value = signedIn
+    const router = openWithFrom(from)
+    await screen.findByRole('navigation', { name: 'Main' })
+    expect(router.state.location.pathname.startsWith('//')).toBe(false)
+    expect(router.state.location.pathname).not.toContain('evil')
   })
 })
 
