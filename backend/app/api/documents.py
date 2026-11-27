@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
 from app.core.auth import get_current_user_id
 from app.core.storage import supabase, BUCKET
 from app.db.session import pool
@@ -79,6 +79,7 @@ LINK_SECONDS = 600  # PDF.js keeps fetching parts while you read; the whole file
 @router.get("/documents/{document_id}/file")
 def get_document_file(
     document_id: uuid.UUID,
+    response: Response,
     user_id: str = Depends(get_current_user_id),
 ):
     """A short-lived signed link to the stored PDF, for the Reader. Only the owner gets one;
@@ -92,8 +93,16 @@ def get_document_file(
         ).fetchone()
     if not row:
         raise HTTPException(404, "Document not found")
-    signed = supabase.storage.from_(BUCKET).create_signed_url(row[0], LINK_SECONDS)
-    url = signed.get("signedURL") or signed.get("signedUrl")
+    # Storage down, or a reply without a link: a clear 502 the Reader turns into "Try again",
+    # never a bare 500 or {"url": null}
+    try:
+        signed = supabase.storage.from_(BUCKET).create_signed_url(row[0], LINK_SECONDS)
+        url = signed.get("signedURL") or signed.get("signedUrl")
+    except Exception:
+        url = None
+    if not url:
+        raise HTTPException(502, "The file is not available right now. Try again.")
+    response.headers["Cache-Control"] = "no-store"   # a capability link: no browser or proxy keeps a copy
     return {"url": url, "expires_in": LINK_SECONDS}
 
 

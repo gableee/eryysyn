@@ -56,3 +56,50 @@ def test_other_user_and_missing_id_get_404(doc_a):
     _, doc = doc_a
     assert client.get(f"/documents/{doc}/file", headers=auth(_b())).status_code == 404
     assert client.get(f"/documents/{uuid.uuid4()}/file", headers=auth(_a())).status_code == 404
+
+
+def _token_claims(url: str) -> dict:
+    """The signed link carries a JWT in ?token=; its payload says when it was made and when it expires."""
+    import base64
+    import json
+    from urllib.parse import parse_qs, urlparse
+    payload = parse_qs(urlparse(url).query)["token"][0].split(".")[1]
+    return json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+
+
+def test_link_really_expires_after_ten_minutes(doc_a):
+    """Final review: the old test only checked the number we report, not what Storage was asked for."""
+    token, doc = doc_a
+    claims = _token_claims(client.get(f"/documents/{doc}/file", headers=auth(token)).json()["url"])
+    assert claims["exp"] - claims["iat"] == 600
+
+
+def test_link_response_is_never_cached(doc_a):
+    token, doc = doc_a
+    r = client.get(f"/documents/{doc}/file", headers=auth(token))
+    assert r.headers["cache-control"] == "no-store"
+
+
+class _BrokenStorage:
+    def __init__(self, signed=None, error=None):
+        self.signed, self.error = signed, error
+
+    def from_(self, _bucket):
+        return self
+
+    def create_signed_url(self, _path, _seconds):
+        if self.error:
+            raise self.error
+        return self.signed
+
+
+@pytest.mark.parametrize("storage", [_BrokenStorage(error=RuntimeError("storage down")), _BrokenStorage(signed={})],
+                         ids=["storage raises", "no url in the reply"])
+def test_storage_failure_is_a_clear_502_never_a_null_link(doc_a, monkeypatch, storage):
+    """Final review: a Storage error was a bare 500, and a reply without a link returned {"url": null}."""
+    import app.api.documents as documents
+    token, doc = doc_a
+    monkeypatch.setattr(documents, "supabase", type("FakeClient", (), {"storage": storage})())
+    r = client.get(f"/documents/{doc}/file", headers=auth(token))
+    assert r.status_code == 502
+    assert r.json() == {"detail": "The file is not available right now. Try again."}
