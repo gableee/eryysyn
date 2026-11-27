@@ -12,7 +12,7 @@ vi.mock('./useReaderLayout', () => ({ useReaderLayout: () => layout.value }))
 // The PDF.js view comes in Task 6; here a stand-in that lets the test trigger its callbacks.
 vi.mock('./PdfView', () => ({
   PdfView: (p: { url: string; page: number; onExpired(): void; onBroken(): void; onFailed(): void; onPageChange(page: number, total: number, jumped: boolean): void;
-    onHighlightMissing?(): void; onMarksShown?(count: number): void }) => (
+    onHighlightMissing?(found: number, total: number): void; onMarksShown?(count: number): void }) => (
     <div>
       <p>PDF {p.url} page {p.page}</p>
       <button onClick={p.onExpired}>expire</button>
@@ -21,7 +21,8 @@ vi.mock('./PdfView', () => ({
       <button onClick={() => p.onPageChange(112, 340, true)}>turn</button>
       <button onClick={() => p.onPageChange(113, 340, false)}>scroll</button>
       <button onClick={() => p.onMarksShown?.(2)}>marked</button>
-      <button onClick={() => p.onHighlightMissing?.()}>miss</button>
+      <button onClick={() => p.onHighlightMissing?.(0, 2)}>miss</button>
+      <button onClick={() => p.onHighlightMissing?.(1, 2)}>miss one</button>
     </div>
   ),
 }))
@@ -64,6 +65,13 @@ describe('ReaderPage', () => {
     page()
     expect(await screen.findByText('This document is no longer in your Library.')).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: 'Back to Library' }).length).toBeGreaterThan(0)
+  })
+
+  it('a Reader address with an id that is not a document id shows the gone state, not a retry loop (final review)', async () => {
+    api.getFileUrl.mockRejectedValue(new ApiError('invalid', 422, 'Unprocessable'))
+    page()
+    expect(await screen.findByText('This document is no longer in your Library.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
   })
 
   it("network down shows Can't reach the server, and Try again asks again", async () => {
@@ -122,7 +130,7 @@ describe('ReaderPage', () => {
 
 describe('Source and Chat panel by available space (Task 8)', () => {
   const panels = {
-    source: ({ highlightMissing }: { highlightMissing: boolean }) => <p>{highlightMissing ? 'SOURCE (missing)' : 'SOURCE'}</p>,
+    source: ({ missingOnPage }: { missingOnPage: 'all' | 'some' | null }) => <p>{missingOnPage ? `SOURCE (missing ${missingOnPage})` : 'SOURCE'}</p>,
     chat: <p>CHAT</p>,
     defaultTab: 'source' as const,
   }
@@ -170,7 +178,14 @@ describe('Source and Chat panel by available space (Task 8)', () => {
     api.getFileUrl.mockResolvedValue(link())
     page(undefined, panels)
     await userEvent.click(await screen.findByRole('button', { name: 'miss' }))
-    expect(screen.getByText('SOURCE (missing)')).toBeInTheDocument()
+    expect(screen.getByText('SOURCE (missing all)')).toBeInTheDocument()
+  })
+
+  it('only some sentences missing on the page: the Source panel is told "some", not "all" (final review)', async () => {
+    api.getFileUrl.mockResolvedValue(link())
+    page(undefined, panels)
+    await userEvent.click(await screen.findByRole('button', { name: 'miss one' }))
+    expect(screen.getByText('SOURCE (missing some)')).toBeInTheDocument()
   })
 })
 

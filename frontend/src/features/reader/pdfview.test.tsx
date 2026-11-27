@@ -130,10 +130,24 @@ describe('PdfView', () => {
     expect(props.onHighlightMissing).not.toHaveBeenCalled()
   })
 
-  it('not found on the cited page or the next: onHighlightMissing, once', async () => {
+  it('not found on the cited page or the next: onHighlightMissing, once, with 0 of 1 found', async () => {
     pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: ['Something else.'], 113: ['Other text.'] })))
     const { props } = view(112, { highlights: ['Normal adult blood pressure is below 120 mmHg.'] })
     await waitFor(() => expect(props.onHighlightMissing).toHaveBeenCalledTimes(1))
+    expect(props.onHighlightMissing).toHaveBeenCalledWith(0, 1)
+  })
+
+  it('some found, some not: onHighlightMissing says how many were found (final review: "not found" read as none)', async () => {
+    pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: ['Normal adult blood pressure is below 120 mmHg.'], 113: ['Other text.'] })))
+    const { props } = view(112, { highlights: ['Normal adult blood pressure is below 120 mmHg.', 'Fever starts at 38 degrees Celsius.'] })
+    await waitFor(() => expect(props.onHighlightMissing).toHaveBeenCalledTimes(1))
+    expect(props.onHighlightMissing).toHaveBeenCalledWith(1, 2)
+  })
+
+  it('the last page: nothing to spill to, so the count comes from that page alone', async () => {
+    pdf.openPdf.mockReturnValue(opened(fakeDoc(2, { 2: ['Normal adult blood pressure is below 120 mmHg.'] })))
+    const { props } = view(2, { highlights: ['Normal adult blood pressure is below 120 mmHg.', 'Fever starts at 38 degrees Celsius.'] })
+    await waitFor(() => expect(props.onHighlightMissing).toHaveBeenCalledWith(1, 2))
   })
 
   it('an expired link calls onExpired', async () => {

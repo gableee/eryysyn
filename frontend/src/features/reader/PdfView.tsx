@@ -16,8 +16,9 @@ export type PdfViewProps = {
   onBroken(): void
   /** the download failed for another reason (the network dropped, the server stopped): worth trying again */
   onFailed(): void
-  /** none of the cited page or the next one contains a highlight: the Source tab says "Marked in the excerpt only" */
-  onHighlightMissing?(): void
+  /** not every highlight was found on the cited page or the next one: how many were (0 = none, the Source tab
+   *  says "Not found on this page"; some = "Not all of these are marked on the page") */
+  onHighlightMissing?(found: number, total: number): void
   /** the first marks came into view: how many sentences were found */
   onMarksShown?(count: number): void
 }
@@ -48,7 +49,7 @@ export function PdfView({ url, page, highlights, onPageChange, onExpired, onBrok
   // both belong to one set of highlights: opening another citation in the same PDF starts afresh
   const [spillState, setSpill] = useState<{ for: string[]; page: number; sentences: string[] } | null>(null)
   const spill = spillState?.for === highlights ? spillState : null
-  const marked = useRef({ for: highlights, scrolled: false, missingReported: false })
+  const marked = useRef({ for: highlights, scrolled: false, missingReported: false, foundOnCited: 0 })
 
   // open (and reopen when the link is renewed)
   useEffect(() => {
@@ -135,24 +136,25 @@ export function PdfView({ url, page, highlights, onPageChange, onExpired, onBrok
 
   const cited = doc && highlights.length > 0 ? clampPage(String(page), doc.numPages) : 0
   const onMarked = useCallback((n: number, found: boolean[], first: HTMLElement | null) => {
-    if (marked.current.for !== highlights) marked.current = { for: highlights, scrolled: false, missingReported: false }
+    if (marked.current.for !== highlights) marked.current = { for: highlights, scrolled: false, missingReported: false, foundOnCited: 0 }
     if (first && !marked.current.scrolled) {                     // bring the first mark into view, once
       marked.current.scrolled = true
       first.scrollIntoView?.({ block: 'center' })
       callbacks.current.onMarksShown?.(found.filter(Boolean).length)
     }
-    const missing = () => {
+    const missing = (foundCount: number) => {
       if (marked.current.missingReported) return
       marked.current.missingReported = true
-      callbacks.current.onHighlightMissing?.()
+      callbacks.current.onHighlightMissing?.(foundCount, highlights.length)
     }
     if (n === cited) {
       const rest = highlights.filter((_, i) => !found[i])
+      marked.current.foundOnCited = highlights.length - rest.length
       if (rest.length === 0) return
-      if (!doc || cited + 1 > doc.numPages) missing()
+      if (!doc || cited + 1 > doc.numPages) missing(marked.current.foundOnCited)
       else setSpill((s) => (s && s.for === highlights && s.page === cited + 1 ? s : { for: highlights, page: cited + 1, sentences: rest }))
     } else if (found.some((f) => !f)) {
-      missing()
+      missing(marked.current.foundOnCited + found.filter(Boolean).length)   // the next page got the rest
     }
   }, [cited, highlights, doc])
 

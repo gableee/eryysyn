@@ -6,6 +6,7 @@ import { ReaderSource } from '../features/chat/ReaderSource'
 import { useDocuments } from '../features/library/hooks'
 import type { ReaderBack } from '../features/reader/ReaderPage'
 import { supportForCitation } from '../shared/evidence'
+import { ApiError } from '../shared/http'
 import { readerPath } from '../shared/readerPath'
 
 // PDF.js is large: the Reader's code is downloaded only when a Reader opens (route code-splitting).
@@ -35,14 +36,16 @@ export function ReaderRoute() {
   }, [answer, citation, n])
 
   const filename = citation?.filename ?? documents.data?.find((d) => d.id === id)?.filename
-  const back: ReaderBack = chat ? { to: `/chat/${chat}`, label: 'Back to chat' } : { to: '/library', label: 'Back to Library' }
+  // a chat that is gone or not yours is no place to go back to (the Chat tab starts a new one)
+  const chatGone = conversation.error instanceof ApiError && conversation.error.kind === 'not_found'
+  const back: ReaderBack = chat && !chatGone ? { to: `/chat/${chat}`, label: 'Back to chat' } : { to: '/library', label: 'Back to Library' }
 
   return (
     <Suspense fallback={<p role="status">Opening the Reader…</p>}>
       <ReaderPage documentId={id} filename={filename} page={page} highlights={highlights} back={back}
         defaultTab={answerId ? 'source' : 'chat'}
-        source={({ highlightMissing }) => (
-          <ReaderSource conversationId={chat} answerId={answerId} n={n} highlightMissing={highlightMissing} />
+        source={({ missingOnPage }) => (
+          <ReaderSource conversationId={chat} answerId={answerId} n={n} missingOnPage={missingOnPage} />
         )}
         chat={
           <ReaderChat conversationId={chat} here={{ documentId: id, page }}

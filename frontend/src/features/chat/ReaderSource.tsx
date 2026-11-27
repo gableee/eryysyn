@@ -3,7 +3,11 @@ import styles from './Chat.module.css'
 import { useConversation } from './hooks'
 import { SourceCard } from './SourceCard'
 
-type Props = { conversationId?: string; answerId?: string; n?: number; highlightMissing: boolean }
+type Props = {
+  conversationId?: string; answerId?: string; n?: number
+  /** the Reader could not mark all (or some) of the supporting sentences on the page */
+  missingOnPage: 'all' | 'some' | null
+}
 
 const FALLBACK = 'Open a source from a chat to see it here.'
 
@@ -11,7 +15,7 @@ const FALLBACK = 'Open a source from a chat to see it here.'
  * The Reader's Source tab: the question, which claims of the answer this source supports, and the excerpt with its
  * marks (Back to chat is in the toolbar). A chat that is gone (or never existed) shows a fallback, never an error page.
  */
-export function ReaderSource({ conversationId, answerId, n, highlightMissing }: Props) {
+export function ReaderSource({ conversationId, answerId, n, missingOnPage }: Props) {
   const conversation = useConversation(conversationId)
   if (!conversationId || !answerId || n === undefined) return <p className={styles.hint}>{FALLBACK}</p>
   if (conversation.isPending) return <p className={styles.hint}>Loading…</p>
@@ -30,7 +34,8 @@ export function ReaderSource({ conversationId, answerId, n, highlightMissing }: 
       <ul className={styles.claims}>
         {claimsFor(answer.content, n).map((claim, i) => <li key={i}>{claim}</li>)}
       </ul>
-      {highlightMissing && <p className={styles.notice}>Not found on this page: marked in the excerpt only.</p>}
+      {missingOnPage === 'all' && <p className={styles.notice}>Not found on this page: marked in the excerpt only.</p>}
+      {missingOnPage === 'some' && <p className={styles.notice}>Not all of these are marked on the page: the excerpt below has every mark.</p>}
       {/* no "Open page" (we are on it) and no second "Back to chat" (the toolbar has it) */}
       <SourceCard citation={citation} active={false} answer={answer} conversationId={conversationId} showOpenPage={false} />
     </div>

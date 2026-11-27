@@ -20,8 +20,8 @@ type Props = {
   page: number
   /** sentences to mark on the page (the supporting sentences of the cited answer) */
   highlights: string[]
-  /** panels from the app (Task 8): the cited source (told whether the page has its marks) and the conversation */
-  source?: (state: { highlightMissing: boolean }) => ReactNode
+  /** panels from the app (Task 8): the cited source (told whether the page lacks all or some of its marks) and the conversation */
+  source?: (state: { missingOnPage: 'all' | 'some' | null }) => ReactNode
   chat?: ReactNode
   defaultTab?: PanelTab
   back: ReaderBack
@@ -39,8 +39,9 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
   const [sliding, setSliding] = useState(false)         // medium: the slide-over is closed until asked for
   const opener = useRef<HTMLButtonElement | null>(null)
   const dialog = useRef<HTMLDivElement>(null)
-  const [missingFor, setMissingFor] = useState<string[] | null>(null)
-  const highlightMissing = missingFor === highlights    // resets by itself when another citation is opened
+  const [missing, setMissing] = useState<{ for: string[]; found: number } | null>(null)
+  // resets by itself when another citation is opened (the highlights array changes)
+  const missingOnPage = missing?.for === highlights ? (missing.found === 0 ? 'all' : 'some') : null
   const hasPanel = (!!source || !!chat) && layout !== 'phone'
   const showDocked = hasPanel && layout === 'wide' && docked
   const showSlide = hasPanel && layout === 'medium' && sliding
@@ -113,7 +114,8 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
   let body: ReactNode
   if (file.isPending) {
     body = <p className={styles.status} aria-live="polite">Opening {filename ?? 'the document'}…</p>
-  } else if (file.error instanceof ApiError && file.error.kind === 'not_found') {
+  } else if (file.error instanceof ApiError && (file.error.kind === 'not_found' || file.error.kind === 'invalid')) {
+    // invalid (422): the address holds something that is not a document id; trying again cannot help
     body = <EmptyState title="This document is no longer in your Library." action={backLink} />
   } else if (file.error) {
     body = (
@@ -130,12 +132,12 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
       <PdfView key={documentId} url={file.data.url} page={page} highlights={highlights}
         onPageChange={(p, total, jumped) => { setPosition({ page: p, total }); if (jumped) setJumpNote(`Page ${p} of ${total}.`) }}
         onExpired={onExpired} onBroken={() => setBroken(true)} onFailed={() => setFailed(true)}
-        onHighlightMissing={() => setMissingFor(highlights)}
+        onHighlightMissing={(found) => setMissing({ for: highlights, found })}
         onMarksShown={(count) => setMarksNote(`${count} sentence${count === 1 ? '' : 's'} marked.`)} />
     )
   }
 
-  const sourceContent = source?.({ highlightMissing })
+  const sourceContent = source?.({ missingOnPage })
 
   return (
     <section ref={root} className={styles.reader} aria-label={filename ? `Reader: ${filename}` : 'Reader'}>
