@@ -36,7 +36,7 @@ const fakeDoc = (numPages: number, text: Record<number, string[]> = {}) =>
 const opened = (doc: unknown) => ({ promise: Promise.resolve(doc), destroy: vi.fn() })
 
 function view(page: number, extra: Partial<Parameters<typeof PdfView>[0]> = {}) {
-  const props = { url: 'https://x/signed', page, highlights: [] as string[], onPageChange: vi.fn(), onExpired: vi.fn(), onBroken: vi.fn(),
+  const props = { url: 'https://x/signed', page, highlights: [] as string[], onPageChange: vi.fn(), onExpired: vi.fn(), onBroken: vi.fn(), onFailed: vi.fn(),
     onHighlightMissing: vi.fn(), ...extra }
   const utils = render(<PdfView {...props} />)
   return { ...utils, props }
@@ -149,5 +149,79 @@ describe('PdfView', () => {
     pdf.loadErrorKind.mockReturnValue('broken')
     const { props } = view(1)
     await waitFor(() => expect(props.onBroken).toHaveBeenCalledTimes(1))
+  })
+
+  it('a download that fails for another reason (e.g. the network dropped) calls onFailed, not onBroken (final review)', async () => {
+    pdf.openPdf.mockReturnValue({ promise: Promise.reject(new Error('Failed to fetch')), destroy: vi.fn() })
+    pdf.loadErrorKind.mockReturnValue('failed')
+    const onFailed = vi.fn()
+    const { props } = view(1, { onFailed })
+    await waitFor(() => expect(onFailed).toHaveBeenCalledTimes(1))
+    expect(props.onBroken).not.toHaveBeenCalled()
+  })
+
+  it('scrolling still moves the page after a key at the first page (final review: the page stuck and stayed blank)', async () => {
+    let seen: ((entries: { target: Element; intersectionRatio: number }[]) => void) | undefined
+    vi.stubGlobal('IntersectionObserver', class { constructor(cb: typeof seen) { seen = cb } observe() {} disconnect() {} })
+    try {
+      pdf.openPdf.mockReturnValue(opened(fakeDoc(340)))
+      const { container, props } = view(1)
+      const pages = await screen.findByRole('region', { name: 'PDF pages' })
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(1, 340, true))
+      fireEvent.keyDown(pages, { key: 'PageUp' })                      // already on page 1: nothing to move
+      act(() => seen?.([{ target: container.querySelector('[data-page="5"]')!, intersectionRatio: 1 }]))   // then a scroll
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(5, 340, false))
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('does not take focus from a question box the student is typing in while the PDF loads (final review)', async () => {
+    let open: (doc: unknown) => void = () => {}
+    pdf.openPdf.mockReturnValue({ promise: new Promise((resolve) => { open = resolve }), destroy: vi.fn() })
+    const input = document.createElement('textarea')
+    document.body.append(input)
+    try {
+      const { props } = view(112)
+      input.focus()
+      await act(async () => open(fakeDoc(340)))
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+      expect(input).toHaveFocus()
+    } finally {
+      input.remove()
+    }
+  })
+
+  it('a page that leaves the drawn window frees its PDF.js resources and its canvas memory (final review)', async () => {
+    const doc = fakeDoc(340)
+    const pages = new Map<number, ReturnType<typeof fakePage>>()
+    doc.getPage.mockImplementation((n: number) => { const p = fakePage(); pages.set(n, p); return Promise.resolve(p) })
+    pdf.openPdf.mockReturnValue(opened(doc))
+    const { container, props } = view(112)
+    await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+    await waitFor(() => expect(pages.get(112)).toBeDefined())
+    const canvas = container.querySelector<HTMLCanvasElement>('[data-page="112"] canvas')!
+    await waitFor(() => expect(canvas.width).toBeGreaterThan(0))
+    fireEvent.keyDown(screen.getByRole('region', { name: 'PDF pages' }), { key: 'End' })
+    await waitFor(() => expect(pages.get(112)!.cleanup).toHaveBeenCalled())
+    expect(canvas.width).toBe(0)                                         // iOS counts a removed canvas until it is emptied
+    expect(canvas.height).toBe(0)
+  })
+
+  it('cancelling a page while its text is being laid out is quiet (no unhandled rejection)', async () => {
+    const original = pdf.TextLayer.prototype.render
+    pdf.TextLayer.prototype.render = () => Promise.reject(Object.assign(new Error('TextLayer task cancelled.'), { name: 'AbortException' }))
+    const unhandled = vi.fn()
+    process.on('unhandledRejection', unhandled)
+    try {
+      pdf.openPdf.mockReturnValue(opened(fakeDoc(340)))
+      const { props } = view(112)
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+      await new Promise((r) => setTimeout(r, 20))
+      expect(unhandled).not.toHaveBeenCalled()
+    } finally {
+      process.off('unhandledRejection', unhandled)
+      pdf.TextLayer.prototype.render = original
+    }
   })
 })
