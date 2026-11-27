@@ -85,6 +85,31 @@ Fixed in this branch (owner's choice, test-first): both P2s and the P3 (dialog f
 only on jumps + "2 sentences marked", 44px actions on phones, question in the Source tab, no duplicates).
 Next, in their own small design round: the two P1s (marks on pre-highlighted PDFs, the phone Reader).
 
+## Final review (2026-11-27)
+
+A fresh reviewer read the whole branch (11 commits): **with fixes**, 0 critical, 5 important. All important ones
+fixed test-first (279 frontend tests), then checked on the real stack with two generated PDFs (test user A, cleaned).
+
+| Found | Effect for a student | Fix |
+|---|---|---|
+| PDF.js 6 decodes JBIG2 / JPEG 2000 pictures with WebAssembly files we never served | scanned pages draw blank | `frontend/pdfAssets.ts`: a Vite plugin serves `wasm/`, `cmaps/`, `standard_fonts/`, `iccs/` at `/pdfjs/` (fixed list, no PDF scripting engine); `openPdf` passes the URLs. Browser: the JPX test page is white without them (PDF.js: "Ensure that the `wasmUrl` API parameter is provided"), blue/green/red with them |
+| PageUp on page 1 (End on the last page) set a "jump" that was never cleared | scrolling no longer drew pages or moved the counter | already on that page: just scroll to it |
+| Reader state (damaged, failed, renewed) kept across documents | one damaged PDF made the next one "can't be shown" | reset when the document changes (the panel stays open) |
+| a deleted / not-yours `?chat=` | every question in the Chat tab failed | a 404 chat counts as no chat: the first question starts one |
+| PDF.js network errors were classed "damaged" | offline mid-download = dead end | `loadErrorKind`: expired / broken (InvalidPDF, Password) / failed (anything else: Try again) |
+| pages leaving the screen kept PDF.js resources and canvases | memory on long reads, iOS canvas limit | `page.cleanup()`, canvases emptied, cancelled work caught |
+| (re-graded from minor) the Reader took focus while loading | a question being typed lost focus | focus the pages only when nothing else has focus |
+
+Plan's 300+ page check (skipped in Task 9, done now): 340-page file, at most 3 pages drawn while scrolling 60
+pages, JS heap 49 -> 63 MB and flat, End / PageUp at the edges then scrolling follows, 0 console errors
+(desktop Chromium; no iPhone to measure on). Network drop simulated by blocking the download: "This PDF
+couldn't be loaded." + Try again, which then draws the page.
+
+Deferred (small): partial vs none for "Not found on this page"; a short sentence can match the first place on the
+page; code point vs UTF-16 offsets; bullet answers without full stops get no marks; `/file` can return `url: null`
+and has no `Cache-Control: no-store`; page-number field and page skeleton from the spec; a non-UUID Reader URL
+retries instead of saying "gone"; "Back to chat" for a dead chat id.
+
 ## Reproduce
 
 ```bash
