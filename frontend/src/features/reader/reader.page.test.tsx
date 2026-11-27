@@ -11,12 +11,13 @@ const layout = vi.hoisted(() => ({ value: 'wide' as 'wide' | 'medium' | 'phone' 
 vi.mock('./useReaderLayout', () => ({ useReaderLayout: () => layout.value }))
 // The PDF.js view comes in Task 6; here a stand-in that lets the test trigger its callbacks.
 vi.mock('./PdfView', () => ({
-  PdfView: (p: { url: string; page: number; onExpired(): void; onBroken(): void; onPageChange(page: number, total: number, jumped: boolean): void;
+  PdfView: (p: { url: string; page: number; onExpired(): void; onBroken(): void; onFailed(): void; onPageChange(page: number, total: number, jumped: boolean): void;
     onHighlightMissing?(): void; onMarksShown?(count: number): void }) => (
     <div>
       <p>PDF {p.url} page {p.page}</p>
       <button onClick={p.onExpired}>expire</button>
       <button onClick={p.onBroken}>break</button>
+      <button onClick={p.onFailed}>fail</button>
       <button onClick={() => p.onPageChange(112, 340, true)}>turn</button>
       <button onClick={() => p.onPageChange(113, 340, false)}>scroll</button>
       <button onClick={() => p.onMarksShown?.(2)}>marked</button>
@@ -31,13 +32,15 @@ const link = (url = 'https://x.supabase.co/signed/1') => ({ url, expires_in: 600
 
 function page(back: ReaderBack = { to: '/library', label: 'Back to Library' }, panels: Partial<Parameters<typeof ReaderPage>[0]> = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  render(
+  const ui = (props: Partial<Parameters<typeof ReaderPage>[0]>) => (
     <QueryClientProvider client={client}>
       <MemoryRouter>
-        <ReaderPage documentId="d1" filename="notes.pdf" page={112} highlights={[]} back={back} {...panels} />
+        <ReaderPage documentId="d1" filename="notes.pdf" page={112} highlights={[]} back={back} {...panels} {...props} />
       </MemoryRouter>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   )
+  const { rerender } = render(ui({}))
+  return { rerender: (props: Partial<Parameters<typeof ReaderPage>[0]>) => rerender(ui(props)) }
 }
 
 beforeEach(() => { vi.resetAllMocks(); layout.value = 'wide' })
@@ -88,6 +91,25 @@ describe('ReaderPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'break' }))
     expect(await screen.findByText("This PDF can't be shown here.")).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: 'Back to chat' })[0]).toHaveAttribute('href', '/chat/c1')
+  })
+
+  it('a download that fails mid-way (network dropped) offers Try again, which opens the PDF again (final review)', async () => {
+    api.getFileUrl.mockResolvedValueOnce(link('https://x/1')).mockResolvedValue(link('https://x/2'))
+    page()
+    await userEvent.click(await screen.findByRole('button', { name: 'fail' }))
+    expect(await screen.findByText("This PDF couldn't be loaded.")).toBeInTheDocument()
+    expect(screen.queryByText("This PDF can't be shown here.")).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByText('PDF https://x/2 page 112')).toBeInTheDocument()
+  })
+
+  it('a damaged PDF does not make the next document look damaged too (final review)', async () => {
+    api.getFileUrl.mockImplementation((id: string) => Promise.resolve(link(`https://x/${id}`)))
+    const { rerender } = page()
+    await userEvent.click(await screen.findByRole('button', { name: 'break' }))
+    expect(await screen.findByText("This PDF can't be shown here.")).toBeInTheDocument()
+    rerender({ documentId: 'd2', page: 3 })                       // a citation in the Chat tab opens another PDF
+    expect(await screen.findByText('PDF https://x/d2 page 3')).toBeInTheDocument()
   })
 
   it('the toolbar shows the page counter once known, for screen readers too', async () => {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { ApiError } from '../../shared/http'
 import { ErrorState } from '../../shared/ui/ErrorState'
 import { useWorkspaceId } from '../../shared/workspace'
 import styles from './Chat.module.css'
@@ -26,6 +27,10 @@ type Props = {
  */
 export function ReaderChat({ conversationId, onOpenCitation, onStarted, here }: Props) {
   const conversation = useConversation(conversationId)
+  // a chat that was deleted, or is not yours (404): treated as no chat, so the first question starts a new one
+  // and replaces the dead id in the address (final review: every question failed against the dead id)
+  const gone = conversation.error instanceof ApiError && conversation.error.kind === 'not_found'
+  const chatId = gone ? undefined : conversationId
   const send = useSend()
   const create = useCreateConversation()
   const latest = useLatestSend(conversationId)
@@ -44,7 +49,7 @@ export function ReaderChat({ conversationId, onOpenCitation, onStarted, here }: 
 
   async function ask(question: string) {
     if (busy) return
-    let id = conversationId
+    let id = chatId
     if (!id) {
       setCreating(question)
       setCreateFailed(null)
@@ -64,7 +69,7 @@ export function ReaderChat({ conversationId, onOpenCitation, onStarted, here }: 
   return (
     <div className={styles.readerChat}>
       {messages.length === 0 && !pending && <p className={styles.hint}>Ask a question about your documents.</p>}
-      <MessageList messages={messages} layout="inline" selectedId={undefined} activeN={undefined} conversationId={conversationId} here={here}
+      <MessageList messages={messages} layout="inline" selectedId={undefined} activeN={undefined} conversationId={chatId} here={here}
         onSelect={(answerId, n) => {
           const citation = messages.find((m) => m.id === answerId)?.citations.find((c) => c.n === n)
           if (citation?.document_id) onOpenCitation(citation, answerId, n)

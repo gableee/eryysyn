@@ -109,4 +109,19 @@ describe('ReaderChat (the Chat tab)', () => {
     await waitFor(() => expect(onStarted).toHaveBeenCalledWith('new1'))
     await waitFor(() => expect(api.sendMessage).toHaveBeenCalledWith('new1', 'What is this?'))
   })
+
+  it('a chat that is gone or not yours: the first question starts a new chat (Review Focus 5, final review)', async () => {
+    api.getConversation.mockImplementation((id: string) =>
+      id === 'gone' ? Promise.reject(new ApiError('not_found', 404, 'gone')) : Promise.resolve(conv([])))
+    api.createConversation.mockResolvedValue({ id: 'new1', title: null, created_at: '' })
+    api.sendMessage.mockResolvedValue({ message_id: 'a1', answer: 'Yes [1].', refused: false, search_question: 'Q', citations: [cite] })
+    const onStarted = vi.fn()
+    const user = userEvent.setup()
+    show(<ReaderChat conversationId="gone" onOpenCitation={vi.fn()} onStarted={onStarted} />)
+    await waitFor(() => expect(api.getConversation).toHaveBeenCalledWith('gone'))
+    await user.type(screen.getByRole('textbox', { name: 'Ask about your documents' }), 'What is this?{Enter}')
+    await waitFor(() => expect(onStarted).toHaveBeenCalledWith('new1'))
+    await waitFor(() => expect(api.sendMessage).toHaveBeenCalledWith('new1', 'What is this?'))
+    expect(api.sendMessage).not.toHaveBeenCalledWith('gone', expect.anything())
+  })
 })

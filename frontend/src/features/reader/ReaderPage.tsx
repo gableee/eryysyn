@@ -78,9 +78,19 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
   const file = useFileUrl(documentId)
   const sidebar = useShellSidebar()
   const [renewed, setRenewed] = useState(false)
-  const [expired, setExpired] = useState(false)
+  const [failed, setFailed] = useState(false)          // a second expiry, or a download that failed: Try again
   const [broken, setBroken] = useState(false)
   const [position, setPosition] = useState<{ page: number; total: number }>()
+  // these belong to one document: a citation that opens another PDF starts clean (final review: a damaged
+  // file made the next one look damaged too). Reset during render, so the panel and its tab stay as they are.
+  const [stateFor, setStateFor] = useState(documentId)
+  if (stateFor !== documentId) {
+    setStateFor(documentId)
+    setRenewed(false)
+    setFailed(false)
+    setBroken(false)
+    setPosition(undefined)
+  }
   // what screen readers hear: the page after a jump, and how many sentences are marked (never every page scrolled past)
   const [jumpNote, setJumpNote] = useState('')
   const [marksNote, setMarksNote] = useState('')
@@ -91,11 +101,11 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
 
   function onExpired() {
     if (!renewed) { setRenewed(true); void file.refetch() }   // first time: quietly fetch a new link
-    else setExpired(true)
+    else setFailed(true)
   }
 
   function retry() {
-    setExpired(false)
+    setFailed(false)
     setRenewed(false)
     void file.refetch()
   }
@@ -112,13 +122,14 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
     )
   } else if (broken) {
     body = <EmptyState title="This PDF can't be shown here." action={backLink} />
-  } else if (expired) {
-    body = <ErrorState message="This PDF couldn't be loaded." onRetry={retry} />
+  } else if (failed) {
+    body = <ErrorState onRetry={retry}
+      message={typeof navigator !== 'undefined' && navigator.onLine === false ? "Can't reach the server" : "This PDF couldn't be loaded."} />
   } else {
     body = (
       <PdfView key={documentId} url={file.data.url} page={page} highlights={highlights}
         onPageChange={(p, total, jumped) => { setPosition({ page: p, total }); if (jumped) setJumpNote(`Page ${p} of ${total}.`) }}
-        onExpired={onExpired} onBroken={() => setBroken(true)}
+        onExpired={onExpired} onBroken={() => setBroken(true)} onFailed={() => setFailed(true)}
         onHighlightMissing={() => setMissingFor(highlights)}
         onMarksShown={(count) => setMarksNote(`${count} sentence${count === 1 ? '' : 's'} marked.`)} />
     )
@@ -146,7 +157,7 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
       </header>
       <div className={showDocked ? `${styles.body} ${styles.bodyWithPanel}` : styles.body}>
         {/* loading and error states sit in the middle; the PDF fills its column */}
-        {file.data && !broken && !expired ? body : <div className={styles.stateBox}>{body}</div>}
+        {file.data && !broken && !failed ? body : <div className={styles.stateBox}>{body}</div>}
         {showDocked && <aside className={styles.docked} aria-label="Source and chat"><ReaderPanel tab={tab} onTab={setTab} closeLabel="Hide panel" onClose={() => setDocked(false)} source={sourceContent} chat={chat} /></aside>}
       </div>
       {showSlide && (

@@ -18,6 +18,19 @@ type Props = {
 export const PageSlot = memo(function PageSlot({ doc, n, scale, draw, width, height, highlights, onMarked }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const text = useRef<HTMLDivElement>(null)
+  const page = useRef<{ cleanup(): unknown } | null>(null)
+
+  // leaving the drawn window (not a zoom, which redraws the same page): free what PDF.js keeps for the page and
+  // empty the canvas. iOS Safari counts a removed canvas against its fixed canvas memory until it is emptied.
+  useEffect(() => {
+    if (!draw) return
+    const c = canvas.current
+    return () => {
+      page.current?.cleanup()
+      page.current = null
+      if (c) { c.width = 0; c.height = 0 }
+    }
+  }, [draw, doc, n])
 
   useEffect(() => {
     if (!draw) return
@@ -26,26 +39,32 @@ export const PageSlot = memo(function PageSlot({ doc, n, scale, draw, width, hei
     let textLayer: { cancel(): void } | undefined
     const textDiv = text.current
     void (async () => {
-      const page = await doc.getPage(n)
-      const c = canvas.current
-      const context = c?.getContext('2d')
-      if (cancelled || !c || !context) return
-      const viewport = page.getViewport({ scale })
-      const ratio = window.devicePixelRatio || 1             // sharp on high-density screens
-      c.width = Math.floor(viewport.width * ratio)
-      c.height = Math.floor(viewport.height * ratio)
-      const task = page.render({ canvasContext: context, canvas: c, viewport, transform: ratio === 1 ? undefined : [ratio, 0, 0, ratio, 0, 0] })
-      renderTask = task
-      await task.promise.catch(() => {})                     // cancelled when the page leaves the screen
-      if (cancelled || !textDiv) return
-      textDiv.replaceChildren()
-      const layer = new TextLayer({ textContentSource: await page.getTextContent(), container: textDiv, viewport })
-      textLayer = layer
-      await layer.render()
-      if (cancelled || highlights.length === 0) return
-      const found = highlights.map((h) => findTextRanges(layer.textContentItemsStr, h))
-      const first = markRanges(layer.textDivs, found.flat())
-      onMarked?.(n, found.map((r) => r.length > 0), first)
+      // cancelling (the page scrolled away) and closing the document make these steps reject: nothing to draw then
+      try {
+        const p = await doc.getPage(n)
+        page.current = p
+        const c = canvas.current
+        const context = c?.getContext('2d')
+        if (cancelled || !c || !context) return
+        const viewport = p.getViewport({ scale })
+        const ratio = window.devicePixelRatio || 1             // sharp on high-density screens
+        c.width = Math.floor(viewport.width * ratio)
+        c.height = Math.floor(viewport.height * ratio)
+        const task = p.render({ canvasContext: context, canvas: c, viewport, transform: ratio === 1 ? undefined : [ratio, 0, 0, ratio, 0, 0] })
+        renderTask = task
+        await task.promise.catch(() => {})                     // a cancelled picture still gets its text layer below
+        if (cancelled || !textDiv) return
+        textDiv.replaceChildren()
+        const layer = new TextLayer({ textContentSource: await p.getTextContent(), container: textDiv, viewport })
+        textLayer = layer
+        await layer.render()
+        if (cancelled || highlights.length === 0) return
+        const found = highlights.map((h) => findTextRanges(layer.textContentItemsStr, h))
+        const first = markRanges(layer.textDivs, found.flat())
+        onMarked?.(n, found.map((r) => r.length > 0), first)
+      } catch {
+        // cancelled or closed: the next draw starts afresh
+      }
     })()
     return () => {
       cancelled = true

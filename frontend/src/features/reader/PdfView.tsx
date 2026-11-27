@@ -14,6 +14,8 @@ export type PdfViewProps = {
   onPageChange(page: number, total: number, jumped: boolean): void
   onExpired(): void
   onBroken(): void
+  /** the download failed for another reason (the network dropped, the server stopped): worth trying again */
+  onFailed(): void
   /** none of the cited page or the next one contains a highlight: the Source tab says "Marked in the excerpt only" */
   onHighlightMissing?(): void
   /** the first marks came into view: how many sentences were found */
@@ -29,7 +31,7 @@ const NONE: string[] = []                 // one stable empty list, so idle page
  * The whole PDF in one scroll column, opened at `page`. Every page has a slot of the right size, but only the
  * visible page and its neighbours are drawn, so a 340-page file stays light. Keys: PageUp/PageDown, ←/→, Home/End.
  */
-export function PdfView({ url, page, highlights, onPageChange, onExpired, onBroken, onHighlightMissing, onMarksShown }: PdfViewProps) {
+export function PdfView({ url, page, highlights, onPageChange, onExpired, onBroken, onFailed, onHighlightMissing, onMarksShown }: PdfViewProps) {
   const [doc, setDoc] = useState<PdfDocument | null>(null)
   const [base, setBase] = useState({ width: 612, height: 792 })   // page 1 at scale 1 (US Letter until known)
   const [visible, setVisible] = useState(1)
@@ -40,8 +42,8 @@ export function PdfView({ url, page, highlights, onPageChange, onExpired, onBrok
   const current = useRef(page)              // reopening after a renewed link keeps the student's place
   const jump = useRef<number | null>(null)
   const focused = useRef(false)
-  const callbacks = useRef({ onPageChange, onExpired, onBroken, onHighlightMissing, onMarksShown })
-  useEffect(() => { callbacks.current = { onPageChange, onExpired, onBroken, onHighlightMissing, onMarksShown } })
+  const callbacks = useRef({ onPageChange, onExpired, onBroken, onFailed, onHighlightMissing, onMarksShown })
+  useEffect(() => { callbacks.current = { onPageChange, onExpired, onBroken, onFailed, onHighlightMissing, onMarksShown } })
   // highlights not found on the cited page are looked for on the next one (a passage can cross a page end)
   // both belong to one set of highlights: opening another citation in the same PDF starts afresh
   const [spillState, setSpill] = useState<{ for: string[]; page: number; sentences: string[] } | null>(null)
@@ -63,8 +65,10 @@ export function PdfView({ url, page, highlights, onPageChange, onExpired, onBrok
       setVisible(start)
     }).catch((error: unknown) => {
       if (!alive) return
-      if (loadErrorKind(error) === 'expired') callbacks.current.onExpired()
-      else callbacks.current.onBroken()
+      const kind = loadErrorKind(error)
+      if (kind === 'expired') callbacks.current.onExpired()
+      else if (kind === 'broken') callbacks.current.onBroken()
+      else callbacks.current.onFailed()
     })
     return () => { alive = false; void task.destroy() }
   }, [url])
@@ -86,10 +90,12 @@ export function PdfView({ url, page, highlights, onPageChange, onExpired, onBrok
       jump.current = null
     }
     // the first time the document is shown, keyboard focus goes to the pages (without scrolling), so PageDown works
-    // at once and Shift+Tab reaches the toolbar; never again, so a renewed link can't steal focus from the Chat tab
+    // at once and Shift+Tab reaches the toolbar; never again, so a renewed link can't steal focus from the Chat tab,
+    // and never from something the student is already using (typing a question while the PDF loads)
     if (!focused.current) {
       focused.current = true
-      region.current?.focus({ preventScroll: true })
+      const active = document.activeElement
+      if (!active || active === document.body) region.current?.focus({ preventScroll: true })
     }
   }, [visible, doc])
 
@@ -153,6 +159,9 @@ export function PdfView({ url, page, highlights, onPageChange, onExpired, onBrok
   function goTo(p: number) {
     if (!doc) return
     const target = clampPage(String(p), doc.numPages)
+    // already there (PageUp on page 1, End on the last page): just bring it back into view. Setting `jump` here
+    // would never be cleared (no page change, no effect run) and scrolling would stop updating the page.
+    if (target === visible) { slot(target)?.scrollIntoView?.({ block: 'start' }); return }
     jump.current = target
     setVisible(target)
   }
