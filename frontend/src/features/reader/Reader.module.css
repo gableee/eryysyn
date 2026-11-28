@@ -64,9 +64,11 @@
 :global(.textLayer) ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 
 /* our mark on the real page. PDF pages are white in both themes, so the colours are fixed, not theme tokens.
-   No fill (a PDF the author already highlighted would hide it): a thick green underline plus a margin bar. */
+   No fill (a PDF the author already highlighted would hide it): a thick green underline plus a margin bar.
+   scroll-margin is above and below only: on the sides it pushed the mark's box past a phone's view, so the mark
+   scroll also moved the pages sideways and hid the start of every line (final review F1). */
 .pageMark {
-  background: none; color: transparent; scroll-margin: 96px;
+  background: none; color: transparent; scroll-margin: 96px 0;
   text-decoration: underline 3px #2F6F4F; text-underline-offset: 2px; text-decoration-skip-ink: none;
 }
 .marginBar { position: absolute; width: 4px; background: #2F6F4F; border-radius: 2px; }
@@ -113,6 +115,8 @@
   background: var(--bg); border-top: 1px solid var(--line); box-shadow: 0 -2px 8px rgb(0 0 0 / 0.08);
   max-height: 40dvh; overflow-y: auto;
 }
+/* a tap on the page hides the strip with the hidden attribute; display: grid above would otherwise keep it on screen */
+.strip[hidden] { display: none; }
 .stripHead { display: flex; align-items: center; gap: 12px; font-size: var(--t-14); color: var(--muted); font-variant-numeric: tabular-nums; }
 .stripLabel { font-weight: 600; color: var(--ink); }
 .stripButtons { margin-left: auto; display: flex; gap: 4px; }

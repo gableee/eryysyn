@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
+import { useImperativeHandle, type Ref } from 'react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -9,10 +10,14 @@ const api = vi.hoisted(() => ({ getFileUrl: vi.fn() }))
 vi.mock('./api', () => api)
 const layout = vi.hoisted(() => ({ value: 'wide' as 'wide' | 'medium' | 'phone' }))
 vi.mock('./useReaderLayout', () => ({ useReaderLayout: () => layout.value }))
+// the handle the real PdfView gives through its ref: the strip's arrows call it
+const handle = vi.hoisted(() => ({ showSentence: vi.fn() }))
 // The PDF.js view comes in Task 6; here a stand-in that lets the test trigger its callbacks.
 vi.mock('./PdfView', () => ({
-  PdfView: (p: { url: string; page: number; label?: number; onTap?(): void; onExpired(): void; onBroken(): void; onFailed(): void; onPageChange(page: number, total: number, jumped: boolean): void;
-    onMarks?(found: { index: number; page: number }[], total: number): void; onMarksShown?(count: number): void }) => (
+  PdfView: function FakePdfView(p: { url: string; page: number; label?: number; onTap?(): void; onExpired(): void; onBroken(): void; onFailed(): void; onPageChange(page: number, total: number, jumped: boolean): void;
+    onMarks?(found: { index: number; page: number }[], total: number): void; onMarksShown?(count: number): void; ref?: Ref<{ showSentence(index: number): void }> }) {
+    useImperativeHandle(p.ref, () => ({ showSentence: (i: number) => handle.showSentence(i) }))
+    return (
     <div>
       <p>PDF {p.url} page {p.page}</p>
       <button onClick={p.onExpired}>expire</button>
@@ -27,8 +32,10 @@ vi.mock('./PdfView', () => ({
       <button onClick={() => p.onMarks?.([{ index: 0, page: 112 }], 1)}>all found</button>
       <button onClick={() => p.onMarks?.([], 2)}>miss</button>
       <button onClick={() => p.onMarks?.([{ index: 0, page: 112 }], 2)}>miss one</button>
+      <button onClick={() => p.onMarks?.([{ index: 0, page: 113 }], 1)}>next page only</button>
     </div>
-  ),
+    )
+  },
 }))
 
 import { ReaderPage, type ReaderBack } from './ReaderPage'
@@ -296,12 +303,56 @@ describe('keyboard and screen readers (critique P2)', () => {
       expect(screen.queryByText('For [1]')).toBeNull()
     })
 
+    it('a tap while the page is still finding its marks does not hide the strip before it first shows (final review F2a)', async () => {
+      await opened({ label: 1, highlights: ['A.', 'B.'] })
+      await userEvent.click(screen.getByRole('button', { name: 'tap page' }))   // no strip yet: nothing to hide
+      await userEvent.click(screen.getByRole('button', { name: 'marks' }))
+      expect(screen.getByText('For [1]')).toBeVisible()
+    })
+
+    it('a tap with no strip on screen (opened from the Library) does not hide a later one (final review F2a)', async () => {
+      const { rerender } = await opened({ highlights: [] })
+      await userEvent.click(screen.getByRole('button', { name: 'tap page' }))
+      rerender({ label: 1, highlights: [] })                                     // a citation opens in the same Reader
+      expect(screen.getByText(/No single sentence/)).toBeVisible()
+    })
+
     it('a tap on the page hides the strip, another shows it', async () => {
       await opened({ label: 1, highlights: [] })
       await userEvent.click(screen.getByRole('button', { name: 'tap page' }))
-      expect(screen.queryByText(/No single sentence/)).toBeNull()
+      expect(screen.queryByRole('region', { name: 'Marked sentence' })).toBeNull()     // hidden: out of sight and of the a11y tree
       await userEvent.click(screen.getByRole('button', { name: 'tap page' }))
-      expect(screen.getByText(/No single sentence/)).toBeInTheDocument()
+      expect(screen.getByRole('region', { name: 'Marked sentence' })).toHaveTextContent(/No single sentence/)
+    })
+
+    it('› asks the page to scroll to the next sentence, by its index in the citation (final review F2d)', async () => {
+      await opened({ label: 1, highlights: ['A.', 'B.'] })
+      await userEvent.click(screen.getByRole('button', { name: 'marks' }))           // A on p. 112, B on p. 113
+      await userEvent.click(screen.getByRole('button', { name: 'Next marked sentence' }))
+      expect(handle.showSentence).toHaveBeenCalledTimes(1)
+      expect(handle.showSentence).toHaveBeenLastCalledWith(1)
+      expect(screen.getByText('p. 113')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Previous marked sentence' }))
+      expect(handle.showSentence).toHaveBeenLastCalledWith(0)
+    })
+
+    it('a sentence found only on the next page: the strip names that page (final review F2d)', async () => {
+      await opened({ label: 1, highlights: ['A.'] })
+      await userEvent.click(screen.getByRole('button', { name: 'next page only' }))
+      expect(screen.getByText('For [1]')).toBeInTheDocument()
+      expect(screen.getByText('p. 113')).toBeInTheDocument()
+      expect(screen.getByText('A.')).toBeInTheDocument()
+    })
+
+    it('hiding and showing the strip keeps the sentence it was on (final review F2b)', async () => {
+      await opened({ label: 1, highlights: ['A.', 'B.'] })
+      await userEvent.click(screen.getByRole('button', { name: 'marks' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Next marked sentence' }))
+      expect(screen.getByText('2 of 2')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'tap page' }))
+      await userEvent.click(screen.getByRole('button', { name: 'tap page' }))
+      expect(screen.getByText('2 of 2')).toBeVisible()                           // not back to "1 of 2" while the page shows B
+      expect(screen.getByText('B.')).toBeVisible()
     })
   })
 })

@@ -116,6 +116,15 @@ export function ReaderPage({ documentId, filename, page, highlights, label, sour
     void file.refetch()
   }
 
+  // the phone reading strip: only for a citation, only while the PDF is shown, and for marks only once the page has reported
+  const reported = missing?.for === highlights ? missing : null
+  const stripState = highlights.length === 0 ? 'no-sentence' : reported ? (reported.marks.length === 0 ? 'none-on-page' : 'marks') : null
+  const hasStrip = layout === 'phone' && label !== undefined && stripState !== null && !!file.data && !broken && !failed
+  const stripSentences = reported ? reported.marks.map((m) => ({ index: m.index, text: highlights[m.index], page: m.page })) : []
+  // a tap hides or shows the strip only while there is one: a tap while the page is still finding its marks (or with
+  // no strip at all) must not hide it before the student has seen it (final review F2a)
+  const onTap = () => { if (hasStrip) setStripHidden((h) => !h) }
+
   let body: ReactNode
   if (file.isPending) {
     body = <p className={styles.status} aria-live="polite">Opening {filename ?? 'the document'}…</p>
@@ -134,19 +143,13 @@ export function ReaderPage({ documentId, filename, page, highlights, label, sour
       message={typeof navigator !== 'undefined' && navigator.onLine === false ? "Can't reach the server" : "This PDF couldn't be loaded."} />
   } else {
     body = (
-      <PdfView ref={pdf} key={documentId} label={label} onTap={() => setStripHidden((h) => !h)} url={file.data.url} page={page} highlights={highlights} fit={layout === 'phone' ? 'column' : 'width'}
+      <PdfView ref={pdf} key={documentId} label={label} onTap={onTap} url={file.data.url} page={page} highlights={highlights} fit={layout === 'phone' ? 'column' : 'width'}
         onPageChange={(p, total, jumped) => { setPosition({ page: p, total }); if (jumped) setJumpNote(`Page ${p} of ${total}.`) }}
         onExpired={onExpired} onBroken={() => setBroken(true)} onFailed={() => setFailed(true)}
         onMarks={(found, total) => setMissing({ for: highlights, found: found.length, total, marks: found })}
         onMarksShown={(count) => setMarksNote(`${count} sentence${count === 1 ? '' : 's'} marked.`)} />
     )
   }
-
-  // the phone reading strip: only for a citation, only while the PDF is shown, and for marks only once the page has reported
-  const reported = missing?.for === highlights ? missing : null
-  const stripState = highlights.length === 0 ? 'no-sentence' : reported ? (reported.marks.length === 0 ? 'none-on-page' : 'marks') : null
-  const showStrip = layout === 'phone' && label !== undefined && !stripHidden && stripState !== null && !!file.data && !broken && !failed
-  const stripSentences = reported ? reported.marks.map((m) => ({ index: m.index, text: highlights[m.index], page: m.page })) : []
 
   const sourceContent = source?.({ missingOnPage })
 
@@ -173,7 +176,8 @@ export function ReaderPage({ documentId, filename, page, highlights, label, sour
         {file.data && !broken && !failed ? body : <div className={styles.stateBox}>{body}</div>}
         {showDocked && <aside className={styles.docked} aria-label="Source and chat"><ReaderPanel tab={tab} onTab={setTab} closeLabel="Hide panel" onClose={() => setDocked(false)} source={sourceContent} chat={chat} /></aside>}
       </div>
-      {showStrip && <ReadingStrip key={highlights.join('\n')} label={label} sentences={stripSentences} state={stripState} onShow={(i) => pdf.current?.showSentence(i)} />}
+      {/* hidden, not removed, when a tap puts it away: removing it would bring it back on the first sentence (final review F2b) */}
+      {hasStrip && <ReadingStrip key={highlights.join('\n')} label={label} sentences={stripSentences} state={stripState} hidden={stripHidden} onShow={(i) => pdf.current?.showSentence(i)} />}
       {showSlide && (
         <div className={styles.scrim} onClick={closeSlide}>
           <div ref={dialog} role="dialog" aria-modal="true" aria-label="Source and chat" className={styles.slide}

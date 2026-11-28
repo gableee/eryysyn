@@ -197,7 +197,7 @@ describe('PdfView', () => {
       const target = scroll.mock.contexts.at(-1) as HTMLElement
       expect(target.tagName).toBe('MARK')
       expect(target.dataset.sentence).toBe('1')
-      expect(scroll).toHaveBeenLastCalledWith({ block: 'center' })
+      expect(scroll).toHaveBeenLastCalledWith({ block: 'center', inline: 'nearest' })
     } finally {
       delete (Element.prototype as Partial<Element>).scrollIntoView
     }
@@ -516,12 +516,17 @@ describe('PdfView', () => {
       pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: [{ str: 'Hello', transform: [1, 0, 0, 1, 72, 700], width: 468 }] })))
       const { container, props } = view(112, { fit: 'column' })
       await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
-      const scale = 336 / 468
+      const scale = (360 - 22 - 12) / 468
       expect((container.querySelector('[data-page="112"]') as HTMLElement).style.width).toBe(`${Math.floor(600 * scale)}px`)
-      // what the student sees: the text starts 12px from the view's left edge (the grid's own 16px padding counts)
+      // what the student sees: the text starts 22px from the view's left edge (the grid's own 16px padding counts)
       const scrolled = screen.getByRole('region', { name: 'PDF pages' }).scrollLeft
-      expect(16 + 72 * scale - scrolled).toBeCloseTo(12)
+      const textLeft = 16 + 72 * scale - scrolled
+      expect(textLeft).toBeCloseTo(22)
       expect(16 + 540 * scale - scrolled).toBeCloseTo(360 - 12)   // and the column's right edge is 12px inside the right edge
+      // the margin bar sits 10px left of the text (4px wide) and its 16px number circle is centred on it: all on screen
+      // (final review F3: with 12px the circle's left part was cut off)
+      const barLeft = textLeft - 10
+      expect(barLeft + 2 - 8).toBeGreaterThanOrEqual(0)
       // the text positions were read before any page was drawn, so there is no visible jump
       await waitFor(() => expect(events.some((e) => e.startsWith('render:'))).toBe(true))
       expect(events.indexOf('text:112')).toBeGreaterThanOrEqual(0)
@@ -540,6 +545,31 @@ describe('PdfView', () => {
       act(() => report?.([{ contentRect: { width: 360 - 32 } }]))   // a real browser excludes the 16px padding on each side
       expect(slotWidth()).toBe(before)
       vi.unstubAllGlobals()
+    })
+
+    it('scrolling to a mark never moves the pages sideways: every mark scroll asks for the block only (final review F1)', async () => {
+      regionWidth(360)
+      const scroll = vi.fn()
+      Element.prototype.scrollIntoView = scroll
+      try {
+        const sentences = ['Fever starts at 38 degrees Celsius.', 'Normal adult blood pressure is below 120 mmHg.']
+        pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: [{ str: sentences.join(' '), transform: [1, 0, 0, 1, 72, 700], width: 468 }] })))
+        const ref = createRef<PdfViewHandle>()
+        const { container, props } = view(112, { fit: 'column', highlights: sentences, ref })
+        await waitFor(() => expect(props.onMarks).toHaveBeenCalledTimes(1))
+        const region = screen.getByRole('region', { name: 'PDF pages' })
+        const left = region.scrollLeft                                   // where the column fit put the text
+        act(() => ref.current!.showSentence(1))                          // its mark is drawn
+        fireEvent.keyDown(region, { key: 'End' })                        // page 112 leaves the drawn window
+        await waitFor(() => expect(container.querySelectorAll('mark')).toHaveLength(0))
+        act(() => ref.current!.showSentence(0))                          // waits for page 112, then scrolls
+        await waitFor(() => expect(scroll.mock.contexts.filter((el) => (el as HTMLElement).tagName === 'MARK')).toHaveLength(3))
+        const markCalls = scroll.mock.calls.filter((_, i) => (scroll.mock.contexts[i] as HTMLElement).tagName === 'MARK')
+        expect(markCalls).toEqual([[{ block: 'center', inline: 'nearest' }], [{ block: 'center', inline: 'nearest' }], [{ block: 'center', inline: 'nearest' }]])
+        expect(region.scrollLeft).toBe(left)
+      } finally {
+        delete (Element.prototype as Partial<Element>).scrollIntoView
+      }
     })
 
     it('no usable text: falls back to fit width', async () => {

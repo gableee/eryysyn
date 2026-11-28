@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { columnScale, textColumn } from './textColumn'
+import { COLUMN_GAP, columnScale, textColumn } from './textColumn'
 
 const item = (x: number, width: number, str = 'text') => ({ transform: [1, 0, 0, 1, x, 700], width, str })
 
@@ -18,8 +18,9 @@ describe('textColumn', () => {
 })
 
 describe('columnScale', () => {
-  it('fills the view minus the padding on both sides', () => {
-    expect(columnScale(360, { left: 72, right: 540 })).toBeCloseTo((360 - 24) / 468)
-    expect(columnScale(360, { left: 72, right: 540 }, 0)).toBeCloseTo(360 / 468)
+  it('fills the view minus the gaps: 22px on the left, room for the margin bar and its number (final review F3), 12px on the right', () => {
+    expect(COLUMN_GAP).toEqual({ left: 22, right: 12 })
+    expect(columnScale(360, { left: 72, right: 540 })).toBeCloseTo((360 - 34) / 468)
+    expect(columnScale(360, { left: 72, right: 540 }, { left: 0, right: 0 })).toBeCloseTo(360 / 468)
   })
 })

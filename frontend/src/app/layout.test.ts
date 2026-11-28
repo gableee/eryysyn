@@ -56,9 +56,24 @@ describe('touch targets on phones (critique P2)', () => {
 })
 
 describe('the reading strip on phones', () => {
+  it('a hidden strip is really hidden: its own display: grid must not beat the hidden attribute (final review F2b)', () => {
+    expect(reader).toMatch(/^\.strip\[hidden\]\s*\{[^}]*display:\s*none/m)   // (rule() would read [hidden] as a regex class)
+  })
+
   it('its arrows are at least 44px square', () => {
     expect(rule(reader, '.stripButton')).toMatch(/min-height:\s*44px/)
     expect(rule(reader, '.stripButton')).toMatch(/min-width:\s*44px/)
+  })
+})
+
+describe('the Reader page marks (final review F1)', () => {
+  // Found on a 390px phone: the margin kept on all four sides poked past the view, so the mark scroll ("nearest")
+  // also scrolled the pages 42px sideways and hid the start of every line and the margin bar.
+  it('a mark keeps room above and below when scrolled to, never at its sides', () => {
+    const mark = rule(reader, '.pageMark')
+    const sides = mark.match(/scroll-margin:\s*([^;]+)/)?.[1].trim().split(/\s+/) ?? []
+    expect(sides).toEqual(['96px', '0'])                               // block 96px, inline 0
+    expect(mark).not.toMatch(/scroll-margin-(?:inline|left|right)/)
   })
 })
 

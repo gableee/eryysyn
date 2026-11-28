@@ -17,7 +17,11 @@ export function textColumn(items: Item[], pageWidth: number): Column | null {
   return { left, right }
 }
 
-/** the scale at which the column fills the view, leaving `padding` CSS px on each side */
-export function columnScale(viewWidth: number, column: Column, padding = 12): number {
-  return (viewWidth - 2 * padding) / (column.right - column.left)
+/** CSS px between the view's edges and the column. The left one is wider: the margin bar sits 10px left of the text
+ *  and its 16px number circle reaches 6px further, so with 12px the circle was cut off at the edge (final review F3). */
+export const COLUMN_GAP = { left: 22, right: 12 }
+
+/** the scale at which the column fills the view, leaving `gap` CSS px on each side */
+export function columnScale(viewWidth: number, column: Column, gap = COLUMN_GAP): number {
+  return (viewWidth - gap.left - gap.right) / (column.right - column.left)
 }

@@ -27,8 +27,9 @@ export function ReaderSource({ conversationId, answerId, n, missingOnPage }: Pro
   if (!answer || !citation) return <p className={styles.hint}>{FALLBACK}</p>
   const question = messages.slice(0, at).reverse().find((m) => m.role === 'user')?.content
 
-  // the same test the card uses, so the line shows exactly when the card has a mark
-  const hasMark = supportForCitation(answer.content, n, citation.excerpt).marks.length > 0
+  // the same test the card uses, so the line shows exactly when the card has a mark, and the page has at least one:
+  // with none on the page it would promise a green bar that is not there (final review F4)
+  const explain = supportForCitation(answer.content, n, citation.excerpt).marks.length > 0 && missingOnPage !== 'all'
 
   return (
     <div className={styles.readerSource}>
@@ -39,7 +40,7 @@ export function ReaderSource({ conversationId, answerId, n, missingOnPage }: Pro
       </ul>
       {missingOnPage === 'all' && <p className={styles.notice}>Not found on this page: marked in the excerpt only.</p>}
       {missingOnPage === 'some' && <p className={styles.notice}>Not all of these are marked on the page: the excerpt below has every mark.</p>}
-      {hasMark && (
+      {explain && (
         <p className={styles.markKey}>
           <span className={styles.markSwatch} aria-hidden="true" />
           <span>Green bar and underline: the sentence Ery used for [{n}].</span>

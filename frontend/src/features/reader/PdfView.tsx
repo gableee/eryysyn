@@ -4,7 +4,7 @@ import { IconButton } from '../../shared/ui/IconButton'
 import { clampPage, pagesToDraw } from './pageWindow'
 import { anchorScroll, nextZoomStep, pinchZoom, ZOOMS } from './pinch'
 import { PageSlot } from './PageSlot'
-import { columnScale, textColumn, type Column } from './textColumn'
+import { COLUMN_GAP, columnScale, textColumn, type Column } from './textColumn'
 import { loadErrorKind, openPdf, type PdfDocument } from './pdf'
 import styles from './Reader.module.css'
 
@@ -45,6 +45,9 @@ const WIDE = 1000                         // zoom buttons only where there is ro
 const MAX_ZOOM = ZOOMS[ZOOMS.length - 1]  // 4 times the opening scale
 const TAP = { move: 10, ms: 300 }         // a tap moves less than this and lifts sooner than this
 const NONE: { index: number; text: string }[] = []                 // one stable empty list, so idle pages never redraw
+/** how a mark is scrolled to: to the middle, up and down only; `nearest` leaves the sideways scroll alone when the
+ *  mark is already in view (the default, written out because the column fit depends on it) */
+const TO_MARK: ScrollIntoViewOptions = { block: 'center', inline: 'nearest' }
 
 /** the width inside the pages' padding, the same measure the size observer reports (clientWidth minus both paddings) */
 const contentWidth = (el: HTMLElement | null) => (el?.clientWidth ? el.clientWidth - 2 * PAD : 800)
@@ -214,7 +217,7 @@ export function PdfView({ url, page, highlights, label, onPageChange, onExpired,
     if (anchor.current) { anchor.current = null; return }      // the student's zoom: already placed above
     if (!doc) return
     region.current?.querySelector<HTMLElement>(`[data-page="${current.current}"]`)?.scrollIntoView?.({ block: 'start' })
-    if (column && region.current) region.current.scrollLeft = Math.max(0, column.left * scale + PAD - 12)
+    if (column && region.current) region.current.scrollLeft = Math.max(0, column.left * scale + PAD - COLUMN_GAP.left)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- scale already follows column
   }, [scale, doc])
 
@@ -224,7 +227,7 @@ export function PdfView({ url, page, highlights, label, onPageChange, onExpired,
     if (marked.current.for !== highlights) marked.current = fresh(highlights)
     if (first && !marked.current.scrolled) {                     // bring the first mark into view, once
       marked.current.scrolled = true
-      first.scrollIntoView?.({ block: 'center' })
+      first.scrollIntoView?.(TO_MARK)
       callbacks.current.onMarksShown?.(found.filter((f) => f.found).length)
     }
     const here = found.filter((f) => f.found).map((f) => ({ index: f.index, page: n }))
@@ -247,7 +250,7 @@ export function PdfView({ url, page, highlights, label, onPageChange, onExpired,
     const waiting = marked.current.waiting
     if (waiting && waiting.page === n) {
       marked.current.waiting = null
-      region.current?.querySelector<HTMLElement>(`mark[data-sentence="${waiting.index}"]`)?.scrollIntoView?.({ block: 'center' })
+      region.current?.querySelector<HTMLElement>(`mark[data-sentence="${waiting.index}"]`)?.scrollIntoView?.(TO_MARK)
     }
   }, [cited, highlights, doc])
 
@@ -266,7 +269,7 @@ export function PdfView({ url, page, highlights, label, onPageChange, onExpired,
       marked.current.waiting = null                 // a new request replaces any earlier wait, even one that finds nothing
       if (!doc) return                              // nothing is drawn: no redraw will come to end a wait
       const mark = region.current?.querySelector<HTMLElement>(`mark[data-sentence="${index}"]`)
-      if (mark) { mark.scrollIntoView?.({ block: 'center' }); return }
+      if (mark) { mark.scrollIntoView?.(TO_MARK); return }
       // its page is not drawn: go there like a key press would, and scroll once the mark appears
       const page = marked.current.all.find((f) => f.index === index)?.page
       if (page === undefined) return

@@ -30,6 +30,28 @@ describe('ReadingStrip', () => {
     expect(onShow).toHaveBeenLastCalledWith(0)
   })
 
+  it('an arrow that becomes disabled under the keyboard hands focus to the other arrow, never to the page body (final review F2c)', async () => {
+    render(<ReadingStrip label={1} sentences={two} state="marks" onShow={vi.fn()} />)
+    const next = screen.getByRole('button', { name: 'Next marked sentence' })
+    const previous = screen.getByRole('button', { name: 'Previous marked sentence' })
+    next.focus()
+    await userEvent.keyboard('{Enter}')                              // onto the last sentence: › is now disabled
+    expect(next).toBeDisabled()
+    expect(previous).toHaveFocus()
+    await userEvent.keyboard('{Enter}')                              // back to the first: ‹ is now disabled
+    expect(previous).toBeDisabled()
+    expect(next).toHaveFocus()
+  })
+
+  it('a step that leaves the focused arrow enabled keeps focus on it', async () => {
+    const three = [...two, { index: 5, text: 'Third.', page: 9 }]
+    render(<ReadingStrip label={1} sentences={three} state="marks" onShow={vi.fn()} />)
+    const next = screen.getByRole('button', { name: 'Next marked sentence' })
+    next.focus()
+    await userEvent.keyboard('{Enter}')                              // 2 of 3: › still works
+    expect(next).toHaveFocus()
+  })
+
   it('one sentence: no counter, no arrows', () => {
     render(<ReadingStrip label={2} sentences={[two[0]]} state="marks" onShow={vi.fn()} />)
     expect(screen.getByText('For [2]')).toBeInTheDocument()

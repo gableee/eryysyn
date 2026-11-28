@@ -58,6 +58,20 @@ describe('ReaderSource (the Source tab)', () => {
     expect(await screen.findByText('Green bar and underline: the sentence Ery used for [1].')).toBeInTheDocument()
   })
 
+  it('the card has a mark but the page has none: no line promising a green bar on the page (final review F4)', async () => {
+    api.getConversation.mockResolvedValue(conv([msg('a1', 'assistant', 'A is true [1].', [cite])]))
+    show(<ReaderSource conversationId="c1" answerId="a1" n={1} missingOnPage="all" />)
+    expect(await screen.findByText('Not found on this page: marked in the excerpt only.')).toBeInTheDocument()
+    expect(document.querySelectorAll('mark')).toHaveLength(1)                    // the card still has its mark
+    expect(screen.queryByText(/Green bar and underline/)).toBeNull()
+  })
+
+  it('some marked on the page: the line still explains the ones that are', async () => {
+    api.getConversation.mockResolvedValue(conv([msg('a1', 'assistant', 'A is true [1]. B holds [1].', [cite])]))
+    show(<ReaderSource conversationId="c1" answerId="a1" n={1} missingOnPage="some" />)
+    expect(await screen.findByText('Green bar and underline: the sentence Ery used for [1].')).toBeInTheDocument()
+  })
+
   it('no mark, no explanation', async () => {
     api.getConversation.mockResolvedValue(conv([msg('a1', 'assistant', 'Volcanoes erupt [1].', [cite])]))
     show(<ReaderSource conversationId="c1" answerId="a1" n={1} missingOnPage={null} />)
