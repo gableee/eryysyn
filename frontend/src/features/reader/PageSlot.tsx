@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, type CSSProperties } from 'react'
 import { TextLayer, type PdfDocument } from './pdf'
+import { canvasDensity } from './canvasDensity'
 import { barFor } from './marginBars'
 import { findTextRanges, type TextRange } from './textMatch'
 import styles from './Reader.module.css'
@@ -54,7 +55,8 @@ export const PageSlot = memo(function PageSlot({ doc, n, scale, draw, width, hei
         const context = c?.getContext('2d')
         if (cancelled || !c || !context) return
         const viewport = p.getViewport({ scale })
-        const ratio = window.devicePixelRatio || 1             // sharp on high-density screens
+        // sharp on high-density screens, but never a canvas too big for the phone (zoomed far in): see canvasDensity
+        const ratio = canvasDensity(window.devicePixelRatio || 1, viewport.width, viewport.height)
         c.width = Math.floor(viewport.width * ratio)
         c.height = Math.floor(viewport.height * ratio)
         const task = p.render({ canvasContext: context, canvas: c, viewport, transform: ratio === 1 ? undefined : [ratio, 0, 0, ratio, 0, 0] })

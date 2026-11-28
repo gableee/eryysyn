@@ -289,6 +289,156 @@ describe('PdfView', () => {
       pdf.TextLayer.prototype.render = original
     }
   })
+  describe('two-finger zoom (touch screens)', () => {
+    afterEach(() => { document.documentElement.scrollTop = 0 })         // a zoom scrolls the page; start each test at the top
+    const touch = (type: 'pointerDown' | 'pointerMove' | 'pointerUp', el: Element, pointerId: number, clientX: number, clientY = 300) =>
+      fireEvent[type](el, { pointerId, clientX, clientY, pointerType: 'touch', isPrimary: pointerId === 1 })
+    const slotWidth = (c: HTMLElement) => (c.querySelector('[data-page="112"]') as HTMLElement).style.width
+    /** two fingers 100px apart, spread to `to` px apart, then lifted */
+    function pinch(el: Element, to: number) {
+      touch('pointerDown', el, 1, 300)
+      touch('pointerDown', el, 2, 400)
+      touch('pointerMove', el, 2, 300 + to)
+      touch('pointerUp', el, 2, 300 + to)
+      touch('pointerUp', el, 1, 300)
+    }
+
+    it('two fingers spreading on the pages zoom in, and the pages redraw at the new size', async () => {
+      pdf.openPdf.mockReturnValue(opened(fakeDoc(340)))
+      const { container, props } = view(112)
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+      const before = parseFloat(slotWidth(container))
+      pinch(container.querySelector('[data-page="112"]')!, 200)
+      expect(parseFloat(slotWidth(container))).toBe(Math.floor(before * 2))
+    })
+
+    it('a pinch that starts outside the pages area does nothing', async () => {
+      pdf.openPdf.mockReturnValue(opened(fakeDoc(340)))
+      const props = { url: 'https://x/signed', page: 112, highlights: [] as string[], onPageChange: vi.fn(), onExpired: vi.fn(), onBroken: vi.fn(), onFailed: vi.fn() }
+      const { container } = render(<><PdfView {...props} /><div data-testid="strip" /></>)
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+      const before = slotWidth(container)
+      pinch(screen.getByTestId('strip'), 200)
+      expect(slotWidth(container)).toBe(before)
+    })
+
+    it('stops at 4 times the opening size', async () => {
+      pdf.openPdf.mockReturnValue(opened(fakeDoc(340)))
+      const { container, props } = view(112)
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+      const before = parseFloat(slotWidth(container))
+      pinch(container.querySelector('[data-page="112"]')!, 900)
+      expect(parseFloat(slotWidth(container))).toBe(Math.floor(before * 4))
+    })
+
+    it('a quick one-finger tap calls onTap; a drag does not', async () => {
+      pdf.openPdf.mockReturnValue(opened(fakeDoc(340)))
+      const onTap = vi.fn()
+      const { container, props } = view(112, { onTap })
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+      const page = container.querySelector('[data-page="112"]')!
+      touch('pointerDown', page, 1, 100)
+      touch('pointerUp', page, 1, 104)
+      expect(onTap).toHaveBeenCalledTimes(1)
+      touch('pointerDown', page, 1, 100)                 // a drag (the student scrolls)
+      touch('pointerMove', page, 1, 130)
+      touch('pointerUp', page, 1, 130)
+      expect(onTap).toHaveBeenCalledTimes(1)
+      touch('pointerDown', page, 1, 100)                 // a pinch, even without moving
+      touch('pointerDown', page, 2, 200)
+      touch('pointerUp', page, 2, 200)
+      touch('pointerUp', page, 1, 100)
+      expect(onTap).toHaveBeenCalledTimes(1)
+      const now = vi.spyOn(performance, 'now').mockReturnValue(1000)
+      touch('pointerDown', page, 1, 100)                 // a long press
+      now.mockReturnValue(1400)
+      touch('pointerUp', page, 1, 100)
+      expect(onTap).toHaveBeenCalledTimes(1)
+    })
+
+    it('two fingers on the pages stop the browser panning or zooming under them; one finger still scrolls natively', async () => {
+      pdf.openPdf.mockReturnValue(opened(fakeDoc(340)))
+      const { container, props } = view(112)
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+      const page = container.querySelector('[data-page="112"]')!
+      expect(fireEvent.touchMove(page, { touches: [{ clientX: 100 }, { clientX: 200 }] })).toBe(false)   // default prevented
+      expect(fireEvent.touchMove(page, { touches: [{ clientX: 100 }] })).toBe(true)
+    })
+
+    it('a pinch while the PDF is still loading does nothing: it opens at the cited page, at the opening size (task review)', async () => {
+      const scroll = vi.fn()
+      Element.prototype.scrollIntoView = scroll
+      try {
+        let open: (doc: unknown) => void = () => {}
+        pdf.openPdf.mockReturnValue({ promise: new Promise((resolve) => { open = resolve }), destroy: vi.fn() })
+        const { container, props } = view(112)
+        pinch(screen.getByRole('region', { name: 'PDF pages' }), 200)       // the grey loading area
+        await act(async () => open(fakeDoc(340)))
+        await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+        expect(scroll.mock.contexts.some((el) => (el as HTMLElement).dataset?.page === '112')).toBe(true)
+        expect(slotWidth(container)).toBe(`${Math.floor(600 * (768 / 600))}px`)
+      } finally {
+        delete (Element.prototype as Partial<Element>).scrollIntoView
+      }
+    })
+
+    it('a mouse does not pinch or tap (desktop drags select text)', async () => {
+      pdf.openPdf.mockReturnValue(opened(fakeDoc(340)))
+      const onTap = vi.fn()
+      const { container, props } = view(112, { onTap })
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+      const page = container.querySelector('[data-page="112"]')!
+      fireEvent.pointerDown(page, { pointerId: 1, clientX: 100, clientY: 100, pointerType: 'mouse' })
+      fireEvent.pointerUp(page, { pointerId: 1, clientX: 100, clientY: 100, pointerType: 'mouse' })
+      expect(onTap).not.toHaveBeenCalled()
+    })
+
+    it('the point between the fingers stays under them after the redraw', async () => {
+      pdf.openPdf.mockReturnValue(opened(fakeDoc(340)))
+      const { container, props } = view(112)
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+      const region = screen.getByRole('region', { name: 'PDF pages' })
+      const scroller = document.scrollingElement ?? document.documentElement
+      // a small layout: the pages area starts 56px down (under the toolbar), 800px wide; 16px padding and gaps
+      const rect = (left: number, top: number, width: number, height: number) =>
+        ({ left, top, width, height, right: left + width, bottom: top + height, x: left, y: top, toJSON() {} }) as DOMRect
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+        if (this === region) return rect(0, 56 - scroller.scrollTop, 800, 100_000)
+        const n = Number(this.dataset.page)
+        if (!n) return rect(0, 0, 0, 0)
+        const w = parseFloat(this.style.width)
+        const h = parseFloat(this.style.height)
+        return rect(16 - region.scrollLeft, 56 + 16 + (n - 1) * (h + 16) - scroller.scrollTop, w, h)
+      })
+      const page = container.querySelector<HTMLElement>('[data-page="112"]')!
+      scroller.scrollTop += page.getBoundingClientRect().top - 100         // page 112 starts 100px from the top of the screen
+      const at = { x: 350, y: 300 }                                         // fingers centred here: 334px across, 200px down the page
+      expect(page.getBoundingClientRect().top).toBe(100)
+      touch('pointerDown', page, 1, 300, 300)
+      touch('pointerDown', page, 2, 400, 300)
+      touch('pointerMove', page, 2, 500, 300)                              // 100px apart -> 200px: twice the size
+      touch('pointerUp', page, 2, 500, 300)
+      touch('pointerUp', page, 1, 300, 300)
+      const after = page.getBoundingClientRect()
+      expect(after.left + 334 * 2).toBeCloseTo(at.x)
+      expect(after.top + 200 * 2).toBeCloseTo(at.y)
+    })
+
+    it('the zoom buttons step from the current zoom', async () => {
+      vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1200)
+      pdf.openPdf.mockReturnValue(opened(fakeDoc(340)))
+      const { container, props } = view(112)
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+      const fit = 900 / 600                                                 // fit to width stops at 900px
+      pinch(container.querySelector('[data-page="112"]')!, 110)            // zoom 1.1
+      expect(slotWidth(container)).toBe(`${Math.floor(600 * fit * 1.1)}px`)
+      fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }))
+      expect(slotWidth(container)).toBe(`${Math.floor(600 * fit * 1.25)}px`)
+      fireEvent.click(screen.getByRole('button', { name: 'Fit to width' }))
+      expect(slotWidth(container)).toBe(`${Math.floor(600 * fit)}px`)
+    })
+  })
+
   describe('fit="column" (phones)', () => {
     const regionWidth = (w: number) => vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(w)
 
