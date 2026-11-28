@@ -7,8 +7,9 @@ import { EmptyState } from '../../shared/ui/EmptyState'
 import { ErrorState } from '../../shared/ui/ErrorState'
 import { IconButton } from '../../shared/ui/IconButton'
 import { useFileUrl } from './hooks'
-import { PdfView } from './PdfView'
+import { PdfView, type PdfViewHandle } from './PdfView'
 import styles from './Reader.module.css'
+import { ReadingStrip } from './ReadingStrip'
 import { ReaderPanel, type PanelTab } from './ReaderPanel'
 import { useReaderLayout } from './useReaderLayout'
 
@@ -20,6 +21,8 @@ type Props = {
   page: number
   /** sentences to mark on the page (the supporting sentences of the cited answer) */
   highlights: string[]
+  /** the citation number, set whenever the Reader was opened from a citation (even one with no sentences to mark) */
+  label?: number
   /** panels from the app (Task 8): the cited source (told whether the page lacks all or some of its marks) and the conversation */
   source?: (state: { missingOnPage: 'all' | 'some' | null }) => ReactNode
   chat?: ReactNode
@@ -31,7 +34,7 @@ type Props = {
  * The Reader: the real PDF, opened at a page. Full window by default; the toolbar can open the app's sidebar.
  * The PDF link expires after 10 minutes: one silent renewal, then Try again.
  */
-export function ReaderPage({ documentId, filename, page, highlights, source, chat, defaultTab = 'source', back }: Props) {
+export function ReaderPage({ documentId, filename, page, highlights, label, source, chat, defaultTab = 'source', back }: Props) {
   const root = useRef<HTMLElement>(null)
   const layout = useReaderLayout(root)
   const [tab, setTab] = useState<PanelTab>(defaultTab)
@@ -39,9 +42,11 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
   const [sliding, setSliding] = useState(false)         // medium: the slide-over is closed until asked for
   const opener = useRef<HTMLButtonElement | null>(null)
   const dialog = useRef<HTMLDivElement>(null)
-  const [missing, setMissing] = useState<{ for: string[]; found: number; total: number; marks: { index: number; page: number }[] } | null>(null)   // marks: for the reading strip (a later step)
+  const [missing, setMissing] = useState<{ for: string[]; found: number; total: number; marks: { index: number; page: number }[] } | null>(null)
   // resets by itself when another citation is opened (the highlights array changes)
   const missingOnPage = missing?.for === highlights ? (missing.found === 0 ? 'all' : missing.found < missing.total ? 'some' : null) : null
+  const pdf = useRef<PdfViewHandle>(null)
+  const [stripHidden, setStripHidden] = useState(false)   // a tap on the page hides the strip, another brings it back
   const hasPanel = (!!source || !!chat) && layout !== 'phone'
   const showDocked = hasPanel && layout === 'wide' && docked
   const showSlide = hasPanel && layout === 'medium' && sliding
@@ -129,13 +134,19 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
       message={typeof navigator !== 'undefined' && navigator.onLine === false ? "Can't reach the server" : "This PDF couldn't be loaded."} />
   } else {
     body = (
-      <PdfView key={documentId} url={file.data.url} page={page} highlights={highlights} fit={layout === 'phone' ? 'column' : 'width'}
+      <PdfView ref={pdf} key={documentId} label={label} onTap={() => setStripHidden((h) => !h)} url={file.data.url} page={page} highlights={highlights} fit={layout === 'phone' ? 'column' : 'width'}
         onPageChange={(p, total, jumped) => { setPosition({ page: p, total }); if (jumped) setJumpNote(`Page ${p} of ${total}.`) }}
         onExpired={onExpired} onBroken={() => setBroken(true)} onFailed={() => setFailed(true)}
         onMarks={(found, total) => setMissing({ for: highlights, found: found.length, total, marks: found })}
         onMarksShown={(count) => setMarksNote(`${count} sentence${count === 1 ? '' : 's'} marked.`)} />
     )
   }
+
+  // the phone reading strip: only for a citation, only while the PDF is shown, and for marks only once the page has reported
+  const reported = missing?.for === highlights ? missing : null
+  const stripState = highlights.length === 0 ? 'no-sentence' : reported ? (reported.marks.length === 0 ? 'none-on-page' : 'marks') : null
+  const showStrip = layout === 'phone' && label !== undefined && !stripHidden && stripState !== null && !!file.data && !broken && !failed
+  const stripSentences = reported ? reported.marks.map((m) => ({ index: m.index, text: highlights[m.index], page: m.page })) : []
 
   const sourceContent = source?.({ missingOnPage })
 
@@ -162,6 +173,7 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
         {file.data && !broken && !failed ? body : <div className={styles.stateBox}>{body}</div>}
         {showDocked && <aside className={styles.docked} aria-label="Source and chat"><ReaderPanel tab={tab} onTab={setTab} closeLabel="Hide panel" onClose={() => setDocked(false)} source={sourceContent} chat={chat} /></aside>}
       </div>
+      {showStrip && <ReadingStrip key={highlights.join('\n')} label={label} sentences={stripSentences} state={stripState} onShow={(i) => pdf.current?.showSentence(i)} />}
       {showSlide && (
         <div className={styles.scrim} onClick={closeSlide}>
           <div ref={dialog} role="dialog" aria-modal="true" aria-label="Source and chat" className={styles.slide}

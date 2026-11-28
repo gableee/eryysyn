@@ -10,6 +10,7 @@ const rule = (css: string, selector: string) => css.match(new RegExp(`^\\${selec
 const shell = read('src/app/AppShell.module.css')
 const library = read('src/features/library/Library.module.css')
 const chat = read('src/features/chat/Chat.module.css')
+const reader = read('src/features/reader/Reader.module.css')
 const auth = read('src/app/AuthLayout.module.css')
 
 describe('wide screens: one alignment rule, nothing jumps between pages', () => {
@@ -51,6 +52,13 @@ describe('touch targets on phones (critique P2)', () => {
   it('the card actions are at least 44px high under 600px', () => {
     const phone = chat.match(/@media \(max-width: 599px\) \{([^@]*?)\n\}/g)?.join('\n') ?? ''
     expect(phone).toMatch(/\.textButton,\s*\.pageLink\s*\{\s*min-height:\s*44px/)
+  })
+})
+
+describe('the reading strip on phones', () => {
+  it('its arrows are at least 44px square', () => {
+    expect(rule(reader, '.stripButton')).toMatch(/min-height:\s*44px/)
+    expect(rule(reader, '.stripButton')).toMatch(/min-width:\s*44px/)
   })
 })
 

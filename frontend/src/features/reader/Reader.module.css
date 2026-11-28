@@ -105,3 +105,28 @@
 }
 @keyframes slideIn { from { transform: translateX(24px); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .slide { animation: none; } }
+
+/* ---- the phone reading strip: the marked sentence at reading size, fixed under the pages ---- */
+.strip {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: grid; gap: 4px;
+  padding: 8px max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: var(--bg); border-top: 1px solid var(--line); box-shadow: 0 -2px 8px rgb(0 0 0 / 0.08);
+  max-height: 40dvh; overflow-y: auto;
+}
+.stripHead { display: flex; align-items: center; gap: 12px; font-size: var(--t-14); color: var(--muted); font-variant-numeric: tabular-nums; }
+.stripLabel { font-weight: 600; color: var(--ink); }
+.stripButtons { margin-left: auto; display: flex; gap: 4px; }
+.stripButton {
+  display: grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; border-radius: var(--r-s);
+  background: none; color: var(--accent); cursor: pointer;
+}
+.stripButton:hover:not(:disabled) { background: var(--soft); }
+.stripButton:disabled { color: var(--muted); opacity: 0.5; cursor: default; }
+.stripText, .stripNote { margin: 0; font-size: var(--t-16); line-height: 1.5; }
+.stripNote { color: var(--muted); }
+/* the same look as the marked sentence in the chat card: tint plus a 3px underline */
+.stripSentence {
+  background: var(--hl); color: var(--ink); border-radius: 3px; padding: 0 2px;
+  text-decoration: underline; text-decoration-thickness: 3px; text-decoration-color: var(--accent); text-underline-offset: 3px;
+  box-decoration-break: clone; -webkit-box-decoration-break: clone;
+}

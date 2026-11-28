@@ -84,7 +84,7 @@ export function PdfView({ url, page, highlights, label, onPageChange, onExpired,
   const spill = spillState?.for === highlights ? spillState : null
   // per set of highlights: what was found on the cited page, whether the report went out, and the sentence
   // showSentence is waiting for (its page was not drawn yet)
-  const fresh = (h: string[]): { for: string[]; scrolled: boolean; reported: boolean; cited: { index: number; page: number }[]; all: { index: number; page: number }[]; waiting: number | null } =>
+  const fresh = (h: string[]): { for: string[]; scrolled: boolean; reported: boolean; cited: { index: number; page: number }[]; all: { index: number; page: number }[]; waiting: { index: number; page: number } | null } =>
     ({ for: h, scrolled: false, reported: false, cited: [], all: [], waiting: null })
   const marked = useRef(fresh(highlights))
 
@@ -242,11 +242,12 @@ export function PdfView({ url, page, highlights, label, onPageChange, onExpired,
     } else {
       report([...marked.current.cited, ...here])                 // the next page got the rest
     }
-    // showSentence was waiting for its page to be drawn: the mark exists now
+    // showSentence was waiting for this page to be drawn: its mark exists now. Only that page ends the wait (another
+    // page finishing says nothing), and it ends either way, so an old wait never scrolls on some later redraw.
     const waiting = marked.current.waiting
-    if (waiting !== null) {
-      const mark = region.current?.querySelector<HTMLElement>(`mark[data-sentence="${waiting}"]`)
-      if (mark) { marked.current.waiting = null; mark.scrollIntoView?.({ block: 'center' }) }
+    if (waiting && waiting.page === n) {
+      marked.current.waiting = null
+      region.current?.querySelector<HTMLElement>(`mark[data-sentence="${waiting.index}"]`)?.scrollIntoView?.({ block: 'center' })
     }
   }, [cited, highlights, doc])
 
@@ -262,12 +263,14 @@ export function PdfView({ url, page, highlights, label, onPageChange, onExpired,
 
   useImperativeHandle(ref, () => ({
     showSentence(index: number) {
+      marked.current.waiting = null                 // a new request replaces any earlier wait, even one that finds nothing
+      if (!doc) return                              // nothing is drawn: no redraw will come to end a wait
       const mark = region.current?.querySelector<HTMLElement>(`mark[data-sentence="${index}"]`)
       if (mark) { mark.scrollIntoView?.({ block: 'center' }); return }
       // its page is not drawn: go there like a key press would, and scroll once the mark appears
       const page = marked.current.all.find((f) => f.index === index)?.page
       if (page === undefined) return
-      marked.current.waiting = index
+      marked.current.waiting = { index, page }
       goTo(page)
     },
   }))
@@ -309,6 +312,13 @@ export function PdfView({ url, page, highlights, label, onPageChange, onExpired,
   // touch only (a mouse drag selects text): one finger scrolls natively and may be a tap; two fingers pinch
   function onPointerDown(e: React.PointerEvent) {
     if (e.pointerType !== 'touch') return
+    // a primary pointer is the first finger of a new touch: whatever was still "down" never got its end event (its
+    // text-layer piece was rebuilt mid-touch), so forget it, or it would count as a second finger and block taps
+    if (e.isPrimary) {
+      fingers.current.clear()
+      tap.current = null
+      if (gesture.current) { gesture.current = null; if (sheet.current) sheet.current.style.transform = '' }
+    }
     fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     tap.current = fingers.current.size === 1 ? { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now() } : null
     if (fingers.current.size !== 2 || !sheet.current || !doc) return   // no pinch while the PDF is still loading

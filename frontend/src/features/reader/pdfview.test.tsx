@@ -17,9 +17,10 @@ const pdf = vi.hoisted(() => ({
         this.textContentItemsStr.push(item.str)
       }
     }
-    render() { return Promise.resolve() }
+    render() { return pdf.gate.wait }
     cancel() {}
   },
+  gate: { wait: Promise.resolve() as Promise<void> },   // a test can hold every text layer back (a page mid-redraw), then let go
 }))
 vi.mock('./pdf', () => pdf)
 
@@ -48,6 +49,7 @@ function view(page: number, extra: Partial<Parameters<typeof PdfView>[0]> = {}) 
 beforeEach(() => {
   vi.resetAllMocks()
   events.length = 0
+  pdf.gate.wait = Promise.resolve()
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as never)
 })
 afterEach(() => vi.restoreAllMocks())
@@ -289,6 +291,58 @@ describe('PdfView', () => {
       pdf.TextLayer.prototype.render = original
     }
   })
+  describe('showSentence waiting for a page to draw', () => {
+    const sentences = ['Fever starts at 38 degrees Celsius.', 'Normal adult blood pressure is below 120 mmHg.']
+    const marksScrolledTo = (scroll: ReturnType<typeof vi.fn>) =>
+      scroll.mock.contexts.filter((el) => (el as HTMLElement).tagName === 'MARK').map((el) => (el as HTMLElement).dataset.sentence)
+    /** opened on 112 with both marks, then End: page 112 is out of the drawn window, its marks are gone */
+    async function awayFromMarks(scroll: ReturnType<typeof vi.fn>) {
+      pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: [sentences.join(' ')] })))
+      const ref = createRef<PdfViewHandle>()
+      const utils = view(112, { highlights: sentences, ref })
+      await waitFor(() => expect(utils.props.onMarks).toHaveBeenCalledTimes(1))
+      fireEvent.keyDown(screen.getByRole('region', { name: 'PDF pages' }), { key: 'End' })
+      await waitFor(() => expect(utils.container.querySelectorAll('mark')).toHaveLength(0))
+      scroll.mockClear()
+      return { ...utils, ref }
+    }
+    const withScroll = async (body: (scroll: ReturnType<typeof vi.fn>) => Promise<void>) => {
+      const scroll = vi.fn()
+      Element.prototype.scrollIntoView = scroll
+      try { await body(scroll) } finally { delete (Element.prototype as Partial<Element>).scrollIntoView }
+    }
+
+    it('a sentence on a page that is not drawn: goes there, then scrolls to the mark once it appears', () => withScroll(async (scroll) => {
+      const { ref, container } = await awayFromMarks(scroll)
+      act(() => ref.current!.showSentence(1))
+      await waitFor(() => expect(marksScrolledTo(scroll)).toEqual(['1']))
+      expect(container.querySelectorAll('[data-page="112"] mark')).toHaveLength(2)
+    }))
+
+    it('asking for another sentence while the page is still redrawing: only the last one is scrolled to', () => withScroll(async (scroll) => {
+      const { ref, props } = await awayFromMarks(scroll)
+      let release = () => {}
+      pdf.gate.wait = new Promise<void>((r) => { release = r })     // page 112 starts drawing but its text is not there yet
+      act(() => ref.current!.showSentence(0))
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+      act(() => ref.current!.showSentence(1))                       // visible page, no mark in the DOM: nothing to scroll yet
+      await act(async () => release())
+      await waitFor(() => expect(marksScrolledTo(scroll)).toEqual(['1']))
+    }))
+
+    it('a sentence nobody found cancels the wait, so the redraw later does not scroll unexpectedly', () => withScroll(async (scroll) => {
+      const { ref, props, container } = await awayFromMarks(scroll)
+      let release = () => {}
+      pdf.gate.wait = new Promise<void>((r) => { release = r })
+      act(() => ref.current!.showSentence(0))
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+      act(() => ref.current!.showSentence(7))                       // not a sentence of this citation
+      await act(async () => release())
+      await waitFor(() => expect(container.querySelectorAll('[data-page="112"] mark')).toHaveLength(2))
+      expect(marksScrolledTo(scroll)).toEqual([])
+    }))
+  })
+
   describe('two-finger zoom (touch screens)', () => {
     afterEach(() => { document.documentElement.scrollTop = 0 })         // a zoom scrolls the page; start each test at the top
     const touch = (type: 'pointerDown' | 'pointerMove' | 'pointerUp', el: Element, pointerId: number, clientX: number, clientY = 300) =>
@@ -320,6 +374,21 @@ describe('PdfView', () => {
       const before = slotWidth(container)
       pinch(screen.getByTestId('strip'), 200)
       expect(slotWidth(container)).toBe(before)
+    })
+
+    it('a finger whose end never arrives (its page piece was rebuilt mid-touch) does not turn the next tap into a pinch', async () => {
+      pdf.openPdf.mockReturnValue(opened(fakeDoc(340)))
+      const onTap = vi.fn()
+      const { container, props } = view(112, { onTap })
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+      const region = screen.getByRole('region', { name: 'PDF pages' })
+      const piece = document.createElement('span')
+      container.querySelector('[data-page="112"]')!.append(piece)
+      touch('pointerDown', piece, 1, 100)
+      piece.remove()                                        // the text layer is redrawn: pointerup/cancel never reaches the pages area
+      fireEvent.pointerDown(region, { pointerId: 5, clientX: 100, clientY: 300, pointerType: 'touch', isPrimary: true })   // the next touch is a new primary pointer
+      fireEvent.pointerUp(region, { pointerId: 5, clientX: 102, clientY: 300, pointerType: 'touch', isPrimary: true })
+      expect(onTap).toHaveBeenCalledTimes(1)
     })
 
     it('stops at 4 times the opening size', async () => {

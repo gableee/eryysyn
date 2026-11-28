@@ -5,7 +5,9 @@ import { ApiError } from '../shared/http'
 
 // The route only composes: the Reader shows its Back link, the panels are not needed here.
 vi.mock('../features/reader/ReaderPage', () => ({
-  ReaderPage: ({ back }: { back: { to: string; label: string } }) => <a href={back.to}>{back.label}</a>,
+  ReaderPage: ({ back, label }: { back: { to: string; label: string }; label?: number }) => (
+    <><a href={back.to}>{back.label}</a><p>label {String(label)}</p></>
+  ),
 }))
 vi.mock('../features/chat/ReaderChat', () => ({ ReaderChat: () => null }))
 vi.mock('../features/chat/ReaderSource', () => ({ ReaderSource: () => null }))
@@ -42,5 +44,22 @@ describe('ReaderRoute Back link', () => {
     chat.useConversation.mockReturnValue({ data: undefined, error: new ApiError('not_found', 404, 'gone') })
     open('/documents/d1?chat=gone')
     expect(await screen.findByRole('link', { name: 'Back to Library' })).toHaveAttribute('href', '/library')
+  })
+})
+
+describe('ReaderRoute citation number', () => {
+  it('passes the citation number to the Reader', async () => {
+    chat.useConversation.mockReturnValue({
+      data: { messages: [{ id: 'a1', role: 'assistant', content: 'Normal blood pressure is below 120 mmHg [2].', citations: [{ n: 2, excerpt: 'Normal blood pressure is below 120 mmHg.', filename: 'x.pdf' }] }] },
+      error: null,
+    })
+    open('/documents/d1?chat=c1&answer=a1&n=2')
+    expect(await screen.findByText('label 2')).toBeInTheDocument()
+  })
+
+  it('opened from the Library: no number', async () => {
+    chat.useConversation.mockReturnValue({ data: undefined, error: null })
+    open('/documents/d1')
+    expect(await screen.findByText('label undefined')).toBeInTheDocument()
   })
 })

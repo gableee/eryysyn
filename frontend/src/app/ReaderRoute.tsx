@@ -42,7 +42,7 @@ export function ReaderRoute() {
 
   return (
     <Suspense fallback={<p role="status">Opening the Reader…</p>}>
-      <ReaderPage documentId={id} filename={filename} page={page} highlights={highlights} back={back}
+      <ReaderPage documentId={id} filename={filename} page={page} highlights={highlights} label={citation ? n : undefined} back={back}
         defaultTab={answerId ? 'source' : 'chat'}
         source={({ missingOnPage }) => (
           <ReaderSource conversationId={chat} answerId={answerId} n={n} missingOnPage={missingOnPage} />
