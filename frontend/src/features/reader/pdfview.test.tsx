@@ -23,7 +23,8 @@ const pdf = vi.hoisted(() => ({
 }))
 vi.mock('./pdf', () => pdf)
 
-import { PdfView } from './PdfView'
+import { createRef } from 'react'
+import { PdfView, type PdfViewHandle } from './PdfView'
 
 const fakePage = (text: string[] = []) => ({
   getViewport: ({ scale }: { scale: number }) => ({ width: 600 * scale, height: 800 * scale, rawDims: { pageWidth: 600, pageHeight: 800 } }),
@@ -37,7 +38,7 @@ const opened = (doc: unknown) => ({ promise: Promise.resolve(doc), destroy: vi.f
 
 function view(page: number, extra: Partial<Parameters<typeof PdfView>[0]> = {}) {
   const props = { url: 'https://x/signed', page, highlights: [] as string[], onPageChange: vi.fn(), onExpired: vi.fn(), onBroken: vi.fn(), onFailed: vi.fn(),
-    onHighlightMissing: vi.fn(), ...extra }
+    onMarks: vi.fn(), ...extra }
   const utils = render(<PdfView {...props} />)
   return { ...utils, props }
 }
@@ -120,7 +121,8 @@ describe('PdfView', () => {
     await waitFor(() => expect(container.querySelectorAll('[data-page="112"] mark')).toHaveLength(2))
     const marks = [...container.querySelectorAll('[data-page="112"] mark')].map((m) => m.textContent)
     expect(marks).toEqual(['Normal adult blood pres', 'sure is below 120 mmHg.'])
-    expect(props.onHighlightMissing).not.toHaveBeenCalled()
+    await waitFor(() => expect(props.onMarks).toHaveBeenCalledTimes(1))
+    expect(props.onMarks).toHaveBeenCalledWith([{ index: 0, page: 112 }], 1)
   })
 
   it('page marks carry their sentence index, and each found sentence gets a bar with the citation number', async () => {
@@ -141,31 +143,59 @@ describe('PdfView', () => {
     expect(container.querySelectorAll('[data-bar]')).toHaveLength(0)
   })
 
-  it('a sentence that starts on the cited page and is found on the next page is marked there', async () => {
+  it('all found on the cited page: onMarks once with their page', async () => {
+    pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: ['Normal adult blood pressure is below 120 mmHg.'], 113: ['Other text.'] })))
+    const { props } = view(112, { highlights: ['Normal adult blood pressure is below 120 mmHg.'] })
+    await waitFor(() => expect(props.onMarks).toHaveBeenCalledTimes(1))
+    expect(props.onMarks).toHaveBeenCalledWith([{ index: 0, page: 112 }], 1)
+  })
+
+  it('found only on the next page: reported with that page (a sentence that starts on the cited page is marked there)', async () => {
     pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: ['Something else.'], 113: ['Normal adult blood pressure is below 120 mmHg.'] })))
     const { container, props } = view(112, { highlights: ['Normal adult blood pressure is below 120 mmHg.'] })
     await waitFor(() => expect(container.querySelectorAll('[data-page="113"] mark')).toHaveLength(1))
-    expect(props.onHighlightMissing).not.toHaveBeenCalled()
+    await waitFor(() => expect(props.onMarks).toHaveBeenCalledTimes(1))
+    expect(props.onMarks).toHaveBeenCalledWith([{ index: 0, page: 113 }], 1)
   })
 
-  it('not found on the cited page or the next: onHighlightMissing, once, with 0 of 1 found', async () => {
+  it('one on the cited page, one on the next: both, in page order', async () => {
+    pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: ['Fever starts at 38 degrees Celsius.'], 113: ['Normal adult blood pressure is below 120 mmHg.'] })))
+    const { props } = view(112, { highlights: ['Normal adult blood pressure is below 120 mmHg.', 'Fever starts at 38 degrees Celsius.'] })
+    await waitFor(() => expect(props.onMarks).toHaveBeenCalledTimes(1))
+    expect(props.onMarks).toHaveBeenCalledWith([{ index: 1, page: 112 }, { index: 0, page: 113 }], 2)
+  })
+
+  it('found on neither page: onMarks with nothing found', async () => {
     pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: ['Something else.'], 113: ['Other text.'] })))
     const { props } = view(112, { highlights: ['Normal adult blood pressure is below 120 mmHg.'] })
-    await waitFor(() => expect(props.onHighlightMissing).toHaveBeenCalledTimes(1))
-    expect(props.onHighlightMissing).toHaveBeenCalledWith(0, 1)
+    await waitFor(() => expect(props.onMarks).toHaveBeenCalledTimes(1))
+    expect(props.onMarks).toHaveBeenCalledWith([], 1)
   })
 
-  it('some found, some not: onHighlightMissing says how many were found (final review: "not found" read as none)', async () => {
-    pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: ['Normal adult blood pressure is below 120 mmHg.'], 113: ['Other text.'] })))
-    const { props } = view(112, { highlights: ['Normal adult blood pressure is below 120 mmHg.', 'Fever starts at 38 degrees Celsius.'] })
-    await waitFor(() => expect(props.onHighlightMissing).toHaveBeenCalledTimes(1))
-    expect(props.onHighlightMissing).toHaveBeenCalledWith(1, 2)
-  })
-
-  it('the last page: nothing to spill to, so the count comes from that page alone', async () => {
+  it('the last page: nothing to spill to, so the report comes from that page alone', async () => {
     pdf.openPdf.mockReturnValue(opened(fakeDoc(2, { 2: ['Normal adult blood pressure is below 120 mmHg.'] })))
     const { props } = view(2, { highlights: ['Normal adult blood pressure is below 120 mmHg.', 'Fever starts at 38 degrees Celsius.'] })
-    await waitFor(() => expect(props.onHighlightMissing).toHaveBeenCalledWith(1, 2))
+    await waitFor(() => expect(props.onMarks).toHaveBeenCalledWith([{ index: 0, page: 2 }], 2))
+    expect(props.onMarks).toHaveBeenCalledTimes(1)
+  })
+
+  it("showSentence scrolls to that sentence's mark", async () => {
+    const scroll = vi.fn()
+    Element.prototype.scrollIntoView = scroll
+    try {
+      pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: ['Fever starts at 38 degrees Celsius. Normal adult blood pressure is below 120 mmHg.'] })))
+      const ref = createRef<PdfViewHandle>()
+      const { container, props } = view(112, { highlights: ['Normal adult blood pressure is below 120 mmHg.', 'Fever starts at 38 degrees Celsius.'], ref })
+      await waitFor(() => expect(props.onMarks).toHaveBeenCalledTimes(1))
+      expect(container.querySelectorAll('[data-page="112"] mark')).toHaveLength(2)
+      act(() => ref.current!.showSentence(1))
+      const target = scroll.mock.contexts.at(-1) as HTMLElement
+      expect(target.tagName).toBe('MARK')
+      expect(target.dataset.sentence).toBe('1')
+      expect(scroll).toHaveBeenLastCalledWith({ block: 'center' })
+    } finally {
+      delete (Element.prototype as Partial<Element>).scrollIntoView
+    }
   })
 
   it('an expired link calls onExpired', async () => {

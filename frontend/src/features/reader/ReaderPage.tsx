@@ -39,9 +39,9 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
   const [sliding, setSliding] = useState(false)         // medium: the slide-over is closed until asked for
   const opener = useRef<HTMLButtonElement | null>(null)
   const dialog = useRef<HTMLDivElement>(null)
-  const [missing, setMissing] = useState<{ for: string[]; found: number } | null>(null)
+  const [missing, setMissing] = useState<{ for: string[]; found: number; total: number; marks: { index: number; page: number }[] } | null>(null)   // marks: for the reading strip (a later step)
   // resets by itself when another citation is opened (the highlights array changes)
-  const missingOnPage = missing?.for === highlights ? (missing.found === 0 ? 'all' : 'some') : null
+  const missingOnPage = missing?.for === highlights ? (missing.found === 0 ? 'all' : missing.found < missing.total ? 'some' : null) : null
   const hasPanel = (!!source || !!chat) && layout !== 'phone'
   const showDocked = hasPanel && layout === 'wide' && docked
   const showSlide = hasPanel && layout === 'medium' && sliding
@@ -132,7 +132,7 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
       <PdfView key={documentId} url={file.data.url} page={page} highlights={highlights}
         onPageChange={(p, total, jumped) => { setPosition({ page: p, total }); if (jumped) setJumpNote(`Page ${p} of ${total}.`) }}
         onExpired={onExpired} onBroken={() => setBroken(true)} onFailed={() => setFailed(true)}
-        onHighlightMissing={(found) => setMissing({ for: highlights, found })}
+        onMarks={(found, total) => setMissing({ for: highlights, found: found.length, total, marks: found })}
         onMarksShown={(count) => setMarksNote(`${count} sentence${count === 1 ? '' : 's'} marked.`)} />
     )
   }

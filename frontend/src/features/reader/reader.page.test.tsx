@@ -12,7 +12,7 @@ vi.mock('./useReaderLayout', () => ({ useReaderLayout: () => layout.value }))
 // The PDF.js view comes in Task 6; here a stand-in that lets the test trigger its callbacks.
 vi.mock('./PdfView', () => ({
   PdfView: (p: { url: string; page: number; onExpired(): void; onBroken(): void; onFailed(): void; onPageChange(page: number, total: number, jumped: boolean): void;
-    onHighlightMissing?(found: number, total: number): void; onMarksShown?(count: number): void }) => (
+    onMarks?(found: { index: number; page: number }[], total: number): void; onMarksShown?(count: number): void }) => (
     <div>
       <p>PDF {p.url} page {p.page}</p>
       <button onClick={p.onExpired}>expire</button>
@@ -21,8 +21,9 @@ vi.mock('./PdfView', () => ({
       <button onClick={() => p.onPageChange(112, 340, true)}>turn</button>
       <button onClick={() => p.onPageChange(113, 340, false)}>scroll</button>
       <button onClick={() => p.onMarksShown?.(2)}>marked</button>
-      <button onClick={() => p.onHighlightMissing?.(0, 2)}>miss</button>
-      <button onClick={() => p.onHighlightMissing?.(1, 2)}>miss one</button>
+      <button onClick={() => p.onMarks?.([{ index: 0, page: 112 }], 1)}>all found</button>
+      <button onClick={() => p.onMarks?.([], 2)}>miss</button>
+      <button onClick={() => p.onMarks?.([{ index: 0, page: 112 }], 2)}>miss one</button>
     </div>
   ),
 }))
@@ -186,6 +187,13 @@ describe('Source and Chat panel by available space (Task 8)', () => {
     page(undefined, panels)
     await userEvent.click(await screen.findByRole('button', { name: 'miss one' }))
     expect(screen.getByText('SOURCE (missing some)')).toBeInTheDocument()
+  })
+
+  it('every sentence found: the Source panel is told nothing is missing', async () => {
+    api.getFileUrl.mockResolvedValue(link())
+    page(undefined, panels)
+    await userEvent.click(await screen.findByRole('button', { name: 'all found' }))
+    expect(screen.getByText('SOURCE')).toBeInTheDocument()
   })
 })
 
