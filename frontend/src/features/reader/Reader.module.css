@@ -30,7 +30,7 @@
 .pages:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 .slot { scroll-margin-top: 72px; position: relative; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 0 0 1px var(--line); max-width: none; }
 .canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-.marksLayer { position: absolute; inset: 0; pointer-events: none; }   /* reserved: future highlights, pen, notes */
+.marksLayer { position: absolute; inset: 0; pointer-events: none; }   /* margin bars; later pen and notes */
 .zoom {   /* sticks to the bottom of the PAGE column, never over the side panel */
   position: sticky; bottom: 24px; z-index: 6; width: max-content; margin: -64px 24px 24px auto; display: flex; gap: 2px; padding: 4px;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
@@ -42,7 +42,6 @@
   position: absolute; inset: 0; overflow: clip; opacity: 1; line-height: 1; text-align: initial;
   letter-spacing: normal; word-spacing: normal; text-size-adjust: none; forced-color-adjust: none;
   transform-origin: 0 0; caret-color: CanvasText; z-index: 0;
-  mix-blend-mode: multiply;   /* our marks tint the paper like a highlighter pen: black words stay black */
   --min-font-size: 1;
   --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
   --min-font-size-inv: calc(1 / var(--min-font-size));
@@ -59,11 +58,16 @@
 :global(.textLayer) :global(.markedContent) { display: contents; }
 :global(.textLayer) ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 
-/* our mark on the real page (Task 7). PDF pages are white in both themes, so the colours are fixed, not theme
-   tokens; the text layer multiplies with the drawn page, so the yellow never covers the words. */
+/* our mark on the real page. PDF pages are white in both themes, so the colours are fixed, not theme tokens.
+   No fill (a PDF the author already highlighted would hide it): a thick green underline plus a margin bar. */
 .pageMark {
-  background: #FDE68A; color: transparent; border-radius: 2px; scroll-margin: 96px;
-  box-shadow: 0 2px 0 #2F6F4F;   /* a green underline: ours, even on a PDF that already has its own highlights */
+  background: none; color: transparent; scroll-margin: 96px;
+  text-decoration: underline 3px #2F6F4F; text-underline-offset: 2px; text-decoration-skip-ink: none;
+}
+.marginBar { position: absolute; width: 4px; background: #2F6F4F; border-radius: 2px; }
+.marginNum {   /* the citation number, a circle centred on the top of the bar */
+  position: absolute; top: 0; left: 50%; width: 16px; height: 16px; transform: translate(-50%, -50%);
+  display: grid; place-items: center; border-radius: 50%; background: #2F6F4F; color: #fff; font: 700 10px/1 sans-serif;
 }
 
 /* ---- Source | Chat panel (Task 8) ---- */

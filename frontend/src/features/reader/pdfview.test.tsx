@@ -123,6 +123,24 @@ describe('PdfView', () => {
     expect(props.onHighlightMissing).not.toHaveBeenCalled()
   })
 
+  it('page marks carry their sentence index, and each found sentence gets a bar with the citation number', async () => {
+    const sentence = 'Normal adult blood pressure is below 120 mmHg.'
+    pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: ['Readings vary. Normal adult blood pres', 'sure is below 120 mmHg. Next.'] })))
+    const { container } = view(112, { highlights: [sentence], label: 1 })
+    await waitFor(() => expect(container.querySelectorAll('[data-page="112"] mark[data-sentence="0"]')).toHaveLength(2))
+    const bars = container.querySelectorAll('[data-page="112"] [data-bar]')
+    expect(bars).toHaveLength(1)
+    expect(bars[0].textContent).toBe('1')
+    expect(bars[0].getAttribute('aria-hidden')).toBe('true')
+  })
+
+  it('a page without highlights has no bars', async () => {
+    pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: ['Readings vary. Normal adult blood pres', 'sure is below 120 mmHg. Next.'] })))
+    const { container, props } = view(112, { highlights: [], label: 1 })
+    await waitFor(() => expect(props.onPageChange).toHaveBeenCalled())
+    expect(container.querySelectorAll('[data-bar]')).toHaveLength(0)
+  })
+
   it('a sentence that starts on the cited page and is found on the next page is marked there', async () => {
     pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: ['Something else.'], 113: ['Normal adult blood pressure is below 120 mmHg.'] })))
     const { container, props } = view(112, { highlights: ['Normal adult blood pressure is below 120 mmHg.'] })

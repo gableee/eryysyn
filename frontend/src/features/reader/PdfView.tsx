@@ -1,5 +1,5 @@
 import { Maximize, Minus, Plus } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconButton } from '../../shared/ui/IconButton'
 import { clampPage, pagesToDraw } from './pageWindow'
 import { PageSlot } from './PageSlot'
@@ -10,6 +10,8 @@ export type PdfViewProps = {
   url: string
   page: number
   highlights: string[]
+  /** the citation number shown in the margin bar beside each marked sentence */
+  label?: number
   /** jumped: opened, a key, or a new ?page= (worth announcing); false while scrolling (not announced) */
   onPageChange(page: number, total: number, jumped: boolean): void
   onExpired(): void
@@ -26,13 +28,13 @@ export type PdfViewProps = {
 const MAX_FIT_WIDTH = 900                 // "fit to width" stops here on very wide screens
 const ZOOMS = [0.5, 0.75, 1, 1.25, 1.5, 2]
 const WIDE = 1000                         // zoom buttons only where there is room (touch screens pinch instead)
-const NONE: string[] = []                 // one stable empty list, so idle pages never redraw
+const NONE: { index: number; text: string }[] = []                 // one stable empty list, so idle pages never redraw
 
 /**
  * The whole PDF in one scroll column, opened at `page`. Every page has a slot of the right size, but only the
  * visible page and its neighbours are drawn, so a 340-page file stays light. Keys: PageUp/PageDown, ←/→, Home/End.
  */
-export function PdfView({ url, page, highlights, onPageChange, onExpired, onBroken, onFailed, onHighlightMissing, onMarksShown }: PdfViewProps) {
+export function PdfView({ url, page, highlights, label, onPageChange, onExpired, onBroken, onFailed, onHighlightMissing, onMarksShown }: PdfViewProps) {
   const [doc, setDoc] = useState<PdfDocument | null>(null)
   const [base, setBase] = useState({ width: 612, height: 792 })   // page 1 at scale 1 (US Letter until known)
   const [visible, setVisible] = useState(1)
@@ -47,7 +49,7 @@ export function PdfView({ url, page, highlights, onPageChange, onExpired, onBrok
   useEffect(() => { callbacks.current = { onPageChange, onExpired, onBroken, onFailed, onHighlightMissing, onMarksShown } })
   // highlights not found on the cited page are looked for on the next one (a passage can cross a page end)
   // both belong to one set of highlights: opening another citation in the same PDF starts afresh
-  const [spillState, setSpill] = useState<{ for: string[]; page: number; sentences: string[] } | null>(null)
+  const [spillState, setSpill] = useState<{ for: string[]; page: number; sentences: { index: number; text: string }[] } | null>(null)
   const spill = spillState?.for === highlights ? spillState : null
   const marked = useRef({ for: highlights, scrolled: false, missingReported: false, foundOnCited: 0 })
 
@@ -135,12 +137,13 @@ export function PdfView({ url, page, highlights, onPageChange, onExpired, onBrok
   }, [scale, doc])
 
   const cited = doc && highlights.length > 0 ? clampPage(String(page), doc.numPages) : 0
-  const onMarked = useCallback((n: number, found: boolean[], first: HTMLElement | null) => {
+  const citedSentences = useMemo(() => highlights.map((text, index) => ({ index, text })), [highlights])
+  const onMarked = useCallback((n: number, found: { index: number; found: boolean }[], first: HTMLElement | null) => {
     if (marked.current.for !== highlights) marked.current = { for: highlights, scrolled: false, missingReported: false, foundOnCited: 0 }
     if (first && !marked.current.scrolled) {                     // bring the first mark into view, once
       marked.current.scrolled = true
       first.scrollIntoView?.({ block: 'center' })
-      callbacks.current.onMarksShown?.(found.filter(Boolean).length)
+      callbacks.current.onMarksShown?.(found.filter((f) => f.found).length)
     }
     const missing = (foundCount: number) => {
       if (marked.current.missingReported) return
@@ -148,13 +151,13 @@ export function PdfView({ url, page, highlights, onPageChange, onExpired, onBrok
       callbacks.current.onHighlightMissing?.(foundCount, highlights.length)
     }
     if (n === cited) {
-      const rest = highlights.filter((_, i) => !found[i])
+      const rest = found.filter((f) => !f.found).map((f) => ({ index: f.index, text: highlights[f.index] }))
       marked.current.foundOnCited = highlights.length - rest.length
       if (rest.length === 0) return
       if (!doc || cited + 1 > doc.numPages) missing(marked.current.foundOnCited)
       else setSpill((s) => (s && s.for === highlights && s.page === cited + 1 ? s : { for: highlights, page: cited + 1, sentences: rest }))
-    } else if (found.some((f) => !f)) {
-      missing(marked.current.foundOnCited + found.filter(Boolean).length)   // the next page got the rest
+    } else if (found.some((f) => !f.found)) {
+      missing(marked.current.foundOnCited + found.filter((f) => f.found).length)   // the next page got the rest
     }
   }, [cited, highlights, doc])
 
@@ -187,8 +190,8 @@ export function PdfView({ url, page, highlights, onPageChange, onExpired, onBrok
       {/* tabIndex: the keyboard can focus the pages and move through them */}
       <div ref={region} className={styles.pages} role="region" aria-label="PDF pages" tabIndex={0} onKeyDown={onKeyDown}>
         {doc && Array.from({ length: doc.numPages }, (_, i) => i + 1).map((n) => (
-          <PageSlot key={n} doc={doc} n={n} scale={scale} draw={draw.has(n)} onMarked={onMarked}
-            highlights={n === cited ? highlights : spill && n === spill.page ? spill.sentences : NONE}
+          <PageSlot key={n} doc={doc} n={n} scale={scale} draw={draw.has(n)} onMarked={onMarked} label={label}
+            highlights={n === cited ? citedSentences : spill && n === spill.page ? spill.sentences : NONE}
             width={Math.floor(base.width * scale)} height={Math.floor(base.height * scale)} />
         ))}
       </div>
