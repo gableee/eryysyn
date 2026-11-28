@@ -53,7 +53,12 @@
 }
 .inlineSources { display: grid; gap: 8px; max-width: 65ch; }
 /* the sentence that supports the answer (Task 3): Sage highlight, ink text (contrast tested) */
-.evidence { background: var(--hl); color: var(--ink); border-radius: 3px; padding: 0 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.evidence { background: var(--hl); color: var(--ink); border-radius: 3px; padding: 0 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  /* same 3px underline as the sentence on the PDF page, so the two read as one mark (themed accent here) */
+  text-decoration: underline 3px var(--accent); text-underline-offset: 3px; text-decoration-skip-ink: none; }
+/* the line above the card that says what the mark means; the swatch copies the page's margin bar */
+.markKey { display: flex; align-items: center; gap: 8px; margin: 0; font-size: var(--t-14); color: var(--ink); }
+.markSwatch { flex: none; width: 4px; height: 16px; border-radius: 2px; background: var(--accent); }
 .cardActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; }
 .textButton {
   min-height: 32px; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-size: var(--t-14);

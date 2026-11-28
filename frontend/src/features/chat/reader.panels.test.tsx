@@ -52,6 +52,20 @@ describe('ReaderSource (the Source tab)', () => {
     expect(screen.queryByText('Not found on this page: marked in the excerpt only.')).toBeNull()
   })
 
+  it('explains the mark when the card has one', async () => {
+    api.getConversation.mockResolvedValue(conv([msg('a1', 'assistant', 'A is true [1].', [cite])]))
+    show(<ReaderSource conversationId="c1" answerId="a1" n={1} missingOnPage={null} />)
+    expect(await screen.findByText('Green bar and underline: the sentence Ery used for [1].')).toBeInTheDocument()
+  })
+
+  it('no mark, no explanation', async () => {
+    api.getConversation.mockResolvedValue(conv([msg('a1', 'assistant', 'Volcanoes erupt [1].', [cite])]))
+    show(<ReaderSource conversationId="c1" answerId="a1" n={1} missingOnPage={null} />)
+    await screen.findByText('From your answer')
+    expect(document.querySelectorAll('mark')).toHaveLength(0)
+    expect(screen.queryByText(/Green bar and underline/)).toBeNull()
+  })
+
   it('a chat that is gone or not yours shows the fallback, no crash (Review Focus 5)', async () => {
     api.getConversation.mockRejectedValue(new ApiError('not_found', 404, 'gone'))
     show(<ReaderSource conversationId="gone" answerId="a1" n={1} missingOnPage={null} />)
