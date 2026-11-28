@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
+import { useImperativeHandle, type Ref } from 'react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -9,10 +10,14 @@ const api = vi.hoisted(() => ({ getFileUrl: vi.fn() }))
 vi.mock('./api', () => api)
 const layout = vi.hoisted(() => ({ value: 'wide' as 'wide' | 'medium' | 'phone' }))
 vi.mock('./useReaderLayout', () => ({ useReaderLayout: () => layout.value }))
+// the handle the real PdfView gives through its ref: the strip's arrows call it
+const handle = vi.hoisted(() => ({ showSentence: vi.fn() }))
 // The PDF.js view comes in Task 6; here a stand-in that lets the test trigger its callbacks.
 vi.mock('./PdfView', () => ({
-  PdfView: (p: { url: string; page: number; onExpired(): void; onBroken(): void; onFailed(): void; onPageChange(page: number, total: number, jumped: boolean): void;
-    onHighlightMissing?(): void; onMarksShown?(count: number): void }) => (
+  PdfView: function FakePdfView(p: { url: string; page: number; label?: number; onTap?(): void; onExpired(): void; onBroken(): void; onFailed(): void; onPageChange(page: number, total: number, jumped: boolean): void;
+    onMarks?(found: { index: number; page: number }[], total: number): void; onMarksShown?(count: number): void; ref?: Ref<{ showSentence(index: number): void }> }) {
+    useImperativeHandle(p.ref, () => ({ showSentence: (i: number) => handle.showSentence(i) }))
+    return (
     <div>
       <p>PDF {p.url} page {p.page}</p>
       <button onClick={p.onExpired}>expire</button>
@@ -21,9 +26,16 @@ vi.mock('./PdfView', () => ({
       <button onClick={() => p.onPageChange(112, 340, true)}>turn</button>
       <button onClick={() => p.onPageChange(113, 340, false)}>scroll</button>
       <button onClick={() => p.onMarksShown?.(2)}>marked</button>
-      <button onClick={() => p.onHighlightMissing?.()}>miss</button>
+      <button onClick={() => p.onTap?.()}>tap page</button>
+      <button onClick={() => p.onMarks?.([{ index: 0, page: 112 }, { index: 1, page: 113 }], 2)}>marks</button>
+      <p>label {String(p.label)}</p>
+      <button onClick={() => p.onMarks?.([{ index: 0, page: 112 }], 1)}>all found</button>
+      <button onClick={() => p.onMarks?.([], 2)}>miss</button>
+      <button onClick={() => p.onMarks?.([{ index: 0, page: 112 }], 2)}>miss one</button>
+      <button onClick={() => p.onMarks?.([{ index: 0, page: 113 }], 1)}>next page only</button>
     </div>
-  ),
+    )
+  },
 }))
 
 import { ReaderPage, type ReaderBack } from './ReaderPage'
@@ -64,6 +76,13 @@ describe('ReaderPage', () => {
     page()
     expect(await screen.findByText('This document is no longer in your Library.')).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: 'Back to Library' }).length).toBeGreaterThan(0)
+  })
+
+  it('a Reader address with an id that is not a document id shows the gone state, not a retry loop (final review)', async () => {
+    api.getFileUrl.mockRejectedValue(new ApiError('invalid', 422, 'Unprocessable'))
+    page()
+    expect(await screen.findByText('This document is no longer in your Library.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
   })
 
   it("network down shows Can't reach the server, and Try again asks again", async () => {
@@ -122,7 +141,7 @@ describe('ReaderPage', () => {
 
 describe('Source and Chat panel by available space (Task 8)', () => {
   const panels = {
-    source: ({ highlightMissing }: { highlightMissing: boolean }) => <p>{highlightMissing ? 'SOURCE (missing)' : 'SOURCE'}</p>,
+    source: ({ missingOnPage }: { missingOnPage: 'all' | 'some' | null }) => <p>{missingOnPage ? `SOURCE (missing ${missingOnPage})` : 'SOURCE'}</p>,
     chat: <p>CHAT</p>,
     defaultTab: 'source' as const,
   }
@@ -170,7 +189,21 @@ describe('Source and Chat panel by available space (Task 8)', () => {
     api.getFileUrl.mockResolvedValue(link())
     page(undefined, panels)
     await userEvent.click(await screen.findByRole('button', { name: 'miss' }))
-    expect(screen.getByText('SOURCE (missing)')).toBeInTheDocument()
+    expect(screen.getByText('SOURCE (missing all)')).toBeInTheDocument()
+  })
+
+  it('only some sentences missing on the page: the Source panel is told "some", not "all" (final review)', async () => {
+    api.getFileUrl.mockResolvedValue(link())
+    page(undefined, panels)
+    await userEvent.click(await screen.findByRole('button', { name: 'miss one' }))
+    expect(screen.getByText('SOURCE (missing some)')).toBeInTheDocument()
+  })
+
+  it('every sentence found: the Source panel is told nothing is missing', async () => {
+    api.getFileUrl.mockResolvedValue(link())
+    page(undefined, panels)
+    await userEvent.click(await screen.findByRole('button', { name: 'all found' }))
+    expect(screen.getByText('SOURCE')).toBeInTheDocument()
   })
 })
 
@@ -212,5 +245,114 @@ describe('keyboard and screen readers (critique P2)', () => {
     await userEvent.tab({ shift: true })
     expect(dialog).toContainElement(document.activeElement as HTMLElement)
   })
-})
 
+  describe('the phone reading strip', () => {
+    const opened = async (props: Partial<Parameters<typeof ReaderPage>[0]>, layoutValue: 'wide' | 'medium' | 'phone' = 'phone') => {
+      layout.value = layoutValue
+      api.getFileUrl.mockResolvedValue(link())
+      const utils = page(undefined, props)
+      await screen.findByText(/page 112/)
+      return utils
+    }
+
+    it('from a citation: the strip appears once the page reports its marks', async () => {
+      await opened({ label: 1, highlights: ['A.', 'B.'] })
+      expect(screen.queryByText('For [1]')).toBeNull()
+      await userEvent.click(screen.getByRole('button', { name: 'marks' }))
+      expect(screen.getByText('For [1]')).toBeInTheDocument()
+      expect(screen.getByText('1 of 2')).toBeInTheDocument()
+      expect(screen.getByText('A.')).toBeInTheDocument()
+    })
+
+    it('the citation number goes to the page for the margin bar', async () => {
+      await opened({ label: 3, highlights: ['A.'] })
+      expect(screen.getByText('label 3')).toBeInTheDocument()
+    })
+
+    it('nothing found on the page: the strip says so', async () => {
+      await opened({ label: 1, highlights: ['A.', 'B.'] })
+      await userEvent.click(screen.getByRole('button', { name: 'miss' }))
+      expect(screen.getByText('Not found on this page: the sentence is marked in the chat card.')).toBeInTheDocument()
+    })
+
+    it('a citation with no supporting sentence: the no-sentence line', async () => {
+      await opened({ label: 1, highlights: [] })
+      expect(screen.getByText('No single sentence is marked for [1]: the chat card has the whole passage.')).toBeInTheDocument()
+    })
+
+    it('no strip while the PDF is loading', () => {
+      layout.value = 'phone'
+      api.getFileUrl.mockReturnValue(new Promise(() => {}))
+      page(undefined, { label: 1, highlights: [] })
+      expect(screen.queryByText(/No single sentence/)).toBeNull()
+    })
+
+    it('from the Library (no citation): no strip', async () => {
+      await opened({ highlights: [] })
+      expect(screen.queryByText(/No single sentence/)).toBeNull()
+    })
+
+    it('wide and medium: no strip', async () => {
+      await opened({ label: 1, highlights: [] }, 'wide')
+      expect(screen.queryByText(/No single sentence/)).toBeNull()
+    })
+
+    it('medium: no strip', async () => {
+      await opened({ label: 1, highlights: ['A.'] }, 'medium')
+      await userEvent.click(screen.getByRole('button', { name: 'marks' }))
+      expect(screen.queryByText('For [1]')).toBeNull()
+    })
+
+    it('a tap while the page is still finding its marks does not hide the strip before it first shows (final review F2a)', async () => {
+      await opened({ label: 1, highlights: ['A.', 'B.'] })
+      await userEvent.click(screen.getByRole('button', { name: 'tap page' }))   // no strip yet: nothing to hide
+      await userEvent.click(screen.getByRole('button', { name: 'marks' }))
+      expect(screen.getByText('For [1]')).toBeVisible()
+    })
+
+    it('a tap with no strip on screen (opened from the Library) does not hide a later one (final review F2a)', async () => {
+      const { rerender } = await opened({ highlights: [] })
+      await userEvent.click(screen.getByRole('button', { name: 'tap page' }))
+      rerender({ label: 1, highlights: [] })                                     // a citation opens in the same Reader
+      expect(screen.getByText(/No single sentence/)).toBeVisible()
+    })
+
+    it('a tap on the page hides the strip, another shows it', async () => {
+      await opened({ label: 1, highlights: [] })
+      await userEvent.click(screen.getByRole('button', { name: 'tap page' }))
+      expect(screen.queryByRole('region', { name: 'Marked sentence' })).toBeNull()     // hidden: out of sight and of the a11y tree
+      await userEvent.click(screen.getByRole('button', { name: 'tap page' }))
+      expect(screen.getByRole('region', { name: 'Marked sentence' })).toHaveTextContent(/No single sentence/)
+    })
+
+    it('› asks the page to scroll to the next sentence, by its index in the citation (final review F2d)', async () => {
+      await opened({ label: 1, highlights: ['A.', 'B.'] })
+      await userEvent.click(screen.getByRole('button', { name: 'marks' }))           // A on p. 112, B on p. 113
+      await userEvent.click(screen.getByRole('button', { name: 'Next marked sentence' }))
+      expect(handle.showSentence).toHaveBeenCalledTimes(1)
+      expect(handle.showSentence).toHaveBeenLastCalledWith(1)
+      expect(screen.getByText('p. 113')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'Previous marked sentence' }))
+      expect(handle.showSentence).toHaveBeenLastCalledWith(0)
+    })
+
+    it('a sentence found only on the next page: the strip names that page (final review F2d)', async () => {
+      await opened({ label: 1, highlights: ['A.'] })
+      await userEvent.click(screen.getByRole('button', { name: 'next page only' }))
+      expect(screen.getByText('For [1]')).toBeInTheDocument()
+      expect(screen.getByText('p. 113')).toBeInTheDocument()
+      expect(screen.getByText('A.')).toBeInTheDocument()
+    })
+
+    it('hiding and showing the strip keeps the sentence it was on (final review F2b)', async () => {
+      await opened({ label: 1, highlights: ['A.', 'B.'] })
+      await userEvent.click(screen.getByRole('button', { name: 'marks' }))
+      await userEvent.click(screen.getByRole('button', { name: 'Next marked sentence' }))
+      expect(screen.getByText('2 of 2')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('button', { name: 'tap page' }))
+      await userEvent.click(screen.getByRole('button', { name: 'tap page' }))
+      expect(screen.getByText('2 of 2')).toBeVisible()                           // not back to "1 of 2" while the page shows B
+      expect(screen.getByText('B.')).toBeVisible()
+    })
+  })
+})

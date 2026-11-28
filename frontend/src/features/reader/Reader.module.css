@@ -26,11 +26,16 @@
 
 /* ---- the PDF (Task 6) ---- */
 .view { position: relative; min-width: 0; }
-.pages { display: grid; justify-items: center; gap: 16px; padding: 16px 16px 48px; outline: none; background: var(--side); min-height: 100%; }
+/* overflow-x: pages wider than the view (phone column fit) scroll sideways; the grid track then grows and starts at the left.
+   touch-action: one finger still scrolls natively, but the browser's own pinch-zoom is off here (our pinch zooms the
+   pages only, never the toolbar or the strip) */
+.pages { display: grid; justify-items: center; overflow-x: auto; touch-action: pan-x pan-y;
+  padding: 16px 16px 48px; outline: none; background: var(--side); min-height: 100%; }
+.sheet { display: grid; justify-items: center; gap: 16px; }   /* the pages; a CSS transform scales it while pinching */
 .pages:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 .slot { scroll-margin-top: 72px; position: relative; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 0 0 1px var(--line); max-width: none; }
 .canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-.marksLayer { position: absolute; inset: 0; pointer-events: none; }   /* reserved: future highlights, pen, notes */
+.marksLayer { position: absolute; inset: 0; pointer-events: none; }   /* margin bars; later pen and notes */
 .zoom {   /* sticks to the bottom of the PAGE column, never over the side panel */
   position: sticky; bottom: 24px; z-index: 6; width: max-content; margin: -64px 24px 24px auto; display: flex; gap: 2px; padding: 4px;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
@@ -42,7 +47,6 @@
   position: absolute; inset: 0; overflow: clip; opacity: 1; line-height: 1; text-align: initial;
   letter-spacing: normal; word-spacing: normal; text-size-adjust: none; forced-color-adjust: none;
   transform-origin: 0 0; caret-color: CanvasText; z-index: 0;
-  mix-blend-mode: multiply;   /* our marks tint the paper like a highlighter pen: black words stay black */
   --min-font-size: 1;
   --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
   --min-font-size-inv: calc(1 / var(--min-font-size));
@@ -59,11 +63,18 @@
 :global(.textLayer) :global(.markedContent) { display: contents; }
 :global(.textLayer) ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 
-/* our mark on the real page (Task 7). PDF pages are white in both themes, so the colours are fixed, not theme
-   tokens; the text layer multiplies with the drawn page, so the yellow never covers the words. */
+/* our mark on the real page. PDF pages are white in both themes, so the colours are fixed, not theme tokens.
+   No fill (a PDF the author already highlighted would hide it): a thick green underline plus a margin bar.
+   scroll-margin is above and below only: on the sides it pushed the mark's box past a phone's view, so the mark
+   scroll also moved the pages sideways and hid the start of every line (final review F1). */
 .pageMark {
-  background: #FDE68A; color: transparent; border-radius: 2px; scroll-margin: 96px;
-  box-shadow: 0 2px 0 #2F6F4F;   /* a green underline: ours, even on a PDF that already has its own highlights */
+  background: none; color: transparent; scroll-margin: 96px 0;
+  text-decoration: underline 3px #2F6F4F; text-underline-offset: 2px; text-decoration-skip-ink: none;
+}
+.marginBar { position: absolute; width: 4px; background: #2F6F4F; border-radius: 2px; }
+.marginNum {   /* the citation number, a circle centred on the top of the bar */
+  position: absolute; top: 0; left: 50%; width: 16px; height: 16px; transform: translate(-50%, -50%);
+  display: grid; place-items: center; border-radius: 50%; background: #2F6F4F; color: #fff; font: 700 10px/1 sans-serif;
 }
 
 /* ---- Source | Chat panel (Task 8) ---- */
@@ -96,3 +107,30 @@
 }
 @keyframes slideIn { from { transform: translateX(24px); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .slide { animation: none; } }
+
+/* ---- the phone reading strip: the marked sentence at reading size, fixed under the pages ---- */
+.strip {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: grid; gap: 4px;
+  padding: 8px max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: var(--bg); border-top: 1px solid var(--line); box-shadow: 0 -2px 8px rgb(0 0 0 / 0.08);
+  max-height: 40dvh; overflow-y: auto;
+}
+/* a tap on the page hides the strip with the hidden attribute; display: grid above would otherwise keep it on screen */
+.strip[hidden] { display: none; }
+.stripHead { display: flex; align-items: center; gap: 12px; font-size: var(--t-14); color: var(--muted); font-variant-numeric: tabular-nums; }
+.stripLabel { font-weight: 600; color: var(--ink); }
+.stripButtons { margin-left: auto; display: flex; gap: 4px; }
+.stripButton {
+  display: grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; border-radius: var(--r-s);
+  background: none; color: var(--accent); cursor: pointer;
+}
+.stripButton:hover:not(:disabled) { background: var(--soft); }
+.stripButton:disabled { color: var(--muted); opacity: 0.5; cursor: default; }
+.stripText, .stripNote { margin: 0; font-size: var(--t-16); line-height: 1.5; }
+.stripNote { color: var(--muted); }
+/* the same look as the marked sentence in the chat card: tint plus a 3px underline */
+.stripSentence {
+  background: var(--hl); color: var(--ink); border-radius: 3px; padding: 0 2px;
+  text-decoration: underline; text-decoration-thickness: 3px; text-decoration-color: var(--accent); text-underline-offset: 3px;
+  box-decoration-break: clone; -webkit-box-decoration-break: clone;
+}

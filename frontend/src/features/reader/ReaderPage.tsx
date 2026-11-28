@@ -7,8 +7,9 @@ import { EmptyState } from '../../shared/ui/EmptyState'
 import { ErrorState } from '../../shared/ui/ErrorState'
 import { IconButton } from '../../shared/ui/IconButton'
 import { useFileUrl } from './hooks'
-import { PdfView } from './PdfView'
+import { PdfView, type PdfViewHandle } from './PdfView'
 import styles from './Reader.module.css'
+import { ReadingStrip } from './ReadingStrip'
 import { ReaderPanel, type PanelTab } from './ReaderPanel'
 import { useReaderLayout } from './useReaderLayout'
 
@@ -20,8 +21,10 @@ type Props = {
   page: number
   /** sentences to mark on the page (the supporting sentences of the cited answer) */
   highlights: string[]
-  /** panels from the app (Task 8): the cited source (told whether the page has its marks) and the conversation */
-  source?: (state: { highlightMissing: boolean }) => ReactNode
+  /** the citation number, set whenever the Reader was opened from a citation (even one with no sentences to mark) */
+  label?: number
+  /** panels from the app (Task 8): the cited source (told whether the page lacks all or some of its marks) and the conversation */
+  source?: (state: { missingOnPage: 'all' | 'some' | null }) => ReactNode
   chat?: ReactNode
   defaultTab?: PanelTab
   back: ReaderBack
@@ -31,7 +34,7 @@ type Props = {
  * The Reader: the real PDF, opened at a page. Full window by default; the toolbar can open the app's sidebar.
  * The PDF link expires after 10 minutes: one silent renewal, then Try again.
  */
-export function ReaderPage({ documentId, filename, page, highlights, source, chat, defaultTab = 'source', back }: Props) {
+export function ReaderPage({ documentId, filename, page, highlights, label, source, chat, defaultTab = 'source', back }: Props) {
   const root = useRef<HTMLElement>(null)
   const layout = useReaderLayout(root)
   const [tab, setTab] = useState<PanelTab>(defaultTab)
@@ -39,8 +42,11 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
   const [sliding, setSliding] = useState(false)         // medium: the slide-over is closed until asked for
   const opener = useRef<HTMLButtonElement | null>(null)
   const dialog = useRef<HTMLDivElement>(null)
-  const [missingFor, setMissingFor] = useState<string[] | null>(null)
-  const highlightMissing = missingFor === highlights    // resets by itself when another citation is opened
+  const [missing, setMissing] = useState<{ for: string[]; found: number; total: number; marks: { index: number; page: number }[] } | null>(null)
+  // resets by itself when another citation is opened (the highlights array changes)
+  const missingOnPage = missing?.for === highlights ? (missing.found === 0 ? 'all' : missing.found < missing.total ? 'some' : null) : null
+  const pdf = useRef<PdfViewHandle>(null)
+  const [stripHidden, setStripHidden] = useState(false)   // a tap on the page hides the strip, another brings it back
   const hasPanel = (!!source || !!chat) && layout !== 'phone'
   const showDocked = hasPanel && layout === 'wide' && docked
   const showSlide = hasPanel && layout === 'medium' && sliding
@@ -110,10 +116,20 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
     void file.refetch()
   }
 
+  // the phone reading strip: only for a citation, only while the PDF is shown, and for marks only once the page has reported
+  const reported = missing?.for === highlights ? missing : null
+  const stripState = highlights.length === 0 ? 'no-sentence' : reported ? (reported.marks.length === 0 ? 'none-on-page' : 'marks') : null
+  const hasStrip = layout === 'phone' && label !== undefined && stripState !== null && !!file.data && !broken && !failed
+  const stripSentences = reported ? reported.marks.map((m) => ({ index: m.index, text: highlights[m.index], page: m.page })) : []
+  // a tap hides or shows the strip only while there is one: a tap while the page is still finding its marks (or with
+  // no strip at all) must not hide it before the student has seen it (final review F2a)
+  const onTap = () => { if (hasStrip) setStripHidden((h) => !h) }
+
   let body: ReactNode
   if (file.isPending) {
     body = <p className={styles.status} aria-live="polite">Opening {filename ?? 'the document'}…</p>
-  } else if (file.error instanceof ApiError && file.error.kind === 'not_found') {
+  } else if (file.error instanceof ApiError && (file.error.kind === 'not_found' || file.error.kind === 'invalid')) {
+    // invalid (422): the address holds something that is not a document id; trying again cannot help
     body = <EmptyState title="This document is no longer in your Library." action={backLink} />
   } else if (file.error) {
     body = (
@@ -127,15 +143,15 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
       message={typeof navigator !== 'undefined' && navigator.onLine === false ? "Can't reach the server" : "This PDF couldn't be loaded."} />
   } else {
     body = (
-      <PdfView key={documentId} url={file.data.url} page={page} highlights={highlights}
+      <PdfView ref={pdf} key={documentId} label={label} onTap={onTap} url={file.data.url} page={page} highlights={highlights} fit={layout === 'phone' ? 'column' : 'width'}
         onPageChange={(p, total, jumped) => { setPosition({ page: p, total }); if (jumped) setJumpNote(`Page ${p} of ${total}.`) }}
         onExpired={onExpired} onBroken={() => setBroken(true)} onFailed={() => setFailed(true)}
-        onHighlightMissing={() => setMissingFor(highlights)}
+        onMarks={(found, total) => setMissing({ for: highlights, found: found.length, total, marks: found })}
         onMarksShown={(count) => setMarksNote(`${count} sentence${count === 1 ? '' : 's'} marked.`)} />
     )
   }
 
-  const sourceContent = source?.({ highlightMissing })
+  const sourceContent = source?.({ missingOnPage })
 
   return (
     <section ref={root} className={styles.reader} aria-label={filename ? `Reader: ${filename}` : 'Reader'}>
@@ -160,6 +176,8 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
         {file.data && !broken && !failed ? body : <div className={styles.stateBox}>{body}</div>}
         {showDocked && <aside className={styles.docked} aria-label="Source and chat"><ReaderPanel tab={tab} onTab={setTab} closeLabel="Hide panel" onClose={() => setDocked(false)} source={sourceContent} chat={chat} /></aside>}
       </div>
+      {/* hidden, not removed, when a tap puts it away: removing it would bring it back on the first sentence (final review F2b) */}
+      {hasStrip && <ReadingStrip key={highlights.join('\n')} label={label} sentences={stripSentences} state={stripState} hidden={stripHidden} onShow={(i) => pdf.current?.showSentence(i)} />}
       {showSlide && (
         <div className={styles.scrim} onClick={closeSlide}>
           <div ref={dialog} role="dialog" aria-modal="true" aria-label="Source and chat" className={styles.slide}
