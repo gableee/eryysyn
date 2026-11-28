@@ -129,7 +129,7 @@ export function ReaderPage({ documentId, filename, page, highlights, source, cha
       message={typeof navigator !== 'undefined' && navigator.onLine === false ? "Can't reach the server" : "This PDF couldn't be loaded."} />
   } else {
     body = (
-      <PdfView key={documentId} url={file.data.url} page={page} highlights={highlights}
+      <PdfView key={documentId} url={file.data.url} page={page} highlights={highlights} fit={layout === 'phone' ? 'column' : 'width'}
         onPageChange={(p, total, jumped) => { setPosition({ page: p, total }); if (jumped) setJumpNote(`Page ${p} of ${total}.`) }}
         onExpired={onExpired} onBroken={() => setBroken(true)} onFailed={() => setFailed(true)}
         onMarks={(found, total) => setMissing({ for: highlights, found: found.length, total, marks: found })}

@@ -26,14 +26,16 @@ vi.mock('./pdf', () => pdf)
 import { createRef } from 'react'
 import { PdfView, type PdfViewHandle } from './PdfView'
 
-const fakePage = (text: string[] = []) => ({
+type FakeItem = { str: string; transform?: number[]; width?: number }
+const events: string[] = []   // 'text:<n>' / 'render:<n>' in the order PdfView asked, to prove the text is read before any drawing
+const fakePage = (text: (string | FakeItem)[] = [], n = 0) => ({
   getViewport: ({ scale }: { scale: number }) => ({ width: 600 * scale, height: 800 * scale, rawDims: { pageWidth: 600, pageHeight: 800 } }),
-  render: () => ({ promise: Promise.resolve(), cancel: vi.fn() }),
-  getTextContent: () => Promise.resolve({ items: text.map((str) => ({ str })), styles: {} }),
+  render: () => { events.push(`render:${n}`); return { promise: Promise.resolve(), cancel: vi.fn() } },
+  getTextContent: () => { events.push(`text:${n}`); return Promise.resolve({ items: text.map((t) => (typeof t === 'string' ? { str: t } : t)), styles: {} }) },
   cleanup: vi.fn(),
 })
-const fakeDoc = (numPages: number, text: Record<number, string[]> = {}) =>
-  ({ numPages, getPage: vi.fn((n: number) => Promise.resolve(fakePage(text[n]))), destroy: vi.fn() })
+const fakeDoc = (numPages: number, text: Record<number, (string | FakeItem)[]> = {}) =>
+  ({ numPages, getPage: vi.fn((n: number) => Promise.resolve(fakePage(text[n], n))), destroy: vi.fn() })
 const opened = (doc: unknown) => ({ promise: Promise.resolve(doc), destroy: vi.fn() })
 
 function view(page: number, extra: Partial<Parameters<typeof PdfView>[0]> = {}) {
@@ -45,6 +47,7 @@ function view(page: number, extra: Partial<Parameters<typeof PdfView>[0]> = {}) 
 
 beforeEach(() => {
   vi.resetAllMocks()
+  events.length = 0
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({} as never)
 })
 afterEach(() => vi.restoreAllMocks())
@@ -285,5 +288,55 @@ describe('PdfView', () => {
       process.off('unhandledRejection', unhandled)
       pdf.TextLayer.prototype.render = original
     }
+  })
+  describe('fit="column" (phones)', () => {
+    const regionWidth = (w: number) => vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(w)
+
+    it('the page opens scaled to its text column, scrolled to the column', async () => {
+      regionWidth(360)
+      pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: [{ str: 'Hello', transform: [1, 0, 0, 1, 72, 700], width: 468 }] })))
+      const { container, props } = view(112, { fit: 'column' })
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+      const scale = 336 / 468
+      expect((container.querySelector('[data-page="112"]') as HTMLElement).style.width).toBe(`${Math.floor(600 * scale)}px`)
+      // what the student sees: the text starts 12px from the view's left edge (the grid's own 16px padding counts)
+      const scrolled = screen.getByRole('region', { name: 'PDF pages' }).scrollLeft
+      expect(16 + 72 * scale - scrolled).toBeCloseTo(12)
+      expect(16 + 540 * scale - scrolled).toBeCloseTo(360 - 12)   // and the column's right edge is 12px inside the right edge
+      // the text positions were read before any page was drawn, so there is no visible jump
+      await waitFor(() => expect(events.some((e) => e.startsWith('render:'))).toBe(true))
+      expect(events.indexOf('text:112')).toBeGreaterThanOrEqual(0)
+      expect(events.indexOf('text:112')).toBeLessThan(events.findIndex((e) => e.startsWith('render:')))
+    })
+
+    it('the first draw is stable: the size observer reporting the content width changes nothing', async () => {
+      regionWidth(360)
+      let report: ((entries: unknown[]) => void) | null = null
+      vi.stubGlobal('ResizeObserver', class { constructor(cb: (entries: unknown[]) => void) { report = cb } observe() {} disconnect() {} })
+      pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: [{ str: 'Hello', transform: [1, 0, 0, 1, 72, 700], width: 468 }] })))
+      const { container, props } = view(112, { fit: 'column' })
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+      const slotWidth = () => (container.querySelector('[data-page="112"]') as HTMLElement).style.width
+      const before = slotWidth()
+      act(() => report?.([{ contentRect: { width: 360 - 32 } }]))   // a real browser excludes the 16px padding on each side
+      expect(slotWidth()).toBe(before)
+      vi.unstubAllGlobals()
+    })
+
+    it('no usable text: falls back to fit width', async () => {
+      regionWidth(360)
+      pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: ['no positions'] })))
+      const { container, props } = view(112, { fit: 'column' })
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+      expect((container.querySelector('[data-page="112"]') as HTMLElement).style.width).toBe(`${Math.floor(600 * ((360 - 64) / 600))}px`)
+    })
+
+    it('the default (width) ignores the text column', async () => {
+      regionWidth(360)
+      pdf.openPdf.mockReturnValue(opened(fakeDoc(340, { 112: [{ str: 'Hello', transform: [1, 0, 0, 1, 72, 700], width: 468 }] })))
+      const { container, props } = view(112)
+      await waitFor(() => expect(props.onPageChange).toHaveBeenLastCalledWith(112, 340, true))
+      expect((container.querySelector('[data-page="112"]') as HTMLElement).style.width).toBe(`${Math.floor(600 * ((360 - 32) / 600))}px`)
+    })
   })
 })
